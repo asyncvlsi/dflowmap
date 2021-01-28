@@ -104,62 +104,62 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
         switch (type) {
           case E_AND: {
             EMIT_BIN(resFp, expr, out, "and", instCnt);
-            createBinLib(libFp, "and", "&");
+            createBinLib(libFp, "and", "&", type);
             break;
           }
           case E_OR: {
             EMIT_BIN(resFp, expr, out, "or", instCnt);
-            createBinLib(libFp, "or", "|");
+            createBinLib(libFp, "or", "|", type);
             break;
           }
           case E_NOT: {
             EMIT_UNI(resFp, expr, out, "not", instCnt);
-            createUniLib(libFp, "not", "~");
+            createUniLib(libFp, "not", "~", type);
             break;
           }
           case E_PLUS: {
             EMIT_BIN(resFp, expr, out, "add", instCnt);
-            createBinLib(libFp, "add", "+");
+            createBinLib(libFp, "add", "+", type);
             break;
           }
           case E_MINUS: {
             EMIT_BIN(resFp, expr, out, "minus", instCnt);
-            createBinLib(libFp, "minus", "-");
+            createBinLib(libFp, "minus", "-", type);
             break;
           }
           case E_MULT: {
             EMIT_BIN(resFp, expr, out, "multi", instCnt);
-            createBinLib(libFp, "multi", "*");
+            createBinLib(libFp, "multi", "*", type);
             break;
           }
           case E_DIV: {
             EMIT_BIN(resFp, expr, out, "div", instCnt);
-            createBinLib(libFp, "div", "/");
+            createBinLib(libFp, "div", "/", type);
             break;
           }
           case E_MOD: {
             EMIT_BIN(resFp, expr, out, "mod", instCnt);
-            createBinLib(libFp, "mod", "%");
+            createBinLib(libFp, "mod", "%", type);
             break;
           }
           case E_LSL: {
             EMIT_BIN(resFp, expr, out, "lsl", instCnt);
-            createBinLib(libFp, "lsl", "<<");
+            createBinLib(libFp, "lsl", "<<", type);
             break;
           }
           case E_LSR: {
             EMIT_BIN(resFp, expr, out, "lsr", instCnt);
-            createBinLib(libFp, "lsr", ">>");
+            createBinLib(libFp, "lsr", ">>", type);
             break;
           }
           case E_ASR: {
             EMIT_BIN(resFp, expr, out, "asr", instCnt);
-            createBinLib(libFp, "asr", ">>>");
+            createBinLib(libFp, "asr", ">>>", type);
             break;
           }
           case E_UMINUS: {
             EMIT_UNI(resFp, expr, out, "neg", instCnt);
-            createUniLib(libFp, "neg", "-");
+            createUniLib(libFp, "neg", "-", type);
             break;
           }
           case E_INT: {
@@ -190,42 +190,42 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
           }
           case E_XOR: {
             EMIT_BIN(resFp, expr, out, "xor", instCnt);
-            createBinLib(libFp, "xor", "^");
+            createBinLib(libFp, "xor", "^", type);
             break;
           }
           case E_LT: {
             EMIT_BIN(resFp, expr, out, "lt", instCnt);
-            createBinLib(libFp, "lt", "<");
+            createBinLib(libFp, "lt", "<", type);
             break;
           }
           case E_GT: {
             EMIT_BIN(resFp, expr, out, "gt", instCnt);
-            createBinLib(libFp, "gt", ">");
+            createBinLib(libFp, "gt", ">", type);
             break;
           }
           case E_LE: {
             EMIT_BIN(resFp, expr, out, "le", instCnt);
-            createBinLib(libFp, "le", "<=");
+            createBinLib(libFp, "le", "<=", type);
             break;
           }
           case E_GE: {
             EMIT_BIN(resFp, expr, out, "ge", instCnt);
-            createBinLib(libFp, "ge", ">=");
+            createBinLib(libFp, "ge", ">=", type);
             break;
           }
           case E_EQ: {
             EMIT_BIN(resFp, expr, out, "eq", instCnt);
-            createBinLib(libFp, "eq", "==");
+            createBinLib(libFp, "eq", "==", type);
             break;
           }
           case E_NE: {
             EMIT_BIN(resFp, expr, out, "ne", instCnt);
-            createBinLib(libFp, "ne", "!=");
+            createBinLib(libFp, "ne", "!=", type);
             break;
           }
           case E_COMPLEMENT: {
             EMIT_UNI(resFp, expr, out, "comple", instCnt);
-            createUniLib(libFp, "comple", "~");
+            createUniLib(libFp, "comple", "~", type);
             break;
           }
           default: {
