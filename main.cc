@@ -87,7 +87,6 @@ void handleProcess(FILE *fp, Process *p) {
        li;
        li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
-
     switch (d->t) {
       case ACT_DFLOW_FUNC: {
         Expr *expr = d->u.func.lhs;
@@ -156,10 +155,16 @@ void handleProcess(FILE *fp, Process *p) {
           case E_VAR: {
             fprintf(fp, "buffer<");
             Expr *buff = d->u.func.nbufs;
-            print_expr(fp, buff);
-            fprintf(fp, ", ");
+            if (!buff) {
+              fprintf(fp, "1");
+            } else {
+              print_expr(fp, buff);
+            }
             Expr *init = d->u.func.init;
-            print_expr(fp, init);
+            if (init) {
+              fprintf(fp, ", ");
+              print_expr(fp, init);
+            }
             fprintf(fp, "> i%u(", instCnt);
             auto actId = (ActId *) expr->u.e.l;
             printActId(fp, actId);
@@ -250,9 +255,10 @@ void handleProcess(FILE *fp, Process *p) {
         fatal_error("We don't support ARBITER for now!\n");
         break;
       }
-      default:
+      default: {
         fatal_error("Unknown dataflow type %d\n", d->t);
         break;
+      }
     }
     instCnt++;
   }
