@@ -26,62 +26,65 @@
 #include <unistd.h>
 #include <act/act.h>
 #include <act/passes.h>
+#include "lib.cc"
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s <actfile> <process>\n", name);
   exit(1);
 }
 
-void printActId(FILE *fp, ActId *actId, bool printComma = true) {
+void printActId(FILE *resFp, ActId *actId, bool printComma = true) {
   if (actId) {
-    fprintf(fp, "%s", actId->getName());
+    fprintf(resFp, "%s", actId->getName());
     if (printComma) {
-      fprintf(fp, ", ");
+      fprintf(resFp, ", ");
     }
   } else {
-    fprintf(fp, "*, ");
+    fprintf(resFp, "*, ");
   }
 }
 
-void printExpr(FILE *fp, Expr *expr, bool printComma = true) {
+void printExpr(FILE *resFp, Expr *expr, bool printComma = true) {
   int type = expr->type;
   if (type == E_VAR) {
-    printActId(fp, (ActId *) expr->u.e.l, printComma);
+    printActId(resFp, (ActId *) expr->u.e.l, printComma);
   } else if (type == E_INT) {
-    fprintf(fp, "%d", expr->u.v);
+    fprintf(resFp, "%d", expr->u.v);
     if (printComma) {
-      fprintf(fp, ",");
+      fprintf(resFp, ",");
     }
   } else {
-    fprintf(fp, "Try to get name for invalid expr type: %d!\n", type);
+    fprintf(resFp, "Try to get name for invalid expr type: %d!\n", type);
     print_expr(stdout, expr);
     exit(-1);
   }
 }
 
-void EMIT_BIN(FILE *fp, Expr *expr, const char *out, const char *sym, unsigned instCnt) {
-  fprintf(fp, "func_%s i%u(", sym, instCnt);
+void EMIT_BIN(FILE *resFp, Expr *expr, const char *out, const char *sym,
+              unsigned instCnt) {
+  fprintf(resFp, "func_%s i%u(", sym, instCnt);
   Expr *lExpr = expr->u.e.l;
-  printExpr(fp, lExpr);
+  printExpr(resFp, lExpr);
   Expr *rExpr = expr->u.e.r;
-  printExpr(fp, rExpr);
-  fprintf(fp, "%s);\n", out);
+  printExpr(resFp, rExpr);
+  fprintf(resFp, "%s);\n", out);
 }
 
-void EMIT_UNI(FILE *fp, Expr *expr, const char *out, const char *sym, unsigned instCnt) {
-  fprintf(fp, "func_%s i%u(", sym, instCnt);
-  printExpr(fp, expr->u.e.l);
-  fprintf(fp, "%s);\n", out);
+void EMIT_UNI(FILE *resFp, Expr *expr, const char *out, const char *sym,
+              unsigned instCnt) {
+  fprintf(resFp, "func_%s i%u(", sym, instCnt);
+  printExpr(resFp, expr->u.e.l);
+  fprintf(resFp, "%s);\n", out);
 }
 
-void handleProcess(FILE *fp, Process *p) {
+void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
   if (!p->getlang()->getdflow()) {
     fatal_error("Process `%s': no dataflow body", p->getName());
   }
   unsigned instCnt = 0;
-  p->PrintHeader(fp, "defproc");
-  fprintf(fp, "\n{");
-  p->CurScope()->Print(fp);
+  p->PrintHeader(resFp, "defproc");
+  fprintf(resFp, "\n{");
+  p->CurScope()->Print(resFp);
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
@@ -92,7 +95,7 @@ void handleProcess(FILE *fp, Process *p) {
         Expr *expr = d->u.func.lhs;
         ActId *rhs = d->u.func.rhs;
         if (!rhs) {
-          fprintf(fp, "dflow function has empty RHS!\n");
+          fprintf(resFp, "dflow function has empty RHS!\n");
           print_expr(stdout, expr);
           exit(-1);
         }
@@ -100,107 +103,129 @@ void handleProcess(FILE *fp, Process *p) {
         int type = expr->type;
         switch (type) {
           case E_AND: {
-            EMIT_BIN(fp, expr, out, "and", instCnt);
+            EMIT_BIN(resFp, expr, out, "and", instCnt);
+            createBinLib(libFp, "and", "&");
             break;
           }
           case E_OR: {
-            EMIT_BIN(fp, expr, out, "or", instCnt);
+            EMIT_BIN(resFp, expr, out, "or", instCnt);
+            createBinLib(libFp, "or", "|");
             break;
           }
           case E_NOT: {
-            EMIT_UNI(fp, expr, out, "not", instCnt);
+            EMIT_UNI(resFp, expr, out, "not", instCnt);
+            createUniLib(libFp, "not", "~");
             break;
           }
           case E_PLUS: {
-            EMIT_BIN(fp, expr, out, "add", instCnt);
+            EMIT_BIN(resFp, expr, out, "add", instCnt);
+            createBinLib(libFp, "add", "+");
             break;
           }
           case E_MINUS: {
-            EMIT_BIN(fp, expr, out, "minus", instCnt);
+            EMIT_BIN(resFp, expr, out, "minus", instCnt);
+            createBinLib(libFp, "minus", "-");
             break;
           }
           case E_MULT: {
-            EMIT_BIN(fp, expr, out, "multi", instCnt);
+            EMIT_BIN(resFp, expr, out, "multi", instCnt);
+            createBinLib(libFp, "multi", "*");
             break;
           }
           case E_DIV: {
-            EMIT_BIN(fp, expr, out, "div", instCnt);
+            EMIT_BIN(resFp, expr, out, "div", instCnt);
+            createBinLib(libFp, "div", "/");
             break;
           }
           case E_MOD: {
-            EMIT_BIN(fp, expr, out, "mod", instCnt);
+            EMIT_BIN(resFp, expr, out, "mod", instCnt);
+            createBinLib(libFp, "mod", "%");
             break;
           }
           case E_LSL: {
-            EMIT_BIN(fp, expr, out, "lsl", instCnt);
+            EMIT_BIN(resFp, expr, out, "lsl", instCnt);
+            createBinLib(libFp, "lsl", "<<");
             break;
           }
           case E_LSR: {
-            EMIT_BIN(fp, expr, out, "lsr", instCnt);
+            EMIT_BIN(resFp, expr, out, "lsr", instCnt);
+            createBinLib(libFp, "lsr", ">>");
             break;
           }
           case E_ASR: {
-            EMIT_BIN(fp, expr, out, "asr", instCnt);
+            EMIT_BIN(resFp, expr, out, "asr", instCnt);
+            createBinLib(libFp, "asr", ">>>");
             break;
           }
           case E_UMINUS: {
-            EMIT_UNI(fp, expr, out, "neg", instCnt);
+            EMIT_UNI(resFp, expr, out, "neg", instCnt);
+            createUniLib(libFp, "neg", "-");
             break;
           }
           case E_INT: {
             unsigned int val = expr->u.v;
-            fprintf(fp, "source<%u> i%u(%s);\n", val, instCnt, out);
+            fprintf(resFp, "source<%u> i%u(%s);\n", val, instCnt, out);
+            createSource(libFp);
             break;
           }
           case E_VAR: {
-            fprintf(fp, "buffer<");
+            fprintf(resFp, "buffer<");
             Expr *buff = d->u.func.nbufs;
             if (!buff) {
-              fprintf(fp, "1");
+              fprintf(resFp, "1");
             } else {
-              print_expr(fp, buff);
+              print_expr(resFp, buff);
             }
             Expr *init = d->u.func.init;
             if (init) {
-              fprintf(fp, ", ");
-              print_expr(fp, init);
+              fprintf(resFp, ", ");
+              print_expr(resFp, init);
             }
-            fprintf(fp, "> i%u(", instCnt);
+            fprintf(resFp, "> i%u(", instCnt);
             auto actId = (ActId *) expr->u.e.l;
-            printActId(fp, actId);
-            fprintf(fp, "%s);\n", out);
+            printActId(resFp, actId);
+            fprintf(resFp, "%s);\n", out);
+            createBuff(libFp);
             break;
           }
           case E_XOR: {
-            EMIT_BIN(fp, expr, out, "xor", instCnt);
+            EMIT_BIN(resFp, expr, out, "xor", instCnt);
+            createBinLib(libFp, "xor", "^");
             break;
           }
           case E_LT: {
-            EMIT_BIN(fp, expr, out, "lt", instCnt);
+            EMIT_BIN(resFp, expr, out, "lt", instCnt);
+            createBinLib(libFp, "lt", "<");
             break;
           }
           case E_GT: {
-            EMIT_BIN(fp, expr, out, "gt", instCnt);
+            EMIT_BIN(resFp, expr, out, "gt", instCnt);
+            createBinLib(libFp, "gt", ">");
             break;
           }
           case E_LE: {
-            EMIT_BIN(fp, expr, out, "le", instCnt);
+            EMIT_BIN(resFp, expr, out, "le", instCnt);
+            createBinLib(libFp, "le", "<=");
             break;
           }
           case E_GE: {
-            EMIT_BIN(fp, expr, out, "ge", instCnt);
+            EMIT_BIN(resFp, expr, out, "ge", instCnt);
+            createBinLib(libFp, "ge", ">=");
             break;
           }
           case E_EQ: {
-            EMIT_BIN(fp, expr, out, "eq", instCnt);
+            EMIT_BIN(resFp, expr, out, "eq", instCnt);
+            createBinLib(libFp, "eq", "==");
             break;
           }
           case E_NE: {
-            EMIT_BIN(fp, expr, out, "ne", instCnt);
+            EMIT_BIN(resFp, expr, out, "ne", instCnt);
+            createBinLib(libFp, "ne", "!=");
             break;
           }
           case E_COMPLEMENT: {
-            EMIT_UNI(fp, expr, out, "comple", instCnt);
+            EMIT_UNI(resFp, expr, out, "comple", instCnt);
+            createUniLib(libFp, "comple", "~");
             break;
           }
           default: {
@@ -210,41 +235,43 @@ void handleProcess(FILE *fp, Process *p) {
         break;
       }
       case ACT_DFLOW_SPLIT: {
-        fprintf(fp, "control_split i%d(", instCnt);
+        fprintf(resFp, "control_split i%d(", instCnt);
         ActId *guard = d->u.splitmerge.guard;
-        printActId(fp, guard);
+        printActId(resFp, guard);
         ActId *input = d->u.splitmerge.single;
-        printActId(fp, input);
+        printActId(resFp, input);
         int numOutputs = d->u.splitmerge.nmulti;
         if (numOutputs != 2) {
           fatal_error("Split i%d does not have TWO outputs!\n", instCnt);
         }
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
-        printActId(fp, lOut);
+        printActId(resFp, lOut);
         ActId *rOut = outputs[1];
         bool printComma = false;
-        printActId(fp, rOut, printComma);
-        fprintf(fp, ");\n");
+        printActId(resFp, rOut, printComma);
+        fprintf(resFp, ");\n");
+        createSplit(libFp);
         break;
       }
       case ACT_DFLOW_MERGE: {
-        fprintf(fp, "control_merge i%d(", instCnt);
+        fprintf(resFp, "control_merge i%d(", instCnt);
         ActId *guard = d->u.splitmerge.guard;
-        printActId(fp, guard);
+        printActId(resFp, guard);
         ActId *output = d->u.splitmerge.single;
-        printActId(fp, output);
+        printActId(resFp, output);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs != 2) {
           fatal_error("Merge i%d does not have TWO outputs!\n", instCnt);
         }
         ActId **inputs = d->u.splitmerge.multi;
         ActId *lIn = inputs[0];
-        printActId(fp, lIn);
+        printActId(resFp, lIn);
         ActId *rIn = inputs[1];
         bool printComma = false;
-        printActId(fp, rIn, printComma);
-        fprintf(fp, ");\n");
+        printActId(resFp, rIn, printComma);
+        fprintf(resFp, ");\n");
+        createMerge(libFp);
         break;
       }
       case ACT_DFLOW_MIXER: {
@@ -262,7 +289,7 @@ void handleProcess(FILE *fp, Process *p) {
     }
     instCnt++;
   }
-  fprintf(fp, "}\n\n");
+  fprintf(resFp, "}\n\n");
 }
 
 int main(int argc, char **argv) {
@@ -282,15 +309,22 @@ int main(int argc, char **argv) {
   char *result_file = new char;
   strcpy(result_file, "result_");
   strcat(result_file, argv[1]);
-  FILE *fp = fopen(result_file, "w");
+  FILE *resFp = fopen(result_file, "w");
+  char *lib_file = new char;
+  strcpy(lib_file, "lib_");
+  strcat(lib_file, argv[1]);
+  FILE *libFp = fopen(lib_file, "w");
+  fprintf(resFp, "import \"%s\";\n\n", lib_file);
   ActTypeiter it(a->Global());
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     Process *p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
       fprintf(stdout, "processing %s\n", p->getName());
-      handleProcess(fp, p);
+      handleProcess(resFp, libFp, p);
     }
   }
+  fclose(resFp);
+  fclose(libFp);
   return 0;
 }
