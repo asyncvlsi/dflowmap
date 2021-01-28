@@ -29,7 +29,7 @@
 #include "lib.cc"
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s <actfile> <process>\n", name);
+  fprintf(stderr, "Usage: %s <actfile>\n", name);
   exit(1);
 }
 
