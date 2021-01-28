@@ -306,11 +306,11 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
-  char *result_file = new char;
+  char *result_file = new char[8 + strlen (argv[1])];
   strcpy(result_file, "result_");
   strcat(result_file, argv[1]);
   FILE *resFp = fopen(result_file, "w");
-  char *lib_file = new char;
+  char *lib_file = new char[5 + strlen (argv[1])];
   strcpy(lib_file, "lib_");
   strcat(lib_file, argv[1]);
   FILE *libFp = fopen(lib_file, "w");
