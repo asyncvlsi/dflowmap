@@ -1,0 +1,17 @@
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    -1 -> main_I0_;
+    7 -> main_I1_;
+    main_I2_ -> main_out;
+    main_I0_ + main_I1_ -> main_I2_
+  }
+}
+
+main m;

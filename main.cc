@@ -80,7 +80,7 @@ void handleProcess(FILE *fp, Process *p) {
   }
   unsigned instCnt = 0;
   p->PrintHeader(fp, "defproc");
-  fprintf(fp, " {");
+  fprintf(fp, "\n{");
   p->CurScope()->Print(fp);
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
@@ -98,9 +98,6 @@ void handleProcess(FILE *fp, Process *p) {
           exit(-1);
         }
         const char *out = rhs->getName();
-        Expr *buff = d->u.func.nbufs;
-        int transparency = d->u.func.istransparent;
-        Expr *init = d->u.func.init;
         int type = expr->type;
         switch (type) {
           case E_AND: {
@@ -157,7 +154,13 @@ void handleProcess(FILE *fp, Process *p) {
             break;
           }
           case E_VAR: {
-            fprintf(fp, "buffer<1> i%u(", instCnt);
+            fprintf(fp, "buffer<");
+            Expr *buff = d->u.func.nbufs;
+            print_expr(fp, buff);
+            fprintf(fp, ", ");
+            Expr *init = d->u.func.init;
+            print_expr(fp, init);
+            fprintf(fp, "> i%u(", instCnt);
             auto actId = (ActId *) expr->u.e.l;
             printActId(fp, actId);
             fprintf(fp, "%s);\n", out);

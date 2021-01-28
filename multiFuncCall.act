@@ -1,0 +1,291 @@
+namespace mem {
+  export defproc GMEM_str(chan?(int<1>) GMEM_str_in_0; chan?(int<64>) GMEM_str_in_1; chan?(int<8>) GMEM_str_in_2; chan!(int<8>) GMEM_str_out) {}
+}
+
+defproc f (chan?(int<32>) f_in_0; chan!(int<32>) f_out)
+{
+  /* Define channels */
+  chan(int<32>) const_f_10_0;
+  chan(int<32>) f_I0_;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    10 -> const_f_10_0;
+    f_in_0 + const_f_10_0 -> f_I0_;
+    f_I0_ -> f_out
+  }
+}
+
+defproc g (chan?(int<32>) g_in_0; chan?(int<32>) gf_out; chan!(int<32>) g_out; chan!(int<32>) gf_in_0; chan!(int<1>) gf_USE)
+{
+  /* Define channels */
+  chan(int<32>) const_g_1_0;
+  chan(int<32>) const_g_2_0;
+  chan(int<32>) g_I0_;
+  chan(int<32>) g_I1_;
+  chan(int<32>) g_I2_;
+  chan(int<32>) g_I3_;
+  chan(int<32>) g_I4_;
+  chan(int<32>) g_I5_;
+  chan(int<32>) g_I6_;
+  chan(int<1>) intraEnablerMerge_gf_0;
+  chan(int<1>) intraStateSplit_gf_0_L;
+  chan(int<1>) intraStateSplit_gf_0_R;
+  chan(int<1>) intraStateInv_gf_0;
+  chan(int<1>) const_gf__1_0;
+  chan(int<1>) intraStateMerge_gf_0;
+  chan(int<1>) intraStateInit_gf_0;
+  chan(int<1>) intraEnabler_gf_0;
+  chan(int<1>) intraEnablerMerge_gf_1;
+  chan(int<1>) intraStateSplit_gf_1_L;
+  chan(int<1>) intraStateSplit_gf_1_R;
+  chan(int<1>) intraStateInv_gf_1;
+  chan(int<1>) const_gf__1_1;
+  chan(int<1>) intraStateMerge_gf_1;
+  chan(int<1>) intraStateInit_gf_1;
+  chan(int<1>) intraInv_gf_0;
+  chan(int<1>) const_gf__1_2;
+  chan(int<1>) intraAnd_gf_0;
+  chan(int<1>) intraFinalSplit_gf_0_L;
+  chan(int<1>) intraFinalSplit_gf_0_R;
+  chan(int<1>) intraEnabler_gf_1;
+  chan(int<1>) intraEnabler_gf_2;
+  chan(int<1>) intraInv_gf_1;
+  chan(int<1>) const_gf__1_3;
+  chan(int<1>) intraAnd_gf_1;
+  chan(int<1>) intraFinalSplit_gf_1_L;
+  chan(int<1>) intraFinalSplit_gf_1_R;
+  chan(int<32>) intraArgMerge_gf_0_0;
+  chan(int<32>) intraOutSplit_gf_0_L;
+  chan(int<32>) intraOutSplit_gf_0_R;
+  chan(int<32>) intraArgMerge_gf_0_1;
+  chan(int<32>) intraOutSplit_gf_1_L;
+  chan(int<32>) intraOutSplit_gf_1_R;
+  chan(int<1>) not_intraEnablerMerge_gf_1;
+  chan(int<1>) not_const_gf__1_2;
+  chan(int<1>) intraInv_gf_0_first;
+  chan(int<1>) intraInv_gf_0_second;
+  chan(int<1>) not_intraStateSplit_gf_0_L;
+  chan(int<1>) not_const_gf__1_0;
+  chan(int<1>) intraStateInv_gf_0_first;
+  chan(int<1>) intraStateInv_gf_0_second;
+  chan(int<1>) not_intraStateSplit_gf_1_L;
+  chan(int<1>) not_const_gf__1_1;
+  chan(int<1>) intraStateInv_gf_1_first;
+  chan(int<1>) intraStateInv_gf_1_second;
+  chan(int<1>) not_intraEnablerMerge_gf_0;
+  chan(int<1>) not_const_gf__1_3;
+  chan(int<1>) intraInv_gf_1_first;
+  chan(int<1>) intraInv_gf_1_second;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    1 -> const_g_1_0;
+    2 -> const_g_2_0;
+    1 -> const_gf__1_0;
+    ~intraStateSplit_gf_0_L -> intraStateInv_gf_0;
+    1 - intraEnabler_gf_0 -> [6,1] intraEnabler_gf_0;
+    1 -> const_gf__1_1;
+    ~intraStateSplit_gf_1_L -> intraStateInv_gf_1;
+    1 -> const_gf__1_2;
+    ~intraEnablerMerge_gf_1 -> intraInv_gf_0;
+    1 - intraEnabler_gf_1 -> [6,1] intraEnabler_gf_1;
+    1 - intraEnabler_gf_2 -> [6,1] intraEnabler_gf_2;
+    1 -> const_gf__1_3;
+    ~intraEnablerMerge_gf_0 -> intraInv_gf_1;
+    g_in_0 + const_g_1_0 -> g_I1_;
+    g_I0_ + g_I2_ -> g_I3_;
+    g_in_0 + const_g_2_0 -> g_I4_;
+    intraOutSplit_gf_1_L -> g_I2_;
+    g_I3_ + g_I5_ -> g_I6_;
+    intraInv_gf_0_first | intraInv_gf_0_second -> intraInv_gf_0;
+    intraStateInv_gf_0_first | intraStateInv_gf_0_second -> intraStateInv_gf_0;
+    intraStateInv_gf_1_first | intraStateInv_gf_1_second -> intraStateInv_gf_1;
+    intraOutSplit_gf_1_R -> g_I5_;
+    intraInv_gf_1_first | intraInv_gf_1_second -> intraInv_gf_1;
+    intraStateMerge_gf_1 & intraInv_gf_0 -> intraAnd_gf_0;
+    intraStateMerge_gf_0 & intraInv_gf_1 -> intraAnd_gf_1;
+    intraArgMerge_gf_0_0 -> gf_in_0;
+    intraFinalSplit_gf_1_L -> gf_USE;
+    intraOutSplit_gf_0_L -> g_I0_;
+    g_I6_ -> g_out;
+    intraStateMerge_gf_0 -> [1] intraStateInit_gf_0;
+    intraStateMerge_gf_1 -> [1] intraStateInit_gf_1;
+    {intraStateInit_gf_0} intraEnabler_gf_0, intraFinalSplit_gf_0_L -> intraEnablerMerge_gf_0;
+    {intraStateInit_gf_1} intraEnabler_gf_1, intraEnabler_gf_2 -> intraEnablerMerge_gf_1;
+    {intraStateSplit_gf_1_R} g_I1_, g_I4_ -> intraArgMerge_gf_0_1;
+    {intraStateSplit_gf_0_R} g_in_0, intraArgMerge_gf_0_1 -> intraArgMerge_gf_0_0;
+    {intraEnablerMerge_gf_0} intraStateInv_gf_0, intraStateSplit_gf_0_R -> intraStateMerge_gf_0;
+    {intraEnablerMerge_gf_1} intraStateInv_gf_1, intraStateSplit_gf_1_R -> intraStateMerge_gf_1;
+    {intraAnd_gf_1} intraEnablerMerge_gf_0 -> intraFinalSplit_gf_1_L, intraFinalSplit_gf_1_R;
+    {intraEnablerMerge_gf_0} intraStateInit_gf_0 -> intraStateSplit_gf_0_L, intraStateSplit_gf_0_R;
+    {intraEnablerMerge_gf_1} intraStateInit_gf_1 -> intraStateSplit_gf_1_L, intraStateSplit_gf_1_R;
+    {intraStateSplit_gf_0_R} gf_out -> intraOutSplit_gf_0_L, intraOutSplit_gf_0_R;
+    {intraStateSplit_gf_1_R} intraOutSplit_gf_0_R -> intraOutSplit_gf_1_L, intraOutSplit_gf_1_R;
+    {intraAnd_gf_0} intraEnablerMerge_gf_1 -> intraFinalSplit_gf_0_L, intraFinalSplit_gf_0_R
+  }
+}
+
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  chan(int<32>) main_I3_;
+  chan(int<32>) main_I4_;
+  chan(int<32>) main_I5_;
+  chan(int<32>) main_I6_;
+  chan(int<32>) const_main_2_0;
+  chan(int<32>) const_main_17_0;
+  chan(int<32>) const_main_11_0;
+  chan(int<32>) mainf_in_0;
+  chan(int<32>) mainf_out;
+  chan(int<32>) maing_in_0;
+  chan(int<32>) maing_out;
+  chan(int<1>) maingf_USE;
+  chan(int<32>) maingf_in_0;
+  chan(int<32>) maingf_out;
+  chan(int<32>) main_I1_f_faked_;
+  chan(int<1>) main_I1_f_faked_0_USE;
+  chan(int<32>) main_I1_f_faked_0;
+  chan(int<32>) main_I2_f_faked_;
+  chan(int<1>) main_I2_f_faked_0_USE;
+  chan(int<32>) main_I2_f_faked_0;
+  chan(int<1>) intraEnablerMerge_mainf_0;
+  chan(int<1>) intraStateSplit_mainf_0_L;
+  chan(int<1>) intraStateSplit_mainf_0_R;
+  chan(int<1>) intraStateInv_mainf_0;
+  chan(int<1>) const_mainf__1_0;
+  chan(int<1>) intraStateMerge_mainf_0;
+  chan(int<1>) intraStateInit_mainf_0;
+  chan(int<1>) intraEnablerMerge_mainf_1;
+  chan(int<1>) intraStateSplit_mainf_1_L;
+  chan(int<1>) intraStateSplit_mainf_1_R;
+  chan(int<1>) intraStateInv_mainf_1;
+  chan(int<1>) const_mainf__1_1;
+  chan(int<1>) intraStateMerge_mainf_1;
+  chan(int<1>) intraStateInit_mainf_1;
+  chan(int<1>) intraInv_mainf_0;
+  chan(int<1>) const_mainf__1_2;
+  chan(int<1>) intraAnd_mainf_0;
+  chan(int<1>) intraFinalSplit_mainf_0_L;
+  chan(int<1>) intraFinalSplit_mainf_0_R;
+  chan(int<1>) intraEnabler_mainf_2;
+  chan(int<32>) intraArgMerge_mainf_0_0;
+  chan(int<32>) intraOutSplit_mainf_0_L;
+  chan(int<32>) intraOutSplit_mainf_0_R;
+  chan(int<32>) intraArgMerge_mainf_0_1;
+  chan(int<32>) intraOutSplit_mainf_1_L;
+  chan(int<32>) intraOutSplit_mainf_1_R;
+  chan(int<1>) intraEnablerMerge_maing_0;
+  chan(int<1>) intraStateSplit_maing_0_L;
+  chan(int<1>) intraStateSplit_maing_0_R;
+  chan(int<1>) intraStateInv_maing_0;
+  chan(int<1>) const_maing__1_0;
+  chan(int<1>) intraStateMerge_maing_0;
+  chan(int<1>) intraStateInit_maing_0;
+  chan(int<1>) intraEnabler_maing_0;
+  chan(int<1>) intraEnabler_maing_1;
+  chan(int<32>) intraArgMerge_maing_0_0;
+  chan(int<32>) intraOutSplit_maing_0_L;
+  chan(int<32>) intraOutSplit_maing_0_R;
+  chan(int<1>) FAC__Buff_main_I1_gf;
+  chan(int<1>) Merge_FAC_main_I1_gf;
+  chan(int<1>) FAC_Split_main_I1_gf_L;
+  chan(int<1>) FAC_Split_main_I1_gf_R;
+  chan(int<1>) FAC_Sink_main_I1_gf;
+  chan(int<1>) FAC_Init_main_I1_gf;
+  chan(int<32>) intraArgMerge_maingf_0;
+  chan(int<32>) intraOutSplit_maingf_0_0_L;
+  chan(int<32>) intraOutSplit_maingf_0_0_R;
+  chan(int<1>) intraOutSplit_maingf_0_0_USE_L;
+  chan(int<1>) intraOutSplit_maingf_0_0_USE_R;
+  chan(int<1>) not_intraStateSplit_mainf_0_L;
+  chan(int<1>) not_const_mainf__1_0;
+  chan(int<1>) intraStateInv_mainf_0_first;
+  chan(int<1>) intraStateInv_mainf_0_second;
+  chan(int<1>) not_intraStateSplit_mainf_1_L;
+  chan(int<1>) not_const_mainf__1_1;
+  chan(int<1>) intraStateInv_mainf_1_first;
+  chan(int<1>) intraStateInv_mainf_1_second;
+  chan(int<1>) not_intraStateSplit_maing_0_L;
+  chan(int<1>) not_const_maing__1_0;
+  chan(int<1>) intraStateInv_maing_0_first;
+  chan(int<1>) intraStateInv_maing_0_second;
+  chan(int<1>) not_intraEnablerMerge_mainf_1;
+  chan(int<1>) not_const_mainf__1_2;
+  chan(int<1>) intraInv_mainf_0_first;
+  chan(int<1>) intraInv_mainf_0_second;
+  /* Handle invocations */
+  f f_inst(mainf_in_0, mainf_out);
+
+  g g_inst(maing_in_0, maingf_out, maing_out, maingf_in_0, maingf_USE);
+
+  /* Define dataflow script */
+  dataflow {
+    1 -> main_I0_;
+    2 -> const_main_2_0;
+    17 -> const_main_17_0;
+    11 -> const_main_11_0;
+    1 -> const_mainf__1_0;
+    ~intraStateSplit_mainf_0_L -> intraStateInv_mainf_0;
+    1 -> const_mainf__1_1;
+    ~intraStateSplit_mainf_1_L -> intraStateInv_mainf_1;
+    1 -> const_mainf__1_2;
+    ~intraEnablerMerge_mainf_1 -> intraInv_mainf_0;
+    1 - intraEnabler_mainf_2 -> [6,1] intraEnabler_mainf_2;
+    1 -> const_maing__1_0;
+    ~intraStateSplit_maing_0_L -> intraStateInv_maing_0;
+    1 - intraEnabler_maing_0 -> [6,1] intraEnabler_maing_0;
+    1 - intraEnabler_maing_1 -> [6,1] intraEnabler_maing_1;
+    intraOutSplit_mainf_1_R -> main_I4_;
+    intraStateInv_mainf_0_first | intraStateInv_mainf_0_second -> intraStateInv_mainf_0;
+    intraStateInv_mainf_1_first | intraStateInv_mainf_1_second -> intraStateInv_mainf_1;
+    intraStateInv_maing_0_first | intraStateInv_maing_0_second -> intraStateInv_maing_0;
+    intraArgMerge_maingf_0 -> maingf_out;
+    intraStateMerge_mainf_1 & intraInv_mainf_0 -> intraAnd_mainf_0;
+    intraOutSplit_maingf_0_0_R -> main_I2_f_faked_0;
+    intraOutSplit_maingf_0_0_L -> main_I1_f_faked_0;
+    intraArgMerge_mainf_0_0 -> mainf_in_0;
+    intraOutSplit_maingf_0_0_USE_L -> main_I1_f_faked_0_USE;
+    intraOutSplit_maingf_0_0_USE_R -> main_I2_f_faked_0_USE;
+    main_I5_ -> main_out;
+    intraOutSplit_maing_0_L -> main_I1_;
+    intraOutSplit_mainf_0_L -> main_I1_f_faked_;
+    main_I1_ + main_I2_ -> main_I3_;
+    main_I3_ + main_I4_ -> main_I5_;
+    intraInv_mainf_0_first | intraInv_mainf_0_second -> intraInv_mainf_0;
+    intraArgMerge_maing_0_0 -> maing_in_0;
+    intraOutSplit_mainf_1_L -> main_I2_f_faked_;
+    intraOutSplit_maing_0_R -> main_I2_;
+    intraStateSplit_maing_0_R -> [1] FAC__Buff_main_I1_gf;
+    maingf_USE -> [1] FAC_Init_main_I1_gf;
+    intraStateMerge_mainf_0 -> [1] intraStateInit_mainf_0;
+    intraStateMerge_mainf_1 -> [1] intraStateInit_mainf_1;
+    intraStateMerge_maing_0 -> [1] intraStateInit_maing_0;
+    {intraStateInit_mainf_0} main_I1_f_faked_0_USE, intraFinalSplit_mainf_0_L -> intraEnablerMerge_mainf_0;
+    {intraStateInit_mainf_1} main_I2_f_faked_0_USE, intraEnabler_mainf_2 -> intraEnablerMerge_mainf_1;
+    {intraStateSplit_mainf_1_R} main_I2_f_faked_0, const_main_11_0 -> intraArgMerge_mainf_0_1;
+    {intraStateSplit_mainf_0_R} main_I1_f_faked_0, intraArgMerge_mainf_0_1 -> intraArgMerge_mainf_0_0;
+    {intraStateInit_maing_0} intraEnabler_maing_0, intraEnabler_maing_1 -> intraEnablerMerge_maing_0;
+    {FAC_Init_main_I1_gf} FAC__Buff_main_I1_gf, FAC_Split_main_I1_gf_R -> Merge_FAC_main_I1_gf;
+    {intraStateSplit_maing_0_R} const_main_2_0, const_main_17_0 -> intraArgMerge_maing_0_0;
+    {intraEnablerMerge_mainf_0} intraStateInv_mainf_0, intraStateSplit_mainf_0_R -> intraStateMerge_mainf_0;
+    {intraEnablerMerge_mainf_1} intraStateInv_mainf_1, intraStateSplit_mainf_1_R -> intraStateMerge_mainf_1;
+    {intraEnablerMerge_maing_0} intraStateInv_maing_0, intraStateSplit_maing_0_R -> intraStateMerge_maing_0;
+    {FAC_Split_main_I1_gf_R} main_I1_f_faked_, main_I2_f_faked_ -> intraArgMerge_maingf_0;
+    {Merge_FAC_main_I1_gf} maingf_USE -> intraOutSplit_maingf_0_0_USE_L, intraOutSplit_maingf_0_0_USE_R;
+    {FAC_Split_main_I1_gf_R} maingf_in_0 -> intraOutSplit_maingf_0_0_L, intraOutSplit_maingf_0_0_R;
+    {intraEnablerMerge_mainf_0} intraStateInit_mainf_0 -> intraStateSplit_mainf_0_L, intraStateSplit_mainf_0_R;
+    {intraEnablerMerge_mainf_1} intraStateInit_mainf_1 -> intraStateSplit_mainf_1_L, intraStateSplit_mainf_1_R;
+    {intraEnablerMerge_maing_0} intraStateInit_maing_0 -> intraStateSplit_maing_0_L, intraStateSplit_maing_0_R;
+    {intraStateSplit_mainf_0_R} mainf_out -> intraOutSplit_mainf_0_L, intraOutSplit_mainf_0_R;
+    {intraStateSplit_mainf_1_R} intraOutSplit_mainf_0_R -> intraOutSplit_mainf_1_L, intraOutSplit_mainf_1_R;
+    {intraAnd_mainf_0} intraEnablerMerge_mainf_1 -> intraFinalSplit_mainf_0_L, intraFinalSplit_mainf_0_R;
+    {maingf_USE} Merge_FAC_main_I1_gf -> *, FAC_Split_main_I1_gf_R;
+    {intraStateSplit_maing_0_R} maing_out -> intraOutSplit_maing_0_L, intraOutSplit_maing_0_R
+  }
+}
+
+main m;
