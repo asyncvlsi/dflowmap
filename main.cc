@@ -292,6 +292,15 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
   fprintf(resFp, "}\n\n");
 }
 
+void initialize() {
+  for (unsigned i = 0; i < MAX_OP_TYPE_NUM; i++) {
+    opTypes[i] = -1;
+  }
+  for (unsigned i = 0; i < MAX_EXPR_TYPE_NUM; i++) {
+    exprTypes[i] = -1;
+  }
+}
+
 int main(int argc, char **argv) {
   /* initialize ACT library */
   Act::Init(&argc, &argv);
@@ -306,16 +315,17 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
-  char *result_file = new char[8 + strlen (argv[1])];
+  char *result_file = new char[8 + strlen(argv[1])];
   strcpy(result_file, "result_");
   strcat(result_file, argv[1]);
   FILE *resFp = fopen(result_file, "w");
-  char *lib_file = new char[5 + strlen (argv[1])];
+  char *lib_file = new char[5 + strlen(argv[1])];
   strcpy(lib_file, "lib_");
   strcat(lib_file, argv[1]);
   FILE *libFp = fopen(lib_file, "w");
   fprintf(resFp, "import \"%s\";\n\n", lib_file);
   ActTypeiter it(a->Global());
+  initialize();
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     Process *p = dynamic_cast<Process *>(t);

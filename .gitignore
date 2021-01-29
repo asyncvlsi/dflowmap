@@ -4,3 +4,9 @@ x86_64*
 *.x86_64*
 *~
 *.deps
+.idea/
+cmake-build-debug/
+CMakeLists.txt
+lib_*
+result_*
+
