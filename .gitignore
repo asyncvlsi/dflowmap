@@ -10,3 +10,4 @@ CMakeLists.txt
 lib_*
 result_*
 
+run.sh
