@@ -48,14 +48,18 @@ void createUniLib(FILE *libFp, const char *sym, const char *op, int type) {
 void createMerge(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_MERGE)) {
     fprintf(libFp, "defproc control_merge(ctrl, lIn, rIn, out) {\n");
-    fprintf(libFp, "  chp {\n  }\n}\n\n");
+    fprintf(libFp, "  chp {\n");
+    fprintf(libFp, "    [~ctrl -> out!lIn [] ctrl -> out!rIn]\n");
+    fprintf(libFp, "  }\n}\n\n");
   }
 }
 
 void createSplit(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_SPLIT)) {
     fprintf(libFp, "defproc control_split(ctrl, in, lOut, rOut) {\n");
-    fprintf(libFp, "  chp {\n  }\n}\n\n");
+    fprintf(libFp, "  chp {\n");
+    fprintf(libFp, "    [~ctrl -> lOut!in [] ctrl -> rOut!in]\n");
+    fprintf(libFp, "  }\n}\n\n");
   }
 }
 
@@ -69,6 +73,6 @@ void createSource(FILE *libFp) {
 void createBuff(FILE *libFp) {
   if (!hasExpr(E_VAR)) {
     fprintf(libFp, "defproc buff(in, out) {\n");
-    fprintf(libFp, "  chp {\n  }\n}\n\n");
+    fprintf(libFp, "  chp {\n    out!in\n  }\n}\n\n");
   }
 }
