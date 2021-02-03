@@ -54,13 +54,18 @@ void printExpr(FILE *resFp, Expr *expr, bool printComma = true) {
       fprintf(resFp, ",");
     }
   } else {
-    fprintf(resFp, "Try to get name for invalid expr type: %d!\n", type);
+    fprintf(resFp,
+            "Try to get name for invalid expr type: %d!\n",
+            type);
     print_expr(stdout, expr);
     exit(-1);
   }
 }
 
-void EMIT_BIN(FILE *resFp, Expr *expr, const char *out, const char *sym,
+void EMIT_BIN(FILE *resFp,
+              Expr *expr,
+              const char *out,
+              const char *sym,
               unsigned instCnt) {
   fprintf(resFp, "func_%s i%u(", sym, instCnt);
   Expr *lExpr = expr->u.e.l;
@@ -70,14 +75,18 @@ void EMIT_BIN(FILE *resFp, Expr *expr, const char *out, const char *sym,
   fprintf(resFp, "%s);\n", out);
 }
 
-void EMIT_UNI(FILE *resFp, Expr *expr, const char *out, const char *sym,
+void EMIT_UNI(FILE *resFp,
+              Expr *expr,
+              const char *out,
+              const char *sym,
               unsigned instCnt) {
   fprintf(resFp, "func_%s i%u(", sym, instCnt);
   printExpr(resFp, expr->u.e.l);
   fprintf(resFp, "%s);\n", out);
 }
 
-void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
+void handleProcess(FILE *resFp, FILE *libFp, Process *p,
+                   bool mainProc) {
   if (!p->getlang()->getdflow()) {
     fatal_error("Process `%s': no dataflow body", p->getName());
   }
@@ -164,8 +173,8 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
           }
           case E_INT: {
             unsigned int val = expr->u.v;
-            fprintf(resFp, "source<%u> i%u(%s);\n", val, instCnt, out);
-            createSource(libFp);
+            fprintf(resFp, "source%u i%u(%s);\n", val, instCnt, out);
+            createSource(libFp, val);
             break;
           }
           case E_VAR: {
@@ -242,7 +251,8 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
         printActId(resFp, input);
         int numOutputs = d->u.splitmerge.nmulti;
         if (numOutputs != 2) {
-          fatal_error("Split i%d does not have TWO outputs!\n", instCnt);
+          fatal_error("Split i%d does not have TWO outputs!\n",
+                      instCnt);
         }
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
@@ -262,7 +272,8 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
         printActId(resFp, output);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs != 2) {
-          fatal_error("Merge i%d does not have TWO outputs!\n", instCnt);
+          fatal_error("Merge i%d does not have TWO outputs!\n",
+                      instCnt);
         }
         ActId **inputs = d->u.splitmerge.multi;
         ActId *lIn = inputs[0];
@@ -289,6 +300,10 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
     }
     instCnt++;
   }
+  if (mainProc) {
+    fprintf(resFp, "sink bucket(main_out);\n");
+    createSink(libFp);
+  }
   fprintf(resFp, "}\n\n");
 }
 
@@ -298,6 +313,9 @@ void initialize() {
   }
   for (unsigned i = 0; i < MAX_EXPR_TYPE_NUM; i++) {
     exprTypes[i] = -1;
+  }
+  for (unsigned i = 0; i < MAX_SOURCE_VAL_NUM; i++) {
+    sourceVals[i] = UINT32_MAX;
   }
 }
 
@@ -330,10 +348,13 @@ int main(int argc, char **argv) {
     Type *t = *it;
     Process *p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      fprintf(stdout, "processing %s\n", p->getName());
-      handleProcess(resFp, libFp, p);
+      const char *procName = p->getName();
+      fprintf(stdout, "processing %s\n", procName);
+      bool mainProc = (strcmp(procName, "main<>") == 0);
+      handleProcess(resFp, libFp, p, mainProc);
     }
   }
+  fprintf(resFp, "main m;\n");
   fclose(resFp);
   fclose(libFp);
   return 0;
