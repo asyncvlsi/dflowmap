@@ -178,19 +178,20 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_VAR: {
-            fprintf(resFp, "buffer<");
-            Expr *buff = d->u.func.nbufs;
-            if (!buff) {
-              fprintf(resFp, "1");
-            } else {
-              print_expr(resFp, buff);
-            }
-            Expr *init = d->u.func.init;
-            if (init) {
-              fprintf(resFp, ", ");
-              print_expr(resFp, init);
-            }
-            fprintf(resFp, "> i%u(", instCnt);
+//            fprintf(resFp, "buffer<");
+//            Expr *buff = d->u.func.nbufs;
+//            if (!buff) {
+//              fprintf(resFp, "1");
+//            } else {
+//              print_expr(resFp, buff);
+//            }
+//            Expr *init = d->u.func.init;
+//            if (init) {
+//              fprintf(resFp, ", ");
+//              print_expr(resFp, init);
+//            }
+//            fprintf(resFp, "> i%u(", instCnt);
+            fprintf(resFp, "buffer i%u(", instCnt);
             auto actId = (ActId *) expr->u.e.l;
             printActId(resFp, actId);
             fprintf(resFp, "%s);\n", out);
