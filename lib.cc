@@ -76,11 +76,12 @@ void createUniLib(FILE *libFp,
 void createMerge(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_MERGE)) {
     fprintf(libFp,
-            "defproc control_merge(chan?(bool)ctrl; chan?(int)lIn, "
+            "defproc control_merge(chan?(int<1>)ctrl; chan?(int)lIn, "
             "rIn; chan!(int) out) {\n");
-    fprintf(libFp, "  int x;\n");
+    fprintf(libFp, "  int x;\n  bool c;\n");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "    *[~ctrl -> lIn?x [] ctrl -> rIn?x; out!x]\n");
+    fprintf(libFp,
+            "    *[ctrl?c; [~c -> lIn?x [] c -> rIn?x]; out!x]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
@@ -88,12 +89,12 @@ void createMerge(FILE *libFp) {
 void createSplit(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_SPLIT)) {
     fprintf(libFp,
-            "defproc control_split(chan?(bool)ctrl; chan?(int)in; "
+            "defproc control_split(chan?(int<1>)ctrl; chan?(int)in; "
             "chan!(int) lOut, rOut) {\n");
-    fprintf(libFp, "  int x;\n");
+    fprintf(libFp, "  int x;\n  bool c;\n");
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
-            "    *[in?x; ~ctrl -> lOut!x [] ctrl -> rOut!x]\n");
+            "    *[in?x; ctrl?c; [~c -> lOut!x [] c -> rOut!x]]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
