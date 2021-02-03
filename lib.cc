@@ -76,7 +76,8 @@ void createUniLib(FILE *libFp,
 void createMerge(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_MERGE)) {
     fprintf(libFp,
-            "defproc control_merge(chan?(bool)ctrl, chan?(int)lIn, rIn; chan!(int) out) {\n");
+            "defproc control_merge(chan?(bool)ctrl; chan?(int)lIn, "
+            "rIn; chan!(int) out) {\n");
     fprintf(libFp, "  int x;\n");
     fprintf(libFp, "  chp {\n");
     fprintf(libFp, "    *[~ctrl -> lIn?x [] ctrl -> rIn?x; out!x]\n");
@@ -87,7 +88,8 @@ void createMerge(FILE *libFp) {
 void createSplit(FILE *libFp) {
   if (!hasOp(ACT_DFLOW_SPLIT)) {
     fprintf(libFp,
-            "defproc control_split(chan?(bool)ctrl, chan?(int)in; chan!(int) lOut, rOut) {\n");
+            "defproc control_split(chan?(bool)ctrl; chan?(int)in; "
+            "chan!(int) lOut, rOut) {\n");
     fprintf(libFp, "  int x;\n");
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
