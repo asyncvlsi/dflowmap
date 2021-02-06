@@ -61,8 +61,9 @@ void createBinLib(FILE *libFp, const char *sym, const char *op, int typeId,
             "defproc func_%s_%d(chan?(int<%d>) a, b; chan!(int<%d>) c) {\n",
             sym, inWidth, inWidth, outWidth);
     fprintf(libFp, "  int<%d> x, y;\n", inWidth);
+    fprintf(libFp, "  int<%d> res;\n", outWidth);
     fprintf(libFp,
-            "  chp {\n    *[a?x, b?y; c!(x%sy) ]\n  }\n}\n\n",
+            "  chp {\n    *[a?x, b?y; res := x%sy; c!res; log(\"send \", res) ]\n  }\n}\n\n",
             op);
   }
 }
@@ -85,7 +86,7 @@ void createMerge(FILE *libFp, int bitwidth) {
     fprintf(libFp, "  int<%d> x;\n  bool c;\n", bitwidth);
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
-            "    *[ctrl?c; [~c -> lIn?x [] c -> rIn?x]; out!x]\n");
+            "    *[ctrl?c; log(\"receive \", c); [~c -> lIn?x [] c -> rIn?x]; out!x; log(\"send \", x)]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
@@ -98,7 +99,7 @@ void createSplit(FILE *libFp, int bitwidth) {
     fprintf(libFp, "  int<%d> x;\n  bool c;\n", bitwidth);
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
-            "    *[in?x; ctrl?c; [~c -> lOut!x [] c -> rOut!x]]\n");
+            "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [~c -> lOut!x [] c -> rOut!x]]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
@@ -112,13 +113,19 @@ void createSource(FILE *libFp, unsigned sourceVal, int bitwidth) {
   }
 }
 
-void createBuff(FILE *libFp, int bitwidth) {
+void createBuff(FILE *libFp, int bitwidth, bool hasInitVal, unsigned initVal=0) {
   if (!hasExpr(E_VAR, bitwidth)) {
     fprintf(libFp,
             "defproc buffer%d(chan?(int<%d>)in; chan!(int<%d>) out) {\n", bitwidth, bitwidth,
             bitwidth);
-    fprintf(libFp, "  int<%d> x;\n", bitwidth, bitwidth);
-    fprintf(libFp, "  chp {\n    *[in?x;out!x]\n  }\n}\n\n");
+    fprintf(libFp, "  int<%d> x;\n", bitwidth);
+    if (hasInitVal) {
+      fprintf(libFp, "  bool b;\n");
+      fprintf(libFp, "  chp {\n    b-;\n");
+      fprintf(libFp, "    *[[~b->x:=%u;b+ [] b->in?x]; out!x]\n  }\n}\n\n", initVal);
+    } else {
+      fprintf(libFp, "  chp {\n    *[in?x; log(\"send \", x); out!x]\n  }\n}\n\n");
+    }
   }
 }
 

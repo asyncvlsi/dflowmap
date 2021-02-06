@@ -254,11 +254,24 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_VAR: {
+            bool hasInitVal = false;
+            unsigned initVal = 0;
+            Expr *init = d->u.func.init;
+            if (init) {
+              hasInitVal = true;
+              int initValType = init->type;
+              if (initValType != E_INT) {
+                print_expr(stdout, init);
+                printf("The init value is not E_INT type!\n");
+                exit(-1);
+              }
+              initVal = init->u.v;
+            }
             fprintf(resFp, "buffer%d i%u(", outWidth, instCnt);
             auto actId = (ActId *) expr->u.e.l;
             printActId(resFp, actId);
             fprintf(resFp, "%s);\n", out);
-            createBuff(libFp, outWidth);
+            createBuff(libFp, outWidth, hasInitVal, initVal);
             break;
           }
           case E_XOR: {
