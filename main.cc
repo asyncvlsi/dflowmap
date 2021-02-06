@@ -115,8 +115,7 @@ int getBitwidth(const char *varName) {
 int EMIT_BIN(FILE *resFp,
              Expr *expr,
              const char *out,
-             const char *sym,
-             unsigned instCnt) {
+             const char *sym) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   int lWidth = getExprBitwidth(lExpr);
@@ -134,7 +133,7 @@ int EMIT_BIN(FILE *resFp,
     exit(-1);
   }
   /* print */
-  fprintf(resFp, "func_%s_%d i%u(", sym, width, instCnt);
+  fprintf(resFp, "func_%s_%d %sinst(", sym, width, out);
   printExpr(resFp, lExpr);
   printExpr(resFp, rExpr);
   fprintf(resFp, "%s);\n", out);
@@ -144,8 +143,7 @@ int EMIT_BIN(FILE *resFp,
 int EMIT_UNI(FILE *resFp,
              Expr *expr,
              const char *out,
-             const char *sym,
-             unsigned instCnt) {
+             const char *sym) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   int lWidth = getExprBitwidth(lExpr);
@@ -154,7 +152,7 @@ int EMIT_UNI(FILE *resFp,
     // the bitwidth to be 32.
     lWidth = 32;
   }
-  fprintf(resFp, "func_%s_%d i%u(", sym, lWidth, instCnt);
+  fprintf(resFp, "func_%s_%d %sinst(", sym, lWidth, out);
   fprintf(resFp, "%s);\n", out);
   return lWidth;
 }
@@ -164,7 +162,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
   if (!p->getlang()->getdflow()) {
     fatal_error("Process `%s': no dataflow body", p->getName());
   }
-  unsigned instCnt = 0;
   p->PrintHeader(resFp, "defproc");
   fprintf(resFp, "\n{");
   p->CurScope()->Print(resFp);
@@ -188,68 +185,68 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         int type = expr->type;
         switch (type) {
           case E_AND: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "and", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "and");
             createBinLib(libFp, "and", "&", type, inWidth, outWidth);
             break;
           }
           case E_OR: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "or", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "or");
             createBinLib(libFp, "or", "|", type, inWidth, outWidth);
             break;
           }
           case E_NOT: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "not", instCnt);
+            int inWidth = EMIT_UNI(resFp, expr, out, "not");
             createUniLib(libFp, "not", "~", type, outWidth);
             break;
           }
           case E_PLUS: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "add", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "add");
             createBinLib(libFp, "add", "+", type, inWidth, outWidth);
             break;
           }
           case E_MINUS: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "minus", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "minus");
             createBinLib(libFp, "minus", "-", type, inWidth, outWidth);
             break;
           }
           case E_MULT: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "multi", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "multi");
             createBinLib(libFp, "multi", "*", type, inWidth, outWidth);
             break;
           }
           case E_DIV: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "div", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "div");
             createBinLib(libFp, "div", "/", type, inWidth, outWidth);
             break;
           }
           case E_MOD: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "mod", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "mod");
             createBinLib(libFp, "mod", "%", type, inWidth, outWidth);
             break;
           }
           case E_LSL: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "lsl", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "lsl");
             createBinLib(libFp, "lsl", "<<", type, inWidth, outWidth);
             break;
           }
           case E_LSR: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "lsr", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "lsr");
             createBinLib(libFp, "lsr", ">>", type, inWidth, outWidth);
             break;
           }
           case E_ASR: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "asr", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "asr");
             createBinLib(libFp, "asr", ">>>", type, inWidth, outWidth);
             break;
           }
           case E_UMINUS: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "neg", instCnt);
+            int inWidth = EMIT_UNI(resFp, expr, out, "neg");
             createUniLib(libFp, "neg", "-", type, outWidth);
             break;
           }
           case E_INT: {
             unsigned int val = expr->u.v;
-            fprintf(resFp, "source%u_%d i%u(%s);\n", val, outWidth, instCnt, out);
+            fprintf(resFp, "source%u_%d %sinst(%s);\n", val, outWidth, out, out);
             createSource(libFp, val, outWidth);
             break;
           }
@@ -267,7 +264,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
               }
               initVal = init->u.v;
             }
-            fprintf(resFp, "buffer%d i%u(", outWidth, instCnt);
+            fprintf(resFp, "buffer%d %s_inst(", outWidth, out);
             auto actId = (ActId *) expr->u.e.l;
             printActId(resFp, actId);
             fprintf(resFp, "%s);\n", out);
@@ -275,42 +272,42 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_XOR: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "xor", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "xor");
             createBinLib(libFp, "xor", "^", type, inWidth, outWidth);
             break;
           }
           case E_LT: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "lt", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "lt");
             createBinLib(libFp, "lt", "<", type, inWidth, outWidth);
             break;
           }
           case E_GT: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "gt", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "gt");
             createBinLib(libFp, "gt", ">", type, inWidth, outWidth);
             break;
           }
           case E_LE: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "le", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "le");
             createBinLib(libFp, "le", "<=", type, inWidth, outWidth);
             break;
           }
           case E_GE: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "ge", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "ge");
             createBinLib(libFp, "ge", ">=", type, inWidth, outWidth);
             break;
           }
           case E_EQ: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "eq", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "eq");
             createBinLib(libFp, "eq", "==", type, inWidth, outWidth);
             break;
           }
           case E_NE: {
-            int inWidth = EMIT_BIN(resFp, expr, out, "ne", instCnt);
+            int inWidth = EMIT_BIN(resFp, expr, out, "ne");
             createBinLib(libFp, "ne", "!=", type, inWidth, outWidth);
             break;
           }
           case E_COMPLEMENT: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "comple", instCnt);
+            int inWidth = EMIT_UNI(resFp, expr, out, "comple");
             createUniLib(libFp, "comple", "~", type, outWidth);
             break;
           }
@@ -323,17 +320,22 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
         int bitwidth = getBitwidth(input->getName());
-        fprintf(resFp, "control_split%d i%d(", bitwidth, instCnt);
+        ActId **outputs = d->u.splitmerge.multi;
+        ActId *lOut = outputs[0];
+        const char *lOutName = lOut->getName();
+        size_t splitSize = strlen(lOutName) - 2;
+        char *splitName = new char[splitSize];
+        memcpy(splitName, lOutName, splitSize);
+        splitName[splitSize] = '\0';
+        fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(resFp, guard);
         printActId(resFp, input);
         int numOutputs = d->u.splitmerge.nmulti;
         if (numOutputs != 2) {
-          fatal_error("Split i%d does not have TWO outputs!\n",
-                      instCnt);
+          printf("Split %s does not have TWO outputs!\n", splitName);
+          exit(-1);
         }
-        ActId **outputs = d->u.splitmerge.multi;
-        ActId *lOut = outputs[0];
         printActId(resFp, lOut);
         ActId *rOut = outputs[1];
         bool printComma = false;
@@ -344,21 +346,20 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
       }
       case ACT_DFLOW_MERGE: {
         ActId *output = d->u.splitmerge.single;
-        int bitwidth = getBitwidth(output->getName());
-        fprintf(resFp, "control_merge%d i%d(", bitwidth, instCnt);
+        const char *outputName = output->getName();
+        int bitwidth = getBitwidth(outputName);
+        fprintf(resFp, "control_merge%d %sinst(", bitwidth, outputName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(resFp, guard);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs != 2) {
-          fatal_error("Merge i%d does not have TWO outputs!\n",
-                      instCnt);
+          fatal_error("Merge %s does not have TWO outputs!\n", outputName);
         }
         ActId **inputs = d->u.splitmerge.multi;
         ActId *lIn = inputs[0];
         printActId(resFp, lIn);
         ActId *rIn = inputs[1];
         printActId(resFp, rIn);
-
         bool printComma = false;
         printActId(resFp, output, printComma);
         fprintf(resFp, ");\n");
@@ -378,12 +379,11 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         break;
       }
     }
-    instCnt++;
   }
   if (mainProc) {
     const char *outPort = "main_out";
     int outWidth = getBitwidth(outPort);
-    fprintf(resFp, "sink%d bucket(main_out);\n", outWidth);
+    fprintf(resFp, "sink%d main_out_sink(main_out);\n", outWidth);
     createSink(libFp, outWidth);
   }
   fprintf(resFp, "}\n\n");
