@@ -9,5 +9,6 @@ cmake-build-debug/
 CMakeLists.txt
 lib_*
 result_*
-
+*.act
 run.sh
+
