@@ -1,4 +1,9 @@
+mv ~/main.cc ./
+mv ~/lib.cc ./
 make clean
 make
-./dflowmap.i386_darwin19_6_0 $1
+./dflowmap.* $1
+cp result_$1 ~
+cp lib_$1 ~
+actsim result_$1 "main<>"
 

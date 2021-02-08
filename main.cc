@@ -323,13 +323,24 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
         ActId *rOut = outputs[1];
-        const char* outName;
-        if (lOut) {
-          outName = lOut->getName();
-        } else if (rOut) {
+        const char *outName;
+        /**
+         * if SPLIT has empty left outPort, then emptyPort = 1;
+         * if SPLIT has empty right outPort, then emptyPort = 2;
+         * o/w, emptyPort = 0;
+         */
+        int emptyPort = 0;
+        if (!lOut) {
+          emptyPort = 1;
+          if (!rOut) {
+            fatal_error("SPLIT has null outputs for both ports!\n");
+          }
           outName = rOut->getName();
         } else {
-          fatal_error("SPLIT has null outputs for both ports!\n");
+          outName = lOut->getName();
+          if (!rOut) {
+            emptyPort = 2;
+          }
         }
         size_t splitSize = strlen(outName) - 2;
         char *splitName = new char[splitSize];
@@ -340,15 +351,25 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
           printf("Split %s does not have TWO outputs!\n", splitName);
           exit(-1);
         }
-        fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
+        if (emptyPort == 1) {
+          fprintf(resFp, "control_split_nullL%d %sinst(", bitwidth, splitName);
+        } else if (emptyPort == 2) {
+          fprintf(resFp, "control_split_nullR%d %sinst(", bitwidth, splitName);
+        } else {
+          fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
+        }
         ActId *guard = d->u.splitmerge.guard;
         printActId(resFp, guard);
         printActId(resFp, input);
-        printActId(resFp, lOut);
-        bool printComma = false;
-        printActId(resFp, rOut, printComma);
+        if (emptyPort) {
+          fprintf(resFp, "%s", outName);
+        } else {
+          printActId(resFp, lOut);
+          bool printComma = false;
+          printActId(resFp, rOut, printComma);
+        }
         fprintf(resFp, ");\n");
-        createSplit(libFp, bitwidth);
+        createSplit(libFp, bitwidth, emptyPort);
         break;
       }
       case ACT_DFLOW_MERGE: {

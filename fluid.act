@@ -3,7 +3,7 @@ defproc main (chan!(int<32>) main_out)
   /* Define channels */
   chan(int<32>) main_I0_;
   chan(int<32>) main_I1_;
-  chan(int<1>) const_main_0_0;
+  chan(int<32>) const_main_0_0;
   chan(int<32>) const_main_0_1;
   chan(int<32>) const_main_1_0;
   chan(int<1>) main_I2_;
