@@ -352,24 +352,18 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
           exit(-1);
         }
         if (emptyPort == 1) {
-          fprintf(resFp, "control_split_nullL%d %sinst(", bitwidth, splitName);
+          createSplit(libFp, bitwidth);
+          fprintf(resFp, "sink%d %s_sink(%s_L);\n", bitwidth, splitName, splitName);
         } else if (emptyPort == 2) {
-          fprintf(resFp, "control_split_nullR%d %sinst(", bitwidth, splitName);
-        } else {
-          fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
+          createSplit(libFp, bitwidth);
+          fprintf(resFp, "sink%d %s_sink(%s_R);\n", bitwidth, splitName, splitName);
         }
+        fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(resFp, guard);
         printActId(resFp, input);
-        if (emptyPort) {
-          fprintf(resFp, "%s", outName);
-        } else {
-          printActId(resFp, lOut);
-          bool printComma = false;
-          printActId(resFp, rOut, printComma);
-        }
-        fprintf(resFp, ");\n");
-        createSplit(libFp, bitwidth, emptyPort);
+        fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
+        createSplit(libFp, bitwidth);
         break;
       }
       case ACT_DFLOW_MERGE: {

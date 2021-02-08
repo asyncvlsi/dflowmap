@@ -91,39 +91,15 @@ void createMerge(FILE *libFp, int bitwidth) {
   }
 }
 
-void createSplit(FILE *libFp, int bitwidth, int emptyPort) {
-  int typeId = ACT_DFLOW_SPLIT;
-  if (emptyPort == 1) {
-    typeId = 100;
-  } else if (emptyPort == 2) {
-    typeId = 200;
-  }
-  if (!hasOp(typeId, bitwidth)) {
-    if (emptyPort == 1) {
-      fprintf(libFp,
-              "defproc control_split_nullL%d(chan?(int<1>)ctrl; chan?(int<%d>)in; "
-              "chan!(int<%d>) out) {\n", bitwidth, bitwidth, bitwidth);
-    } else if (emptyPort == 2) {
-      fprintf(libFp,
-              "defproc control_split_nullR%d(chan?(int<1>)ctrl; chan?(int<%d>)in; "
-              "chan!(int<%d>) out) {\n", bitwidth, bitwidth, bitwidth);
-    } else {
-      fprintf(libFp,
-              "defproc control_split%d(chan?(int<1>)ctrl; chan?(int<%d>)in; "
-              "chan!(int<%d>) lOut, rOut) {\n", bitwidth, bitwidth, bitwidth);
-    }
+void createSplit(FILE *libFp, int bitwidth) {
+  if (!hasOp(ACT_DFLOW_SPLIT, bitwidth)) {
+    fprintf(libFp,
+            "defproc control_split%d(chan?(int<1>)ctrl; chan?(int<%d>)in; "
+            "chan!(int<%d>) lOut, rOut) {\n", bitwidth, bitwidth, bitwidth);
     fprintf(libFp, "  int<%d> x;\n  bool c;\n", bitwidth);
     fprintf(libFp, "  chp {\n");
-    if (emptyPort == 0) {
-      fprintf(libFp,
-              "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [~c -> lOut!x [] c -> rOut!x]]\n");
-    } else if (emptyPort == 1) {
-      fprintf(libFp,
-              "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [c -> out!x]]\n");
-    } else if (emptyPort == 2) {
-      fprintf(libFp,
-              "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [~c -> out!x]]\n");
-    }
+    fprintf(libFp,
+            "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [~c -> lOut!x [] c -> rOut!x]]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
