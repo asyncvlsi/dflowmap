@@ -10,5 +10,5 @@ CMakeLists.txt
 lib_*
 result_*
 *.act
-run.sh
+.actsim_history
 
