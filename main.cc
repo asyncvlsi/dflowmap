@@ -322,22 +322,29 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         int bitwidth = getBitwidth(input->getName());
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
-        const char *lOutName = lOut->getName();
-        size_t splitSize = strlen(lOutName) - 2;
+        ActId *rOut = outputs[1];
+        const char* outName;
+        if (lOut) {
+          outName = lOut->getName();
+        } else if (rOut) {
+          outName = rOut->getName();
+        } else {
+          fatal_error("SPLIT has null outputs for both ports!\n");
+        }
+        size_t splitSize = strlen(outName) - 2;
         char *splitName = new char[splitSize];
-        memcpy(splitName, lOutName, splitSize);
+        memcpy(splitName, outName, splitSize);
         splitName[splitSize] = '\0';
-        fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
-        ActId *guard = d->u.splitmerge.guard;
-        printActId(resFp, guard);
-        printActId(resFp, input);
         int numOutputs = d->u.splitmerge.nmulti;
         if (numOutputs != 2) {
           printf("Split %s does not have TWO outputs!\n", splitName);
           exit(-1);
         }
+        fprintf(resFp, "control_split%d %sinst(", bitwidth, splitName);
+        ActId *guard = d->u.splitmerge.guard;
+        printActId(resFp, guard);
+        printActId(resFp, input);
         printActId(resFp, lOut);
-        ActId *rOut = outputs[1];
         bool printComma = false;
         printActId(resFp, rOut, printComma);
         fprintf(resFp, ");\n");
