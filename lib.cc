@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <string.h>
 #include <act/act.h>
 
 #define MAX_OP_TYPE_NUM 10
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_SOURCE_VAL_NUM 100
+#define MAX_PROCESSES 500
 
 //int opTypes[MAX_OP_TYPE_NUM];
 //int exprTypes[MAX_EXPR_TYPE_NUM];
@@ -14,6 +16,19 @@ std::pair<int, int> opTypePairs[MAX_SOURCE_VAL_NUM];
 std::pair<int, int> exprTypePairs[MAX_SOURCE_VAL_NUM];
 /* sourceVal, bitwidth */
 std::pair<unsigned, int> sourcePairs[MAX_SOURCE_VAL_NUM];
+
+const char *processes[MAX_PROCESSES];
+
+bool hasProcess(const char *process) {
+  for (unsigned i = 0; i < MAX_PROCESSES; i++) {
+    if (processes[i] == nullptr) {
+      processes[i] = process;
+      return false;
+    } else if (!strcmp(processes[i], process)) {
+      return true;
+    }
+  }
+}
 
 bool hasSourceVal(unsigned sourceVal, int bitwidth) {
   std::pair<unsigned, int> sourcePair = std::make_pair(sourceVal, bitwidth);
@@ -137,4 +152,14 @@ void createSink(FILE *libFp, int bitwidth) {
   fprintf(libFp, "  chp {\n");
   fprintf(libFp, "  *[x?t; log (\"got \", t)]\n");
   fprintf(libFp, "  }\n}\n");
+}
+
+void createCopy(FILE *libFp, int bitwidth, unsigned numOutputs) {
+  if (!hasProcess("copy")) {
+    fprintf(libFp, "template<pint W, N>\n");
+    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
+    fprintf(libFp, "  int<W> x;\n  chp {\n");
+    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x) ]\n");
+    fprintf(libFp, "  }\n}\n");
+  }
 }

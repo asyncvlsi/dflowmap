@@ -29,8 +29,16 @@
 #include "lib.cc"
 
 std::map<const char *, int> bitwidthMap;
+/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
+std::map<const char *, unsigned> opUses;
+/* copy operator, # of times it has already been used */
+std::map<const char *, unsigned> copyUses;
 
 int getBitwidth(const char *varName);
+
+unsigned getOpUses(const char *op);
+
+unsigned getCopyUses(const char *copyOp);
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s <actfile>\n", name);
@@ -39,7 +47,14 @@ static void usage(char *name) {
 
 void printActId(FILE *resFp, ActId *actId, bool printComma = true) {
   if (actId) {
-    fprintf(resFp, "%s", actId->getName());
+    const char *actName = actId->getName();
+    unsigned outUses = getOpUses(actName);
+    if (outUses) {
+      unsigned copyUse = getCopyUses(actName);
+      fprintf(resFp, "%scopy.out[%u]", actId->getName(), copyUse);
+    } else {
+      fprintf(resFp, "%s", actId->getName());
+    }
     if (printComma) {
       fprintf(resFp, ", ");
     }
@@ -73,9 +88,7 @@ void printExpr(FILE *resFp, Expr *expr, bool printComma = true) {
       fprintf(resFp, ",");
     }
   } else {
-    fprintf(resFp,
-            "Try to get name for invalid expr type: %d!\n",
-            type);
+    fprintf(resFp, "Try to get name for invalid expr type: %d!\n", type);
     print_expr(stdout, expr);
     exit(-1);
   }
@@ -112,10 +125,7 @@ int getBitwidth(const char *varName) {
   exit(-1);
 }
 
-int EMIT_BIN(FILE *resFp,
-             Expr *expr,
-             const char *out,
-             const char *sym) {
+int EMIT_BIN(FILE *resFp, Expr *expr, const char *out, const char *sym) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   int lWidth = getExprBitwidth(lExpr);
@@ -157,15 +167,76 @@ int EMIT_UNI(FILE *resFp,
   return lWidth;
 }
 
-void handleProcess(FILE *resFp, FILE *libFp, Process *p,
-                   bool mainProc) {
-  if (!p->getlang()->getdflow()) {
-    fatal_error("Process `%s': no dataflow body", p->getName());
+unsigned getCopyUses(const char *op) {
+  auto copyUsesIt = copyUses.find(op);
+  if (copyUsesIt == copyUses.end()) {
+    printf("We don't know how many times %s is used as COPY!\n", op);
+    exit(-1);
   }
-  p->PrintHeader(resFp, "defproc");
-  fprintf(resFp, "\n{");
-  p->CurScope()->Print(resFp);
-  collectBitwidthInfo(p);
+  unsigned uses = copyUsesIt->second;
+  copyUsesIt->second++;
+  return uses;
+}
+
+void updateOpUses(const char *op) {
+  auto opUsesIt = opUses.find(op);
+  if (opUsesIt == opUses.end()) {
+    opUses.insert(std::make_pair(op, 0));
+    copyUses.insert(std::make_pair(op, 0));
+  } else {
+    opUsesIt->second++;
+  }
+}
+
+void printOpUses() {
+  printf("OP USES:\n");
+  for (auto &opUsesIt : opUses) {
+    printf("(%s, %u) ", opUsesIt.first, opUsesIt.second);
+  }
+  printf("\n");
+}
+
+unsigned getOpUses(const char *op) {
+  auto opUsesIt = opUses.find(op);
+  if (opUsesIt == opUses.end()) {
+    printf("We don't know how many times %s is used!\n", op);
+    printOpUses();
+    return 0;
+//    exit(-1);
+  }
+  return opUsesIt->second;
+}
+
+void checkAndCreateCopy(FILE *libFp, FILE *resFp, const char *name, int bitwidth) {
+  unsigned outUses = getOpUses(name);
+  if (outUses) {
+    createCopy(libFp, bitwidth, outUses);
+    fprintf(resFp, "copy<%d, %u> %scopy(%s);\n", bitwidth, outUses + 1, name, name);
+  }
+}
+
+void collectUniOpUses(Expr *expr) {
+  Expr *lExpr = expr->u.e.l;
+  if (lExpr->type == E_VAR) {
+    auto actId = (ActId *) lExpr->u.e.l;
+    updateOpUses(actId->getName());
+  }
+}
+
+void collectBinOpUses(Expr *expr) {
+  Expr *lExpr = expr->u.e.l;
+  if (lExpr->type == E_VAR) {
+    auto actId = (ActId *) lExpr->u.e.l;
+    updateOpUses(actId->getName());
+  }
+  Expr *rExpr = expr->u.e.r;
+  if (rExpr->type == E_VAR) {
+    auto actId = (ActId *) rExpr->u.e.l;
+    updateOpUses(actId->getName());
+  }
+}
+
+void collectOpUses(Process *p) {
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
@@ -176,10 +247,109 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         Expr *expr = d->u.func.lhs;
         ActId *rhs = d->u.func.rhs;
         if (!rhs) {
-          fprintf(resFp, "dflow function has empty RHS!\n");
+          fprintf(stdout, "dflow function has empty RHS!\n");
           print_expr(stdout, expr);
           exit(-1);
         }
+        int type = expr->type;
+        switch (type) {
+          case E_AND:
+          case E_OR:
+          case E_PLUS:
+          case E_MINUS:
+          case E_MULT:
+          case E_DIV:
+          case E_MOD:
+          case E_LSL:
+          case E_LSR:
+          case E_ASR:
+          case E_XOR:
+          case E_LT:
+          case E_GT:
+          case E_LE:
+          case E_GE:
+          case E_EQ:
+          case E_NE: {
+            collectBinOpUses(expr);
+            break;
+          }
+          case E_NOT:
+          case E_UMINUS:
+          case E_COMPLEMENT: {
+            collectUniOpUses(expr);
+            break;
+          }
+          case E_INT: {
+            break;
+          }
+          case E_VAR: {
+            auto actId = (ActId *) expr->u.e.l;
+            updateOpUses(actId->getName());
+            break;
+          }
+          default: {
+            fatal_error("Unknown expression type %d\n", type);
+          }
+        }
+        break;
+      }
+      case ACT_DFLOW_SPLIT: {
+        ActId *input = d->u.splitmerge.single;
+        updateOpUses(input->getName());
+        ActId *guard = d->u.splitmerge.guard;
+        updateOpUses(guard->getName());
+        break;
+      }
+      case ACT_DFLOW_MERGE: {
+        ActId *guard = d->u.splitmerge.guard;
+        updateOpUses(guard->getName());
+        int numInputs = d->u.splitmerge.nmulti;
+        if (numInputs != 2) {
+          fatal_error("Merge does not have TWO outputs!\n");
+        }
+        ActId **inputs = d->u.splitmerge.multi;
+        ActId *lIn = inputs[0];
+        updateOpUses(lIn->getName());
+        ActId *rIn = inputs[1];
+        updateOpUses(rIn->getName());
+        break;
+      }
+      case ACT_DFLOW_MIXER: {
+        fatal_error("We don't support MIXER for now!\n");
+        break;
+      }
+      case ACT_DFLOW_ARBITER: {
+        fatal_error("We don't support ARBITER for now!\n");
+        break;
+      }
+      default: {
+        fatal_error("Unknown dataflow type %d\n", d->t);
+        break;
+      }
+    }
+  }
+}
+
+void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
+  const char *procName = p->getName();
+  bool mainProc = (strcmp(procName, "main<>") == 0);
+  if (!p->getlang()->getdflow()) {
+    fatal_error("Process `%s': no dataflow body", p->getName());
+  }
+  p->PrintHeader(resFp, "defproc");
+  fprintf(resFp, "\n{");
+  p->CurScope()->Print(resFp);
+  collectBitwidthInfo(p);
+  collectOpUses(p);
+  listitem_t *li;
+  for (li = list_first (p->getlang()->getdflow()->dflow);
+       li;
+       li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    switch (d->t) {
+      case ACT_DFLOW_FUNC: {
+        Expr *expr = d->u.func.lhs;
+        ActId *rhs = d->u.func.rhs;
         const char *out = rhs->getName();
         int outWidth = getBitwidth(out);
         int type = expr->type;
@@ -195,7 +365,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_NOT: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "not");
             createUniLib(libFp, "not", "~", type, outWidth);
             break;
           }
@@ -240,7 +409,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_UMINUS: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "neg");
             createUniLib(libFp, "neg", "-", type, outWidth);
             break;
           }
@@ -307,7 +475,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             break;
           }
           case E_COMPLEMENT: {
-            int inWidth = EMIT_UNI(resFp, expr, out, "comple");
             createUniLib(libFp, "comple", "~", type, outWidth);
             break;
           }
@@ -315,6 +482,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
             fatal_error("Unknown expression type %d\n", type);
           }
         }
+        checkAndCreateCopy(libFp, resFp, out, outWidth);
         break;
       }
       case ACT_DFLOW_SPLIT: {
@@ -346,11 +514,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         char *splitName = new char[splitSize];
         memcpy(splitName, outName, splitSize);
         splitName[splitSize] = '\0';
-        int numOutputs = d->u.splitmerge.nmulti;
-        if (numOutputs != 2) {
-          printf("Split %s does not have TWO outputs!\n", splitName);
-          exit(-1);
-        }
         if (emptyPort == 1) {
           createSplit(libFp, bitwidth);
           fprintf(resFp, "sink%d %s_sink(%s_L);\n", bitwidth, splitName, splitName);
@@ -364,6 +527,13 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         printActId(resFp, input);
         fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
         createSplit(libFp, bitwidth);
+        if (lOut) {
+          checkAndCreateCopy(libFp, resFp, lOut->getName(), bitwidth);
+        }
+        if (rOut) {
+          checkAndCreateCopy(libFp, resFp, rOut->getName(), bitwidth);
+        }
+
         break;
       }
       case ACT_DFLOW_MERGE: {
@@ -373,10 +543,6 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         fprintf(resFp, "control_merge%d %sinst(", bitwidth, outputName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(resFp, guard);
-        int numInputs = d->u.splitmerge.nmulti;
-        if (numInputs != 2) {
-          fatal_error("Merge %s does not have TWO outputs!\n", outputName);
-        }
         ActId **inputs = d->u.splitmerge.multi;
         ActId *lIn = inputs[0];
         printActId(resFp, lIn);
@@ -386,6 +552,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p,
         printActId(resFp, output, printComma);
         fprintf(resFp, ");\n");
         createMerge(libFp, bitwidth);
+        checkAndCreateCopy(libFp, resFp, outputName, bitwidth);
         break;
       }
       case ACT_DFLOW_MIXER: {
@@ -454,8 +621,7 @@ int main(int argc, char **argv) {
     if (p->isExpanded()) {
       const char *procName = p->getName();
       fprintf(stdout, "processing %s\n", procName);
-      bool mainProc = (strcmp(procName, "main<>") == 0);
-      handleProcess(resFp, libFp, p, mainProc);
+      handleProcess(resFp, libFp, p);
     }
   }
   fprintf(resFp, "main m;\n");
