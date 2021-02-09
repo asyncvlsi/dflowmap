@@ -63,8 +63,8 @@ void createBinLib(FILE *libFp, const char *sym, const char *op, int typeId,
     fprintf(libFp, "  int<%d> x, y;\n", inWidth);
     fprintf(libFp, "  int<%d> res;\n", outWidth);
     fprintf(libFp,
-            "  chp {\n    *[a?x, b?y; res := x%sy; c!res; log(\"send \", res) ]\n  }\n}\n\n",
-            op);
+            "  chp {\n    *[a?x, b?y; log(\"recv \", x, \", \", y); res := x%sy; c!res; "
+            "log(\"send \", res)]\n  }\n}\n\n", op);
   }
 }
 
@@ -74,7 +74,8 @@ void createUniLib(FILE *libFp, const char *sym, const char *op, int typeId, int 
             "defproc func_%s_%d(chan?(int<%d>)a; chan!(int<%d>) b) {\n",
             sym, bitwidth, bitwidth, bitwidth);
     fprintf(libFp, "  int<%d> x;\n", bitwidth);
-    fprintf(libFp, "  chp {\n    *[a?x; b!(%sx) ]\n  }\n}\n\n", op);
+    fprintf(libFp, "  chp {\n    *[a?x; log(\"recv \", x); b!(%sx); log(\"send \", x); "
+                   "]\n  }\n}\n\n", op);
   }
 }
 
@@ -99,7 +100,8 @@ void createSplit(FILE *libFp, int bitwidth) {
     fprintf(libFp, "  int<%d> x;\n  bool c;\n", bitwidth);
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
-            "    *[in?x; ctrl?c; log(\"receive \", x, \", \", c); [~c -> lOut!x [] c -> rOut!x]]\n");
+            "    *[in?x, ctrl?c; log(\"receive \", c, \", \", x);"
+            "  [~c -> lOut!x [] c -> rOut!x]]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
