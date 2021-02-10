@@ -51,7 +51,11 @@ void printActId(FILE *resFp, ActId *actId, bool printComma = true) {
     unsigned outUses = getOpUses(actName);
     if (outUses) {
       unsigned copyUse = getCopyUses(actName);
-      fprintf(resFp, "%scopy.out[%u]", actId->getName(), copyUse);
+      if (copyUse <= outUses) {
+        fprintf(resFp, "%scopy.out[%u]", actId->getName(), copyUse);
+      } else {
+        fprintf(resFp, "%s", actId->getName());
+      }
     } else {
       fprintf(resFp, "%s", actId->getName());
     }
@@ -202,13 +206,13 @@ unsigned getOpUses(const char *op) {
   return opUsesIt->second;
 }
 
-void checkAndCreateCopy(FILE *libFp, FILE *resFp, const char *name, int bitwidth) {
-  unsigned outUses = getOpUses(name);
-  if (outUses) {
-    createCopy(libFp);
-    fprintf(resFp, "copy<%d, %u> %scopy(%s);\n", bitwidth, outUses + 1, name, name);
-  }
-}
+//void checkAndCreateCopy(FILE *libFp, FILE *resFp, const char *name, int bitwidth) {
+//  unsigned outUses = getOpUses(name);
+//  if (outUses) {
+//    createCopy(libFp);
+//    fprintf(resFp, "copy<%d, %u> %scopy(%s);\n", bitwidth, outUses + 1, name, name);
+//  }
+//}
 
 void collectUniOpUses(Expr *expr) {
   Expr *lExpr = expr->u.e.l;
@@ -325,6 +329,20 @@ void collectOpUses(Process *p) {
   }
 }
 
+void createCopyProcs(FILE *resFp, FILE *libFp) {
+  fprintf(resFp, "/* copy processes */\n");
+  for (auto &opUsesIt : opUses) {
+    unsigned uses = opUsesIt.second;
+    if (uses) {
+      const char *opName = opUsesIt.first;
+      int bitwidth = getBitwidth(opName);
+      createCopy(libFp);
+      fprintf(resFp, "copy<%d, %u> %scopy(%s);\n", bitwidth, uses + 1, opName, opName);
+    }
+  }
+  fprintf(resFp, "\n");
+}
+
 void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
   const char *procName = p->getName();
   bool mainProc = (strcmp(procName, "main<>") == 0);
@@ -336,6 +354,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
   p->CurScope()->Print(resFp);
   collectBitwidthInfo(p);
   collectOpUses(p);
+  createCopyProcs(resFp, libFp);
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
@@ -360,6 +379,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
             break;
           }
           case E_NOT: {
+            EMIT_UNI(resFp, expr, out, "not");
             createUniLib(libFp, "not", "~", type);
             break;
           }
@@ -404,6 +424,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
             break;
           }
           case E_UMINUS: {
+            EMIT_UNI(resFp, expr, out, "neg");
             createUniLib(libFp, "neg", "-", type);
             break;
           }
@@ -416,6 +437,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
           case E_VAR: {
             bool hasInitVal = false;
             unsigned initVal = 0;
+            auto actId = (ActId *) expr->u.e.l;
             Expr *init = d->u.func.init;
             if (init) {
               hasInitVal = true;
@@ -426,12 +448,15 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
                 exit(-1);
               }
               initVal = init->u.v;
+              fprintf(resFp, "init<%u, %d> %s_inst(", initVal, outWidth, out);
+              printActId(resFp, actId);
+              createInit(libFp);
+            } else {
+              fprintf(resFp, "buffer<%d> %s_inst(", outWidth, out);
+              printActId(resFp, actId);
+              createBuff(libFp);
             }
-            fprintf(resFp, "buffer<%d> %s_inst(", outWidth, out);
-            auto actId = (ActId *) expr->u.e.l;
-            printActId(resFp, actId);
             fprintf(resFp, "%s);\n", out);
-            createBuff(libFp, hasInitVal, initVal);
             break;
           }
           case E_XOR: {
@@ -470,6 +495,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
             break;
           }
           case E_COMPLEMENT: {
+            EMIT_UNI(resFp, expr, out, "comple");
             createUniLib(libFp, "comple", "~", type);
             break;
           }
@@ -477,7 +503,7 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
             fatal_error("Unknown expression type %d\n", type);
           }
         }
-        checkAndCreateCopy(libFp, resFp, out, outWidth);
+//        checkAndCreateCopy(libFp, resFp, out, outWidth);
         break;
       }
       case ACT_DFLOW_SPLIT: {
@@ -520,13 +546,12 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
         printActId(resFp, input);
         fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
         createSplit(libFp);
-        if (lOut) {
-          checkAndCreateCopy(libFp, resFp, lOut->getName(), bitwidth);
-        }
-        if (rOut) {
-          checkAndCreateCopy(libFp, resFp, rOut->getName(), bitwidth);
-        }
-
+//        if (lOut) {
+//          checkAndCreateCopy(libFp, resFp, lOut->getName(), bitwidth);
+//        }
+//        if (rOut) {
+//          checkAndCreateCopy(libFp, resFp, rOut->getName(), bitwidth);
+//        }
         break;
       }
       case ACT_DFLOW_MERGE: {
@@ -541,11 +566,13 @@ void handleProcess(FILE *resFp, FILE *libFp, Process *p) {
         printActId(resFp, lIn);
         ActId *rIn = inputs[1];
         printActId(resFp, rIn);
-        bool printComma = false;
-        printActId(resFp, output, printComma);
-        fprintf(resFp, ");\n");
+        fprintf(resFp, "%s);\n", outputName);
         createMerge(libFp);
-        checkAndCreateCopy(libFp, resFp, outputName, bitwidth);
+
+//        bool printComma = false;
+//        printActId(resFp, output, printComma);
+//        fprintf(resFp, ");\n");
+//        checkAndCreateCopy(libFp, resFp, outputName, bitwidth);
         break;
       }
       case ACT_DFLOW_MIXER: {

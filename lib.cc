@@ -80,7 +80,7 @@ void createSplit(FILE *libFp) {
     fprintf(libFp, "  chp {\n");
     fprintf(libFp,
             "    *[in?x, ctrl?c; log(\"receive \", c, \", \", x);"
-            "  [~c -> lOut!x [] c -> rOut!x]]\n");
+            "  [~c -> lOut!x [] c -> rOut!x]; log(\"send \", x)]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
 }
@@ -95,19 +95,25 @@ void createSource(FILE *libFp) {
   }
 }
 
-void createBuff(FILE *libFp, bool hasInitVal, unsigned initVal = 0) {
+void createInit(FILE *libFp) {
+  if (!hasProcess("init")) {
+    fprintf(libFp, "template<pint V, W>\n");
+    fprintf(libFp,
+            "defproc init(chan?(int<W>)in; chan!(int<W>) out) {\n");
+    fprintf(libFp, "  int<W> x;\n");
+    fprintf(libFp, "  bool b;\n");
+    fprintf(libFp, "  chp {\n    b-;\n");
+    fprintf(libFp, "    *[[~b->x:=V;b+ [] b->in?x]; out!x; log(\"send \", x)]\n  }\n}\n\n");
+  }
+}
+
+void createBuff(FILE *libFp) {
   if (!hasProcess("buffer")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
             "defproc buffer(chan?(int<W>)in; chan!(int<W>) out) {\n");
     fprintf(libFp, "  int<W> x;\n");
-    if (hasInitVal) {
-      fprintf(libFp, "  bool b;\n");
-      fprintf(libFp, "  chp {\n    b-;\n");
-      fprintf(libFp, "    *[[~b->x:=%u;b+ [] b->in?x]; out!x]\n  }\n}\n\n", initVal);
-    } else {
-      fprintf(libFp, "  chp {\n    *[in?x; log(\"send \", x); out!x]\n  }\n}\n\n");
-    }
+    fprintf(libFp, "  chp {\n    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
 }
 
@@ -127,7 +133,7 @@ void createCopy(FILE *libFp) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
     fprintf(libFp, "  int<W> x;\n  chp {\n");
-    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x) ]\n");
-    fprintf(libFp, "  }\n}\n");
+    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x); log(\"send \", x) ]\n");
+    fprintf(libFp, "  }\n}\n\n");
   }
 }

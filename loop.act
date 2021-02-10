@@ -49,9 +49,9 @@ defproc main (chan!(int<32>) main_out)
     {main_I2_} sig_main_I0__main_I2__L, sig_main_I7__main_I9__L -> Merge_main_I12_;
     {main_I9_} Merge_loopMS_main_0 -> *, sig_Merge_loopMS_main_0_main_I9__R;
     {main_I9_} main_I7_ -> sig_main_I7__main_I9__L, sig_main_I7__main_I9__R;
-    {main_I9_} main_I8_ -> sig_main_I8__main_I9__L, sig_main_I8__main_I9__R;
+    {main_I9_} main_I8_ -> *, sig_main_I8__main_I9__R;
     {main_I2_} main_I0_ -> sig_main_I0__main_I2__L, sig_main_I0__main_I2__R;
-    {main_I2_} main_I1_ -> sig_main_I1__main_I2__L, sig_main_I1__main_I2__R
+    {main_I2_} main_I1_ -> *, sig_main_I1__main_I2__R
   }
 }
 
