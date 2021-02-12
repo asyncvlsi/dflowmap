@@ -1,0 +1,66 @@
+defproc func (chan?(int<32>) func_in_0; chan!(int<32>) func_out)
+{
+  /* Define channels */
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    func_in_0 -> func_out
+  }
+}
+
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  chan(int<32>) main_I3_;
+  chan(int<32>) main_I4_;
+  chan(int<32>) mainfunc_in_0;
+  chan(int<32>) mainfunc_out;
+  chan(int<1>) intraEnablerMerge_mainfunc_0;
+  chan(int<1>) intraStateSplit_mainfunc_0_L;
+  chan(int<1>) intraStateSplit_mainfunc_0_R;
+  chan(int<1>) intraStateInv_mainfunc_0;
+  chan(int<1>) const_mainfunc__1_0_;
+  chan(int<1>) intraStateMerge_mainfunc_0;
+  chan(int<1>) intraStateInit_mainfunc_0;
+  chan(int<1>) intraEnabler_mainfunc_0;
+  chan(int<1>) intraEnabler_mainfunc_0_source;
+  chan(int<1>) intraEnabler_mainfunc_0_sub;
+  chan(int<1>) intraEnabler_mainfunc_1;
+  chan(int<1>) intraEnabler_mainfunc_1_source;
+  chan(int<1>) intraEnabler_mainfunc_1_sub;
+  chan(int<32>) intraArgMerge_mainfunc_0_0;
+  chan(int<32>) intraOutSplit_mainfunc_0_L;
+  chan(int<32>) intraOutSplit_mainfunc_0_R;
+  /* Handle invocations */
+  func func_inst(mainfunc_in_0, mainfunc_out);
+
+  /* Define dataflow script */
+  dataflow {
+    2 -> main_I0_;
+    3 -> main_I1_;
+    1 -> const_mainfunc__1_0_;
+    ~intraStateSplit_mainfunc_0_L -> intraStateInv_mainfunc_0;
+    1 -> intraEnabler_mainfunc_0_source;
+    intraEnabler_mainfunc_0_source - intraEnabler_mainfunc_0 -> intraEnabler_mainfunc_0_sub;
+    intraEnabler_mainfunc_0_sub -> [6,1] intraEnabler_mainfunc_0;
+    1 -> intraEnabler_mainfunc_1_source;
+    intraEnabler_mainfunc_1_source - intraEnabler_mainfunc_1 -> intraEnabler_mainfunc_1_sub;
+    intraEnabler_mainfunc_1_sub -> [6,1] intraEnabler_mainfunc_1;
+    main_I2_ + main_I3_ -> main_I4_;
+    intraArgMerge_mainfunc_0_0 -> mainfunc_in_0;
+    main_I4_ -> main_out;
+    intraOutSplit_mainfunc_0_L -> main_I2_;
+    intraOutSplit_mainfunc_0_R -> main_I3_;
+    intraStateMerge_mainfunc_0 -> [1, 0] intraStateInit_mainfunc_0;
+    {intraStateInit_mainfunc_0} intraEnabler_mainfunc_0, intraEnabler_mainfunc_1 -> intraEnablerMerge_mainfunc_0;
+    {intraStateSplit_mainfunc_0_R} main_I0_, main_I1_ -> intraArgMerge_mainfunc_0_0;
+    {intraEnablerMerge_mainfunc_0} intraStateInv_mainfunc_0, intraStateSplit_mainfunc_0_R -> intraStateMerge_mainfunc_0;
+    {intraStateSplit_mainfunc_0_R} mainfunc_out -> intraOutSplit_mainfunc_0_L, intraOutSplit_mainfunc_0_R;
+    {intraEnablerMerge_mainfunc_0} intraStateInit_mainfunc_0 -> intraStateSplit_mainfunc_0_L, intraStateSplit_mainfunc_0_R
+  }
+}
+
+main m;
