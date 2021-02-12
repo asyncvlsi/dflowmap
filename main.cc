@@ -364,11 +364,24 @@ void handleProcess(Process *p) {
     auto *d = (act_dataflow_element *) list_value (li);
     switch (d->t) {
       case ACT_DFLOW_FUNC: {
+        /* handle left hand side */
         Expr *expr = d->u.func.lhs;
+        int type = expr->type;
+        /* handle right hand side */
         ActId *rhs = d->u.func.rhs;
         const char *out = rhs->getName();
         int outWidth = getBitwidth(out);
-        int type = expr->type;
+        Expr *init = d->u.func.init;
+        if (init) {
+          if (type != E_VAR) {
+            printf("We have init in ACT code, but the left side is not E_VAR!\n");
+            print_expr(stdout, expr);
+            printf(" => ");
+            printActId(rhs);
+            printf("\n");
+            exit(-1);
+          }
+        }
         switch (type) {
           case E_AND: {
             EMIT_BIN(expr, out, "and", outWidth);
@@ -439,7 +452,6 @@ void handleProcess(Process *p) {
           case E_VAR: {
             unsigned initVal = 0;
             auto actId = (ActId *) expr->u.e.l;
-            Expr *init = d->u.func.init;
             if (init) {
               int initValType = init->type;
               if (initValType != E_INT) {
