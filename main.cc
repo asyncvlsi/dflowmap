@@ -498,7 +498,7 @@ void handleProcess(Process *p) {
           }
           case E_EQ: {
             EMIT_BIN(expr, out, "eq", outWidth);
-            createBinLib(libFp, "eq", "==", type);
+            createBinLib(libFp, "eq", "=", type);
             break;
           }
           case E_NE: {
