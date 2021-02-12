@@ -51,7 +51,7 @@ void createUniLib(FILE *libFp, const char *sym, const char *op, int typeId) {
     fprintf(libFp,
             "defproc func_%s(chan?(int<W>)a; chan!(int<W>) b) {\n", sym);
     fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  chp {\n    *[a?x; log(\"recv \", x); b!(%sx); log(\"send \", x); "
+    fprintf(libFp, "  chp {\n    *[a?x; log(\"recv \", x); b!(%sx); log(\"send \", x) "
                    "]\n  }\n}\n\n", op);
   }
 }
