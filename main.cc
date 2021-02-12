@@ -152,7 +152,7 @@ void EMIT_BIN(Expr *expr, const char *out, const char *sym, int outWidth) {
     exit(-1);
   }
   /* print */
-  fprintf(resFp, "func_%s<%d, %d> %sinst(", sym, inWidth, outWidth, out);
+  fprintf(resFp, "func_%s<%d, %d> %s_inst(", sym, inWidth, outWidth, out);
   printExpr(lExpr, out, inWidth);
   printExpr(rExpr, out, inWidth);
   fprintf(resFp, "%s);\n", out);
@@ -167,7 +167,7 @@ void EMIT_UNI(Expr *expr, const char *out, const char *sym) {
     print_expr(stdout, expr);
     exit(-1);
   }
-  fprintf(resFp, "func_%s<%d> %sinst(", sym, lWidth, out);
+  fprintf(resFp, "func_%s<%d> %s_uniinst(", sym, lWidth, out);
   printExpr(lExpr, out, lWidth);
   fprintf(resFp, "%s);\n", out);
 }
@@ -445,7 +445,7 @@ void handleProcess(Process *p) {
           }
           case E_INT: {
             unsigned int val = expr->u.v;
-            fprintf(resFp, "source<%u, %d> %sinst(%s);\n", val, outWidth, out, out);
+            fprintf(resFp, "source<%u, %d> %s_inst(%s);\n", val, outWidth, out, out);
             createSource(libFp);
             break;
           }
@@ -552,7 +552,7 @@ void handleProcess(Process *p) {
         } else if (emptyPort == 2) {
           fprintf(resFp, "sink<%d> %s_sink(%s_R);\n", bitwidth, splitName, splitName);
         }
-        fprintf(resFp, "control_split<%d> %sinst(", bitwidth, splitName);
+        fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(guard);
         printActId(input);
@@ -564,7 +564,7 @@ void handleProcess(Process *p) {
         ActId *output = d->u.splitmerge.single;
         const char *outputName = output->getName();
         int bitwidth = getBitwidth(outputName);
-        fprintf(resFp, "control_merge<%d> %sinst(", bitwidth, outputName);
+        fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
         ActId *guard = d->u.splitmerge.guard;
         printActId(guard);
         ActId **inputs = d->u.splitmerge.multi;
@@ -645,7 +645,6 @@ int main(int argc, char **argv) {
   }
   for (int i = index - 1; i >= 0; i--) {
     Process *p = procArray[i];
-    p->Print(stdout);
     handleProcess(p);
   }
   fprintf(resFp, "main m;\n");
