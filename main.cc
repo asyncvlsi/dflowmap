@@ -520,37 +520,34 @@ void handleProcess(Process *p) {
       }
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
-        int bitwidth = getBitwidth(input->getName());
+        const char* inputName = input->getName();
+        size_t  inputSize = strlen(inputName);
+        int bitwidth = getBitwidth(inputName);
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
         ActId *rOut = outputs[1];
-        const char *outName;
-        /**
-         * if SPLIT has empty left outPort, then emptyPort = 1;
-         * if SPLIT has empty right outPort, then emptyPort = 2;
-         * o/w, emptyPort = 0;
-         */
-        int emptyPort = 0;
-        if (!lOut) {
-          emptyPort = 1;
-          if (!rOut) {
-            fatal_error("SPLIT has null outputs for both ports!\n");
-          }
-          outName = rOut->getName();
+        const char *outName = nullptr;
+        char *splitName = nullptr;
+        if (!lOut && !rOut) {  // split has empty target for both ports
+          splitName = new char[inputSize + 7];
+          strcpy(splitName, inputName);
+          strcat(splitName, "_SPLIT");
         } else {
-          outName = lOut->getName();
-          if (!rOut) {
-            emptyPort = 2;
+          if (lOut) {
+            outName = lOut->getName();
+          } else {
+            outName = rOut->getName();
           }
+          size_t splitSize = strlen(outName) - 1;
+          splitName = new char[splitSize];
+          memcpy(splitName, outName, splitSize - 1);
+          splitName[splitSize - 1] = '\0';
         }
-        size_t splitSize = strlen(outName) - 1;
-        char *splitName = new char[splitSize];
-        memcpy(splitName, outName, splitSize);
-        splitName[splitSize - 1] = '\0';
-        if (emptyPort == 1) {
-          fprintf(resFp, "sink<%d> %s_sink(%s_L);\n", bitwidth, splitName, splitName);
-        } else if (emptyPort == 2) {
-          fprintf(resFp, "sink<%d> %s_sink(%s_R);\n", bitwidth, splitName, splitName);
+        if (!lOut) {
+          fprintf(resFp, "sink<%d> %s_L_sink(%s_L);\n", bitwidth, splitName, splitName);
+        }
+        if (!rOut) {
+          fprintf(resFp, "sink<%d> %s_R_sink(%s_R);\n", bitwidth, splitName, splitName);
         }
         fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
         ActId *guard = d->u.splitmerge.guard;
