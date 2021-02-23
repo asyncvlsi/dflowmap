@@ -520,17 +520,23 @@ void handleProcess(Process *p) {
       }
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
-        const char* inputName = input->getName();
-        size_t  inputSize = strlen(inputName);
+        const char *inputName = input->getName();
+        size_t inputSize = strlen(inputName);
         int bitwidth = getBitwidth(inputName);
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
         ActId *rOut = outputs[1];
         const char *outName = nullptr;
         char *splitName = nullptr;
+        ActId *guard = d->u.splitmerge.guard;
+        const char *guardName = guard->getName();
+        size_t guardSize = strlen(guardName);
         if (!lOut && !rOut) {  // split has empty target for both ports
-          splitName = new char[inputSize + 7];
+          splitName = new char[inputSize + guardSize + 8];
+          printf("no target. iS: %d, gS: %d\n", inputSize, guardSize);
           strcpy(splitName, inputName);
+          strcat(splitName, "_");
+          strcat(splitName, guardName);
           strcat(splitName, "_SPLIT");
         } else {
           if (lOut) {
@@ -543,14 +549,19 @@ void handleProcess(Process *p) {
           memcpy(splitName, outName, splitSize - 1);
           splitName[splitSize - 1] = '\0';
         }
+        printf("in: %s, c: %s, split: %s\n", inputName, guardName, splitName);
         if (!lOut) {
           fprintf(resFp, "sink<%d> %s_L_sink(%s_L);\n", bitwidth, splitName, splitName);
+//          fprintf(resFp, "sink<%d> %s_%s_L_sink(%s_%s_L);\n", bitwidth, splitName,
+//                  guardName, splitName, guardName);
         }
         if (!rOut) {
           fprintf(resFp, "sink<%d> %s_R_sink(%s_R);\n", bitwidth, splitName, splitName);
+//          fprintf(resFp, "sink<%d> %s_%s_R_sink(%s_%s_R);\n", bitwidth, splitName,
+//                  guardName, splitName, guardName);
         }
         fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
-        ActId *guard = d->u.splitmerge.guard;
+
         printActId(guard);
         printActId(input);
         fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
