@@ -549,14 +549,15 @@ void handleProcess(Process *p) {
           memcpy(splitName, outName, splitSize - 1);
           splitName[splitSize - 1] = '\0';
         }
-        printf("in: %s, c: %s, split: %s\n", inputName, guardName, splitName);
         if (!lOut) {
           fprintf(resFp, "sink<%d> %s_L_sink(%s_L);\n", bitwidth, splitName, splitName);
+          printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
 //          fprintf(resFp, "sink<%d> %s_%s_L_sink(%s_%s_L);\n", bitwidth, splitName,
 //                  guardName, splitName, guardName);
         }
         if (!rOut) {
           fprintf(resFp, "sink<%d> %s_R_sink(%s_R);\n", bitwidth, splitName, splitName);
+          printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
 //          fprintf(resFp, "sink<%d> %s_%s_R_sink(%s_%s_R);\n", bitwidth, splitName,
 //                  guardName, splitName, guardName);
         }
@@ -651,7 +652,8 @@ int main(int argc, char **argv) {
       index++;
     }
   }
-  for (int i = index - 1; i >= 0; i--) {
+  for (int i = 0; i < index; i++) {
+//  for (int i = index - 1; i >= 0; i--) {
     Process *p = procArray[i];
     handleProcess(p);
   }
