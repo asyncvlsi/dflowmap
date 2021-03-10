@@ -1,0 +1,41 @@
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  chan(int<32>) main_I3_;
+  chan(int<32>) main_I4_;
+  chan(int<32>) main_I5_;
+  chan(int<32>) main_I6_;
+  chan(int<32>) main_I7_;
+  chan(int<32>) main_I8_;
+  chan(int<32>) main_I9_;
+  chan(int<32>) main_I10_;
+  chan(int<32>) main_I11_;
+  chan(int<32>) main_I12_;
+  chan(int<32>) main_I13_;
+  chan(int<32>) main_I14_;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    2 -> main_I0_;
+    7 -> main_I1_;
+    9 -> main_I2_;
+    4 -> main_I3_;
+    6 -> main_I4_;
+    7 -> main_I5_;
+    4 -> main_I6_;
+    2 -> main_I7_;
+    main_I10_ * main_I11_ -> main_I13_;
+    main_I12_ + main_I13_ -> main_I14_;
+    main_I0_ + main_I1_ -> main_I8_;
+    main_I2_ + main_I3_ -> main_I9_;
+    main_I14_ -> main_out;
+    main_I4_ * main_I5_ -> main_I10_;
+    main_I6_ * main_I7_ -> main_I11_;
+    main_I8_ * main_I9_ -> main_I12_
+  }
+}
+
+main m;
