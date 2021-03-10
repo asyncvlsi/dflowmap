@@ -115,7 +115,7 @@ int getExprBitwidth(Expr *expr) {
 
 void printSink(const char* name, int bitwidth) {
   fprintf(resFp, "sink<%d> %s_sink(%s);\n", bitwidth, name, name);
-  char instance[50];
+  char *instance = new char[50];
   sprintf(instance, "sink<%d>", bitwidth);
   int *metric = getOpMetric("sink", bitwidth);
   createSink(instance, metric);
@@ -123,10 +123,8 @@ void printSink(const char* name, int bitwidth) {
 
 void printInt(const char *out, unsigned val, int outWidth) {
   fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, out, out);
-  char instance[50];
+  char* instance = new char[50];
   sprintf(instance, "source<%u,%d>", val, outWidth);
-//  char op[50];
-//  sprintf(op, "source");
   int *metric = getOpMetric("source", outWidth);
   createSource(instance, metric);
 }
@@ -200,7 +198,7 @@ void EMIT_BIN(Expr *expr, const char *out, const char *sym, int outWidth,
   printExpr(lExpr, out, inWidth);
   printExpr(rExpr, out, inWidth);
   fprintf(resFp, "%s);\n", out);
-  char instance[50];
+  char *instance = new char[50];
   sprintf(instance, "func_%s<%d,%d>", sym, inWidth, outWidth);
   int *metric = getOpMetric(metricSym, outWidth);
   createBinLib(sym, op, type, instance, metric);
@@ -220,7 +218,7 @@ void EMIT_UNI(Expr *expr, const char *out, const char *sym, const char *op, int 
   fprintf(resFp, "func_%s<%d> %s_uniinst(", sym, lWidth, out);
   printExpr(lExpr, out, lWidth);
   fprintf(resFp, "%s);\n", out);
-  char instance[50];
+  char *instance = new char[50];
   sprintf(instance, "func_%s<%d>", sym, lWidth);
   int *metric = getOpMetric(metricSym, lWidth);
   createUniLib(sym, op, type, instance, metric);
@@ -389,10 +387,8 @@ void createCopyProcs() {
       int N = uses + 1;
       const char *opName = opUsesIt.first;
       int bitwidth = getBitwidth(opName);
-      char instance[50];
+      char *instance = new char[50];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
-//      char op[50];
-//      sprintf(op, "copy");
       int *metric = getOpMetric("copy", bitwidth);
       createCopy(N, instance, metric);
       fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
@@ -509,19 +505,15 @@ void handleProcess(Process *p) {
               initVal = init->u.v;
               fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, out);
               printActId(actId);
-              char instance[50];
+              char *instance = new char[50];
               sprintf(instance, "init<%u,%d>", initVal, outWidth);
-//              char op[50];
-//              sprintf(op, "buff");
               int *metric = getOpMetric("buff", outWidth);
               createInit(instance, metric);
             } else {
               fprintf(resFp, "buffer<%d> %s_inst(", outWidth, out);
               printActId(actId);
-              char instance[50];
+              char *instance = new char[50];
               sprintf(instance, "buffer<%d>", outWidth);
-//              char op[50];
-//              sprintf(op, "buff");
               int *metric = getOpMetric("buff", outWidth);
               createBuff(instance, metric);
             }
@@ -599,7 +591,7 @@ void handleProcess(Process *p) {
           splitName[splitSize - 1] = '\0';
         }
         if (!lOut) {
-          char sinkName[50];
+          char *sinkName = new char[50];
           sprintf(sinkName, "%s_L", splitName);
           printSink(sinkName, bitwidth);
 
@@ -609,7 +601,7 @@ void handleProcess(Process *p) {
 //                  guardName, splitName, guardName);
         }
         if (!rOut) {
-          char sinkName[50];
+          char *sinkName = new char[50];
           sprintf(sinkName, "%s_R", splitName);
           printSink(sinkName, bitwidth);
 
@@ -622,7 +614,7 @@ void handleProcess(Process *p) {
         printActId(guard);
         printActId(input);
         fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
-        char instance[50];
+        char *instance = new char[50];
         sprintf(instance, "control_split<%d>", bitwidth);
         int *metric = getOpMetric("split", bitwidth);
         createSplit(instance, metric);
@@ -641,7 +633,7 @@ void handleProcess(Process *p) {
         ActId *rIn = inputs[1];
         printActId(rIn);
         fprintf(resFp, "%s);\n", outputName);
-        char instance[50];
+        char *instance = new char[50];
         sprintf(instance, "control_merge<%d>", bitwidth);
         int *metric = getOpMetric("merge", bitwidth);
         createMerge(instance, metric);
@@ -714,7 +706,7 @@ int main(int argc, char **argv) {
   strcpy(conf_file, "conf_");
   strcat(conf_file, argv[1]);
   confFp = fopen(conf_file, "w");
-  fprintf(confFp, "begin sim.chp");
+  fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
   for (int i = 0; i < numOps; i++) {
