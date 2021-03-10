@@ -178,16 +178,6 @@ void createSource(const char* instance, int *metric) {
     fprintf(libFp, "    *[log(\"send \", V); x!V]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
-  /*
-  const char* valChar = std::to_string(val).c_str();
-  const char* bwChar = std::to_string(bitwidth).c_str();
-  char *instance = new char[10+strlen(valChar)+strlen(bwChar)];
-  strcpy(instance, "source<");
-  strcat(instance, valChar);
-  strcat(instance, ",");
-  strcat(instance, bwChar);
-  strcat(instance, ">");
-   */
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
