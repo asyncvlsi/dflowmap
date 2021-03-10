@@ -26,22 +26,53 @@
 #include <unistd.h>
 #include <act/act.h>
 #include <act/passes.h>
+#include <sstream>
+#include <iostream>
+#include <fstream>
 #include "lib.cc"
-
-FILE *libFp;
-FILE *resFp;
-
-std::map<const char *, int> bitwidthMap;
-/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
-std::map<const char *, unsigned> opUses;
-/* copy operator, # of times it has already been used */
-std::map<const char *, unsigned> copyUses;
+#include "common.h"
 
 int getBitwidth(const char *varName);
 
 unsigned getOpUses(const char *op);
 
 unsigned getCopyUses(const char *copyOp);
+
+int* getOpMetric(const char *op, int bitwidth) {
+  auto opMetricsIt = opMetrics.find(op);
+  if (opMetricsIt == opMetrics.end()) {
+    printf("We could not find metric info for %s\n", op);
+    exit(-1);
+  }
+  int **metrics = opMetricsIt->second;
+  int row = -1;
+  switch (bitwidth) {
+    case 1: {
+      row = 0;
+      break;
+    }
+    case 8: {
+      row = 1;
+      break;
+    }
+    case 16: {
+      row = 2;
+      break;
+    }
+    case 32: {
+      row = 3;
+      break;
+    }
+    case 64: {
+      row = 4;
+      break;
+    }
+    default: {
+      fatal_error("Unknown bitwdith %d\n", bitwidth);
+    }
+  }
+  return metrics[row];
+}
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s <actfile>\n", name);
@@ -82,10 +113,22 @@ int getExprBitwidth(Expr *expr) {
   }
 }
 
-void printInt(const char *out, unsigned intVal, int bitwidth) {
-  fprintf(resFp, "source<%u, %d> %ssource_inst(%ssource_);\n", intVal, bitwidth, out, out);
-  createSource(libFp);
-  fprintf(resFp, "%ssource_, ", out);
+void printSink(const char* name, int bitwidth) {
+  fprintf(resFp, "sink<%d> %s_sink(%s);\n", bitwidth, name, name);
+  char instance[50];
+  sprintf(instance, "sink<%d>", bitwidth);
+  int *metric = getOpMetric("sink", bitwidth);
+  createSink(instance, metric);
+}
+
+void printInt(const char *out, unsigned val, int outWidth) {
+  fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, out, out);
+  char instance[50];
+  sprintf(instance, "source<%u,%d>", val, outWidth);
+//  char op[50];
+//  sprintf(op, "source");
+  int *metric = getOpMetric("source", outWidth);
+  createSource(instance, metric);
 }
 
 void printExpr(Expr *expr, const char *out, int bitwidth) {
@@ -134,7 +177,8 @@ int getBitwidth(const char *varName) {
   exit(-1);
 }
 
-void EMIT_BIN(Expr *expr, const char *out, const char *sym, int outWidth) {
+void EMIT_BIN(Expr *expr, const char *out, const char *sym, int outWidth,
+              const char *op, int type, const char *metricSym) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   int lWidth = getExprBitwidth(lExpr);
@@ -152,13 +196,19 @@ void EMIT_BIN(Expr *expr, const char *out, const char *sym, int outWidth) {
     exit(-1);
   }
   /* print */
-  fprintf(resFp, "func_%s<%d, %d> %s_inst(", sym, inWidth, outWidth, out);
+  fprintf(resFp, "func_%s<%d,%d> %s_inst(", sym, inWidth, outWidth, out);
   printExpr(lExpr, out, inWidth);
   printExpr(rExpr, out, inWidth);
   fprintf(resFp, "%s);\n", out);
+  char instance[50];
+  sprintf(instance, "func_%s<%d,%d>", sym, inWidth, outWidth);
+  int *metric = getOpMetric(metricSym, outWidth);
+  createBinLib(sym, op, type, instance, metric);
+
 }
 
-void EMIT_UNI(Expr *expr, const char *out, const char *sym) {
+void EMIT_UNI(Expr *expr, const char *out, const char *sym, const char *op, int type,
+              const char *metricSym) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   int lWidth = getExprBitwidth(lExpr);
@@ -170,6 +220,10 @@ void EMIT_UNI(Expr *expr, const char *out, const char *sym) {
   fprintf(resFp, "func_%s<%d> %s_uniinst(", sym, lWidth, out);
   printExpr(lExpr, out, lWidth);
   fprintf(resFp, "%s);\n", out);
+  char instance[50];
+  sprintf(instance, "func_%s<%d>", sym, lWidth);
+  int *metric = getOpMetric(metricSym, lWidth);
+  createUniLib(sym, op, type, instance, metric);
 }
 
 unsigned getCopyUses(const char *op) {
@@ -332,10 +386,16 @@ void createCopyProcs() {
   for (auto &opUsesIt : opUses) {
     unsigned uses = opUsesIt.second;
     if (uses) {
+      int N = uses + 1;
       const char *opName = opUsesIt.first;
       int bitwidth = getBitwidth(opName);
-      createCopy(libFp);
-      fprintf(resFp, "copy<%d, %u> %scopy(%s);\n", bitwidth, uses + 1, opName, opName);
+      char instance[50];
+      sprintf(instance, "copy<%d,%u>", bitwidth, N);
+//      char op[50];
+//      sprintf(op, "copy");
+      int *metric = getOpMetric("copy", bitwidth);
+      createCopy(N, instance, metric);
+      fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
     }
   }
   fprintf(resFp, "\n");
@@ -384,69 +444,56 @@ void handleProcess(Process *p) {
         }
         switch (type) {
           case E_AND: {
-            EMIT_BIN(expr, out, "and", outWidth);
-            createBinLib(libFp, "and", "&", type);
+            EMIT_BIN(expr, out, "and", outWidth, "&", type, "and");
             break;
           }
           case E_OR: {
-            EMIT_BIN(expr, out, "or", outWidth);
-            createBinLib(libFp, "or", "|", type);
+            EMIT_BIN(expr, out, "or", outWidth, "|", type, "and");
             break;
           }
           case E_NOT: {
-            EMIT_UNI(expr, out, "not");
-            createUniLib(libFp, "not", "~", type);
+            EMIT_UNI(expr, out, "not", "~", type, "and");
             break;
           }
           case E_PLUS: {
-            EMIT_BIN(expr, out, "add", outWidth);
-            createBinLib(libFp, "add", "+", type);
+            EMIT_BIN(expr, out, "add", outWidth, "+", type, "add");
             break;
           }
           case E_MINUS: {
-            EMIT_BIN(expr, out, "minus", outWidth);
-            createBinLib(libFp, "minus", "-", type);
+            EMIT_BIN(expr, out, "minus", outWidth, "-", type, "add");
             break;
           }
           case E_MULT: {
-            EMIT_BIN(expr, out, "multi", outWidth);
-            createBinLib(libFp, "multi", "*", type);
+            EMIT_BIN(expr, out, "multi", outWidth, "*", type, "mul");
             break;
           }
           case E_DIV: {
-            EMIT_BIN(expr, out, "div", outWidth);
-            createBinLib(libFp, "div", "/", type);
+            EMIT_BIN(expr, out, "div", outWidth, "/", type, "div");
             break;
           }
           case E_MOD: {
-            EMIT_BIN(expr, out, "mod", outWidth);
-            createBinLib(libFp, "mod", "%", type);
+            EMIT_BIN(expr, out, "mod", outWidth, "%", type, "rem");
             break;
           }
           case E_LSL: {
-            EMIT_BIN(expr, out, "lsl", outWidth);
-            createBinLib(libFp, "lsl", "<<", type);
+            EMIT_BIN(expr, out, "lsl", outWidth, "<<", type, "lshift");
             break;
           }
           case E_LSR: {
-            EMIT_BIN(expr, out, "lsr", outWidth);
-            createBinLib(libFp, "lsr", ">>", type);
+            EMIT_BIN(expr, out, "lsr", outWidth, ">>", type, "lshift");
             break;
           }
           case E_ASR: {
-            EMIT_BIN(expr, out, "asr", outWidth);
-            createBinLib(libFp, "asr", ">>>", type);
+            EMIT_BIN(expr, out, "asr", outWidth, ">>>", type, "lshift");
             break;
           }
           case E_UMINUS: {
-            EMIT_UNI(expr, out, "neg");
-            createUniLib(libFp, "neg", "-", type);
+            EMIT_UNI(expr, out, "neg", "-", type, "and");
             break;
           }
           case E_INT: {
             unsigned int val = expr->u.v;
-            fprintf(resFp, "source<%u, %d> %s_inst(%s);\n", val, outWidth, out, out);
-            createSource(libFp);
+            printInt(out, val, outWidth);
             break;
           }
           case E_VAR: {
@@ -460,62 +507,64 @@ void handleProcess(Process *p) {
                 exit(-1);
               }
               initVal = init->u.v;
-              fprintf(resFp, "init<%u, %d> %s_inst(", initVal, outWidth, out);
+              fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, out);
               printActId(actId);
-              createInit(libFp);
+              char instance[50];
+              sprintf(instance, "init<%u,%d>", initVal, outWidth);
+//              char op[50];
+//              sprintf(op, "buff");
+              int *metric = getOpMetric("buff", outWidth);
+              createInit(instance, metric);
             } else {
               fprintf(resFp, "buffer<%d> %s_inst(", outWidth, out);
               printActId(actId);
-              createBuff(libFp);
+              char instance[50];
+              sprintf(instance, "buffer<%d>", outWidth);
+//              char op[50];
+//              sprintf(op, "buff");
+              int *metric = getOpMetric("buff", outWidth);
+              createBuff(instance, metric);
             }
             fprintf(resFp, "%s);\n", out);
             break;
           }
           case E_XOR: {
-            EMIT_BIN(expr, out, "xor", outWidth);
-            createBinLib(libFp, "xor", "^", type);
+            EMIT_BIN(expr, out, "xor", outWidth, "^", type, "and");
             break;
           }
           case E_LT: {
-            EMIT_BIN(expr, out, "lt", outWidth);
-            createBinLib(libFp, "lt", "<", type);
+            EMIT_BIN(expr, out, "lt", outWidth, "<", type, "icmp");
             break;
           }
           case E_GT: {
-            EMIT_BIN(expr, out, "gt", outWidth);
-            createBinLib(libFp, "gt", ">", type);
+            EMIT_BIN(expr, out, "gt", outWidth, ">", type, "icmp");
             break;
           }
           case E_LE: {
-            EMIT_BIN(expr, out, "le", outWidth);
-            createBinLib(libFp, "le", "<=", type);
+            EMIT_BIN(expr, out, "le", outWidth, "<=", type, "icmp");
             break;
           }
           case E_GE: {
-            EMIT_BIN(expr, out, "ge", outWidth);
-            createBinLib(libFp, "ge", ">=", type);
+            EMIT_BIN(expr, out, "ge", outWidth, ">=", type, "icmp");
             break;
           }
           case E_EQ: {
-            EMIT_BIN(expr, out, "eq", outWidth);
-            createBinLib(libFp, "eq", "=", type);
+            EMIT_BIN(expr, out, "eq", outWidth, "=", type, "icmp");
             break;
           }
           case E_NE: {
-            EMIT_BIN(expr, out, "ne", outWidth);
-            createBinLib(libFp, "ne", "!=", type);
+            EMIT_BIN(expr, out, "ne", outWidth, "!=", type, "icmp");
             break;
           }
           case E_COMPLEMENT: {
-            EMIT_UNI(expr, out, "comple");
-            createUniLib(libFp, "comple", "~", type);
+            EMIT_UNI(expr, out, "comple", "~", type, "and");
             break;
           }
           default: {
             fatal_error("Unknown expression type %d\n", type);
           }
         }
-//        checkAndCreateCopy(libFp, resFp, out, outWidth);
+//        checkAndCreateCopy(resFp, out, outWidth);
         break;
       }
       case ACT_DFLOW_SPLIT: {
@@ -550,23 +599,33 @@ void handleProcess(Process *p) {
           splitName[splitSize - 1] = '\0';
         }
         if (!lOut) {
-          fprintf(resFp, "sink<%d> %s_L_sink(%s_L);\n", bitwidth, splitName, splitName);
+          char sinkName[50];
+          sprintf(sinkName, "%s_L", splitName);
+          printSink(sinkName, bitwidth);
+
+//          fprintf(resFp, "sink<%d> %s_L_sink(%s_L);\n", bitwidth, splitName, splitName);
           printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
 //          fprintf(resFp, "sink<%d> %s_%s_L_sink(%s_%s_L);\n", bitwidth, splitName,
 //                  guardName, splitName, guardName);
         }
         if (!rOut) {
-          fprintf(resFp, "sink<%d> %s_R_sink(%s_R);\n", bitwidth, splitName, splitName);
+          char sinkName[50];
+          sprintf(sinkName, "%s_R", splitName);
+          printSink(sinkName, bitwidth);
+
+//          fprintf(resFp, "sink<%d> %s_R_sink(%s_R);\n", bitwidth, splitName, splitName);
           printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
 //          fprintf(resFp, "sink<%d> %s_%s_R_sink(%s_%s_R);\n", bitwidth, splitName,
 //                  guardName, splitName, guardName);
         }
         fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
-
         printActId(guard);
         printActId(input);
         fprintf(resFp, "%s_L, %s_R);\n", splitName, splitName);
-        createSplit(libFp);
+        char instance[50];
+        sprintf(instance, "control_split<%d>", bitwidth);
+        int *metric = getOpMetric("split", bitwidth);
+        createSplit(instance, metric);
         break;
       }
       case ACT_DFLOW_MERGE: {
@@ -582,7 +641,10 @@ void handleProcess(Process *p) {
         ActId *rIn = inputs[1];
         printActId(rIn);
         fprintf(resFp, "%s);\n", outputName);
-        createMerge(libFp);
+        char instance[50];
+        sprintf(instance, "control_merge<%d>", bitwidth);
+        int *metric = getOpMetric("merge", bitwidth);
+        createMerge(instance, metric);
         break;
       }
       case ACT_DFLOW_MIXER: {
@@ -602,8 +664,9 @@ void handleProcess(Process *p) {
   if (mainProc) {
     const char *outPort = "main_out";
     int outWidth = getBitwidth(outPort);
-    fprintf(resFp, "sink<%d> main_out_sink(main_out);\n", outWidth);
-    createSink(libFp);
+    printSink(outPort, outWidth);
+//    fprintf(resFp, "sink<%d> main_out_sink(main_out);\n", outWidth);
+//    createSink();
   }
   fprintf(resFp, "}\n\n");
 }
@@ -614,6 +677,9 @@ void initialize() {
   }
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     processes[i] = nullptr;
+  }
+  for (unsigned i = 0; i < MAX_PROCESSES; i++) {
+    instances[i] = nullptr;
   }
 }
 
@@ -631,15 +697,65 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
+
+  /* create output file */
   char *result_file = new char[8 + strlen(argv[1])];
   strcpy(result_file, "result_");
   strcat(result_file, argv[1]);
   resFp = fopen(result_file, "w");
+
   char *lib_file = new char[5 + strlen(argv[1])];
   strcpy(lib_file, "lib_");
   strcat(lib_file, argv[1]);
   libFp = fopen(lib_file, "w");
   fprintf(resFp, "import \"%s\";\n\n", lib_file);
+
+  char *conf_file = new char[6 + strlen(argv[1])];
+  strcpy(conf_file, "conf_");
+  strcat(conf_file, argv[1]);
+  confFp = fopen(conf_file, "w");
+  fprintf(confFp, "begin sim.chp");
+
+  /* read in the Metric file */
+  for (int i = 0; i < numOps; i++) {
+    const char *op = ops[i];
+    printf("Read metric file for %s\n", op);
+    char *metricFile = new char[strlen(op) + 16];
+    strcpy(metricFile, "metrics/");
+    strcat(metricFile, op);
+    strcat(metricFile, "_metric");
+    std::ifstream metricFp(metricFile);
+    std::string line;
+    int bwCount = 0;
+    int **metric = new int *[numBWs];
+    while (std::getline(metricFp, line)) {
+      printf("%s\n", line.c_str());
+      std::istringstream iss(line);
+      int metricCount = 0;
+      metric[bwCount] = new int[4];
+      do {
+        std::string numStr;
+        iss >> numStr;
+        if (!numStr.empty()) {
+          metric[bwCount][metricCount] = std::atoi(numStr.c_str());
+          metricCount++;
+        }
+      } while (iss);
+      if (metricCount != 4) {
+        printf("%s has %d metrics for the %d-th bitwidth info!\n", metricFile, metricCount,
+               bwCount);
+        exit(-1);
+      }
+      bwCount++;
+    }
+    if (bwCount != numBWs) {
+      printf("%s has %d bitwidth info!\n", metricFile, bwCount);
+      exit(-1);
+    }
+    opMetrics.insert(std::make_pair(op, metric));
+  }
+
+
   ActTypeiter it(a->Global());
   initialize();
   Process *procArray[MAX_PROCESSES];
@@ -658,8 +774,9 @@ int main(int argc, char **argv) {
     handleProcess(p);
   }
   fprintf(resFp, "main m;\n");
+  fprintf(confFp, "end\n");
   fclose(resFp);
-  fclose(libFp);
+  fclose(confFp);
   return 0;
 }
 
