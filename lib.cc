@@ -46,7 +46,7 @@ bool hasExpr(int typeId) {
   fatal_error("We have reached the end of exprTypePairs array!\n");
 }
 
-void createBinLib(const char *sym, const char *op, int typeId, const char* instance, int *metric) {
+void createBinLib(const char *sym, const char *op, int typeId, const char *instance, int *metric) {
   if (!hasExpr(typeId)) {
     fprintf(libFp, "template<pint W1, W2>\n");
     fprintf(libFp, "defproc func_%s(chan?(int<W1>) a, b; chan!(int<W2>) c) {\n", sym);
@@ -75,7 +75,7 @@ void createBinLib(const char *sym, const char *op, int typeId, const char* insta
   }
 }
 
-void createUniLib(const char *sym, const char *op, int typeId, const char* instance, int *metric) {
+void createUniLib(const char *sym, const char *op, int typeId, const char *instance, int *metric) {
   if (!hasExpr(typeId)) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -99,7 +99,7 @@ void createUniLib(const char *sym, const char *op, int typeId, const char* insta
   }
 }
 
-void createMerge(const char* instance, int *metric) {
+void createMerge(const char *instance, int *metric) {
   if (!hasProcess("control_merge")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -134,7 +134,7 @@ void createMerge(const char* instance, int *metric) {
   }
 }
 
-void createSplit(const char* instance, int *metric) {
+void createSplit(const char *instance, int *metric) {
   if (!hasProcess("control_split")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -170,7 +170,7 @@ void createSplit(const char* instance, int *metric) {
   }
 }
 
-void createSource(const char* instance, int *metric) {
+void createSource(const char *instance, int *metric) {
   if (!hasProcess("source")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp, "defproc source(chan!(int<W>)x) {\n");
@@ -189,7 +189,7 @@ void createSource(const char* instance, int *metric) {
   }
 }
 
-void createInit(const char* instance, int *metric) {
+void createInit(const char *instance, int *metric) {
   if (!hasProcess("init")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp,
@@ -214,7 +214,7 @@ void createInit(const char* instance, int *metric) {
   }
 }
 
-void createBuff(const char* instance, int *metric) {
+void createBuff(const char *instance, int *metric) {
   if (!hasProcess("buffer")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -237,7 +237,7 @@ void createBuff(const char* instance, int *metric) {
   }
 }
 
-void createSink(const char* instance, int *metric) {
+void createSink(const char *instance, int *metric) {
   if (!hasProcess("sink")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp, "defproc sink(chan?(int<W>) x) {\n");
@@ -257,7 +257,7 @@ void createSink(const char* instance, int *metric) {
   }
 }
 
-void createCopy(int N, const char* instance, int *metric) {
+void createCopy(int N, const char *instance, int *metric) {
   if (!hasProcess("copy")) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
@@ -271,13 +271,11 @@ void createCopy(int N, const char* instance, int *metric) {
     fprintf(confFp, "    int D 0\n");
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
-    for (int i = 0; i < N; i++) {
-      fprintf(confFp, "  begin out[%d]\n", i);
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-      fprintf(confFp, "  end\n");
-    }
-    fprintf(confFp, "  real leakage %de-9\n", metric[0] * N);
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1] * (N - 1));
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0] * (N - 1));
     fprintf(confFp, "end\n");
   }
 }
