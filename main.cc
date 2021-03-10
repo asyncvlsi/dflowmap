@@ -562,7 +562,7 @@ void handleProcess(Process *p) {
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
         const char *inputName = input->getName();
-        size_t inputSize = strlen(inputName);
+        int inputSize = strlen(inputName);
         int bitwidth = getBitwidth(inputName);
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
@@ -571,7 +571,7 @@ void handleProcess(Process *p) {
         char *splitName = nullptr;
         ActId *guard = d->u.splitmerge.guard;
         const char *guardName = guard->getName();
-        size_t guardSize = strlen(guardName);
+        int guardSize = strlen(guardName);
         if (!lOut && !rOut) {  // split has empty target for both ports
           splitName = new char[inputSize + guardSize + 8];
           printf("no target. iS: %d, gS: %d\n", inputSize, guardSize);
