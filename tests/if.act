@@ -1,0 +1,30 @@
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) const_main_5_0_;
+  chan(int<32>) const_main_1_0_;
+  chan(int<32>) const_main_10_0_;
+  chan(int<1>) main_I1_;
+  chan(int<32>) sig_main_I0__main_I1__L;
+  chan(int<32>) sig_main_I0__main_I1__R;
+  chan(int<32>) main_I3_;
+  chan(int<32>) main_I5_;
+  chan(int<32>) Merge_main_I7_;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    10 -> main_I0_;
+    5 -> const_main_5_0_;
+    1 -> const_main_1_0_;
+    10 -> const_main_10_0_;
+    sig_main_I0__main_I1__L / const_main_10_0_ -> main_I5_;
+    Merge_main_I7_ -> main_out;
+    main_I0_ > const_main_5_0_ -> main_I1_;
+    sig_main_I0__main_I1__R + const_main_1_0_ -> main_I3_;
+    {main_I1_} main_I5_, main_I3_ -> Merge_main_I7_;
+    {main_I1_} main_I0_ -> sig_main_I0__main_I1__L, sig_main_I0__main_I1__R
+  }
+}
+
+main m;
