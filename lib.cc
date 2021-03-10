@@ -21,6 +21,7 @@ bool hasInstance(const char *instance) {
       return true;
     }
   }
+  return false;
 }
 
 bool hasProcess(const char *process) {
@@ -32,6 +33,7 @@ bool hasProcess(const char *process) {
       return true;
     }
   }
+  return false;
 }
 
 bool hasExpr(int typeId) {
@@ -44,6 +46,7 @@ bool hasExpr(int typeId) {
     }
   }
   fatal_error("We have reached the end of exprTypePairs array!\n");
+  return false;
 }
 
 void createBinLib(const char *sym, const char *op, int typeId, const char *instance, int *metric) {
