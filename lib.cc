@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <act/act.h>
+#include "common.h"
 
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
@@ -9,6 +10,18 @@
 int fuIDs[MAX_EXPR_TYPE_NUM];
 /* array of created processes */
 const char *processes[MAX_PROCESSES];
+const char *instances[MAX_PROCESSES];
+
+bool hasInstance(const char *instance) {
+  for (unsigned i = 0; i < MAX_PROCESSES; i++) {
+    if (instances[i] == nullptr) {
+      instances[i] = instance;
+      return false;
+    } else if (!strcmp(instances[i], instance)) {
+      return true;
+    }
+  }
+}
 
 bool hasProcess(const char *process) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
@@ -33,7 +46,7 @@ bool hasExpr(int typeId) {
   fatal_error("We have reached the end of exprTypePairs array!\n");
 }
 
-void createBinLib(FILE *libFp, const char *sym, const char *op, int typeId) {
+void createBinLib(const char *sym, const char *op, int typeId, const char* instance, int *metric) {
   if (!hasExpr(typeId)) {
     fprintf(libFp, "template<pint W1, W2>\n");
     fprintf(libFp, "defproc func_%s(chan?(int<W1>) a, b; chan!(int<W2>) c) {\n", sym);
@@ -43,9 +56,26 @@ void createBinLib(FILE *libFp, const char *sym, const char *op, int typeId) {
             "  chp {\n    *[a?x, b?y; log(\"recv \", x, \", \", y); res := x%sy; c!res; "
             "log(\"send \", res)]\n  }\n}\n\n", op);
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin a\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin b\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin c\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createUniLib(FILE *libFp, const char *sym, const char *op, int typeId) {
+void createUniLib(const char *sym, const char *op, int typeId, const char* instance, int *metric) {
   if (!hasExpr(typeId)) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -54,9 +84,22 @@ void createUniLib(FILE *libFp, const char *sym, const char *op, int typeId) {
     fprintf(libFp, "  chp {\n    *[a?x; log(\"recv \", x); b!(%sx); log(\"send \", x) "
                    "]\n  }\n}\n\n", op);
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin a\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin b\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createMerge(FILE *libFp) {
+void createMerge(const char* instance, int *metric) {
   if (!hasProcess("control_merge")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -68,9 +111,30 @@ void createMerge(FILE *libFp) {
             "    *[ctrl?c; log(\"receive \", c); [~c -> lIn?x [] c -> rIn?x]; out!x; log(\"send \", x)]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin ctrl\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin lIn\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin rIn\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createSplit(FILE *libFp) {
+void createSplit(const char* instance, int *metric) {
   if (!hasProcess("control_split")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -83,9 +147,30 @@ void createSplit(FILE *libFp) {
             "  [~c -> lOut!x [] c -> rOut!x]; log(\"send \", x)]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin ctrl\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin in\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin lOut\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin rOut\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createSource(FILE *libFp) {
+void createSource(const char* instance, int *metric) {
   if (!hasProcess("source")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp, "defproc source(chan!(int<W>)x) {\n");
@@ -93,9 +178,28 @@ void createSource(FILE *libFp) {
     fprintf(libFp, "    *[log(\"send \", V); x!V]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
+  /*
+  const char* valChar = std::to_string(val).c_str();
+  const char* bwChar = std::to_string(bitwidth).c_str();
+  char *instance = new char[10+strlen(valChar)+strlen(bwChar)];
+  strcpy(instance, "source<");
+  strcat(instance, valChar);
+  strcat(instance, ",");
+  strcat(instance, bwChar);
+  strcat(instance, ">");
+   */
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin x\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createInit(FILE *libFp) {
+void createInit(const char* instance, int *metric) {
   if (!hasProcess("init")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp,
@@ -105,9 +209,22 @@ void createInit(FILE *libFp) {
     fprintf(libFp, "  chp {\n    b-;\n");
     fprintf(libFp, "    *[[~b->x:=V;b+ [] b->in?x]; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin in\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createBuff(FILE *libFp) {
+void createBuff(const char* instance, int *metric) {
   if (!hasProcess("buffer")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -115,9 +232,22 @@ void createBuff(FILE *libFp) {
     fprintf(libFp, "  int<W> x;\n");
     fprintf(libFp, "  chp {\n    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin in\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createSink(FILE *libFp) {
+void createSink(const char* instance, int *metric) {
   if (!hasProcess("sink")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp, "defproc sink(chan?(int<W>) x) {\n");
@@ -126,14 +256,38 @@ void createSink(FILE *libFp) {
     fprintf(libFp, "  *[x?t; log (\"got \", t)]\n");
     fprintf(libFp, "  }\n}\n");
   }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin x\n");
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "end\n");
+  }
 }
 
-void createCopy(FILE *libFp) {
+void createCopy(int N, const char* instance, int *metric) {
   if (!hasProcess("copy")) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
     fprintf(libFp, "  int<W> x;\n  chp {\n");
     fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x); log(\"send \", x) ]\n");
     fprintf(libFp, "  }\n}\n\n");
+  }
+  if (!hasInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin in\n");
+    fprintf(confFp, "    int D 0\n");
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    for (int i = 0; i < N; i++) {
+      fprintf(confFp, "  begin out[%d]\n", i);
+      fprintf(confFp, "    int D %d\n", metric[2]);
+      fprintf(confFp, "    int E %d\n", metric[1]);
+      fprintf(confFp, "  end\n");
+    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0] * N);
+    fprintf(confFp, "end\n");
   }
 }

@@ -9,7 +9,7 @@ cmake-build-debug/
 CMakeLists.txt
 lib_*
 result_*
-fluid.act
+*.act
 .actsim_history
 include
 
