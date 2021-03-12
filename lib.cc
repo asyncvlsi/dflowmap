@@ -103,22 +103,24 @@ void createUniLib(const char *sym, const char *op, int typeId, const char *insta
 }
 
 void createFULib(const char* procName, const char* expr, int numArgs) {
-  fprintf(libFp, "defproc %s(", procName);
-  for (int i = 0; i < numArgs; i++) {
-    fprintf(libFp, "chan?(int<32>)arg%d; ", i);
+  if (!hasProcess(procName)) {
+    fprintf(libFp, "defproc %s(", procName);
+    for (int i = 0; i < numArgs; i++) {
+      fprintf(libFp, "chan?(int<32>)arg%d; ", i);
+    }
+    fprintf(libFp, "chan!(int<32>) out) {\n");
+    for (int i = 0; i < numArgs; i++) {
+      fprintf(libFp, "  int<32> x%d;\n", i);
+    }
+    fprintf(libFp, "  int<32> res;\n");
+    fprintf(libFp, "  chp {\n    *[");
+    int i = 0;
+    for (; i < numArgs - 1; i++) {
+      fprintf(libFp, "arg%d?x%d, ", i, i);
+    }
+    fprintf(libFp, "arg%d?x%d; ", i, i);
+    fprintf(libFp, "res := %s; out!res; log(\"send \", res)]\n  }\n}\n\n", expr);
   }
-  fprintf(libFp, "chan!(int<32>) out) {\n");
-  for (int i = 0; i < numArgs; i++) {
-    fprintf(libFp, "  int<32> x%d;\n", i);
-  }
-  fprintf(libFp, "  int<32> res;\n");
-  fprintf(libFp, "  chp {\n    *[");
-  int i = 0;
-  for (; i < numArgs - 1; i++) {
-    fprintf(libFp, "arg%d?x%d, ", i, i);
-  }
-  fprintf(libFp, "arg%d?x%d; ", i, i);
-  fprintf(libFp, "res := %s; out!res; log(\"send \", res)]\n  }\n}\n\n", expr);
 }
 
 void createMerge(const char *instance, int *metric) {
