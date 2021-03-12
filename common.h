@@ -23,6 +23,9 @@
  */
 #ifndef DFLOWMAP_COMMON_H
 #define DFLOWMAP_COMMON_H
+
+#include "vector"
+
 #define numOps 13
 #define numBWs 5
 
@@ -35,6 +38,9 @@ std::map<const char *, int> bitwidthMap;
 std::map<const char *, unsigned> opUses;
 /* copy operator, # of times it has already been used */
 std::map<const char *, unsigned> copyUses;
+
+typedef std::string String;
+typedef std::vector<std::string> StringVec;
 
 const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
                            "rem", "sink", "source", "split"};
