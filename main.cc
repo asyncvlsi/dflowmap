@@ -29,6 +29,9 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <act/lang.h>
+#include <act/types.h>
+#include <act/expr.h>
 #include "lib.cc"
 #include "common.h"
 
@@ -186,6 +189,13 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
 const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bwList) {
   int type = expr->type;
   switch (type) {
+    case E_INT: {
+      if (procName[0] == '\0') {
+        sprintf(procName, "source");
+      }
+      unsigned int val = expr->u.v;
+      return std::to_string(val).c_str();
+    }
     case E_VAR: {
       int numArgs = argList.size();
       char *curArg = new char[10];
@@ -258,8 +268,24 @@ const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bw
     case E_COMPLEMENT: {
       return EMIT_UNI(expr, "comple", "~", type, "and", procName, argList, bwList);
     }
+    case E_BUILTIN_INT: {
+      Expr *lExpr = expr->u.e.l;
+      Expr *rExpr = expr->u.e.r;
+      if (rExpr) {
+        bwList.push_back(rExpr->u.v);
+      } else {
+        bwList.push_back(32);
+      }
+      return printExpr(lExpr, procName, argList, bwList);
+    }
+    case E_BUILTIN_BOOL: {
+      //TODO
+      break;
+    }
     default: {
-      fatal_error("Unknown dataflow type %d\n", type);
+      print_expr(stdout, expr);
+      printf("\n");
+      fatal_error("when printing expression, encounter unknown expression type %d\n", type);
       break;
     }
   }
@@ -379,7 +405,8 @@ void collectOpUses(Process *p) {
             break;
           }
           default: {
-            fatal_error("Unknown expression type %d\n", type);
+            break;
+//            fatal_error("Unknown expression type %d\n", type);
           }
         }
         break;
@@ -440,8 +467,9 @@ void createCopyProcs() {
 }
 
 void handleProcess(Process *p) {
+  p->Print(stdout);
   const char *pName = p->getName();
-  fprintf(stdout, "processing %s\n", pName);
+  printf("processing %s\n", pName);
   bool mainProc = (strcmp(pName, "main<>") == 0);
   if (!p->getlang()->getdflow()) {
     fatal_error("Process `%s': no dataflow body", p->getName());
@@ -465,25 +493,68 @@ void handleProcess(Process *p) {
         /* handle left hand side */
         Expr *expr = d->u.func.lhs;
         int type = expr->type;
+        char *procName = new char[200];
+        procName[0] = '\0';
+        strcat(procName, "func");
+        StringVec argList;
+        IntVec bwList;
+        const char *exprStr = printExpr(expr, procName, argList, bwList);
         /* handle right hand side */
         ActId *rhs = d->u.func.rhs;
         const char *out = rhs->getName();
         int outWidth = getBitwidth(out);
-        if (type == E_INT) {
-          unsigned int val = expr->u.v;
-          printInt(out, val, outWidth);
-        } else {
-          char *procName = new char[200];
-          procName[0] = '\0';
-          if (type == E_VAR) {
-            strcat(procName, "buffer");  //TODO: sometimes procName is INIT!
-          } else {
-            strcat(procName, "func");
-          }
+        bwList.push_back(outWidth);
+        Expr *initExpr = d->u.func.init;
+        Expr *nbufs = d->u.func.nbufs;
+        if (initExpr) {
           StringVec argList;
           IntVec bwList;
-          const char *exprStr = printExpr(expr, procName, argList, bwList);
-          bwList.push_back(outWidth);
+          char *procName = new char[200];
+          procName[0] = '\0';
+          strcat(procName, "func");
+          const char *initValStr = printExpr(initExpr, procName, argList, bwList);
+        }
+        if (type == E_INT) {
+          unsigned int val = expr->u.v;
+          print_expr(stdout, expr);
+          printf(" RuiTmp. oW: %d\n", outWidth);
+          printInt(out, val, outWidth);
+        } else if (type == E_VAR) {
+          unsigned initVal = 0;
+          auto actId = (ActId *) expr->u.e.l;
+          const char *inStr = getActId(actId);
+          Expr *init = d->u.func.init;
+          if (init) {
+            int initValType = init->type;
+            if (initValType != E_INT) {
+              print_expr(stdout, init);
+              printf("The init value is not E_INT type!\n");
+              exit(-1);
+            }
+            initVal = init->u.v;
+
+            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, out);
+
+            char *instance = new char[50];
+            sprintf(instance, "init<%u,%d>", initVal, outWidth);
+            int *metric = getOpMetric("buff", outWidth);
+            createInit(instance, metric);
+          } else {
+            const char *inStr = getActId(actId);
+            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, out, inStr, out);
+            char *instance = new char[50];
+            sprintf(instance, "buffer<%d>", outWidth);
+            int *metric = getOpMetric("buff", outWidth);
+            createBuff(instance, metric);
+          }
+        } else {
+//          char *procName = new char[200];
+//          procName[0] = '\0';
+//          strcat(procName, "func");
+//          StringVec argList;
+//          IntVec bwList;
+//          const char *exprStr = printExpr(expr, procName, argList, bwList);
+//          bwList.push_back(outWidth);
           int numArgs = argList.size();
           fprintf(resFp, "%s<", procName);
           int i = 0;
@@ -661,7 +732,6 @@ int main(int argc, char **argv) {
     int bwCount = 0;
     int **metric = new int *[numBWs];
     while (std::getline(metricFp, line)) {
-      printf("%s\n", line.c_str());
       std::istringstream iss(line);
       int metricCount = 0;
       metric[bwCount] = new int[4];
@@ -686,7 +756,6 @@ int main(int argc, char **argv) {
     }
     opMetrics.insert(std::make_pair(op, metric));
   }
-
 
   ActTypeiter it(a->Global());
   initialize();
