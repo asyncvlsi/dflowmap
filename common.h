@@ -24,8 +24,9 @@
 #ifndef DFLOWMAP_COMMON_H
 #define DFLOWMAP_COMMON_H
 
-#include "vector"
+#include <vector>
 
+#define DEBUG_VERBOSE true
 #define numOps 13
 #define numBWs 5
 
@@ -41,6 +42,7 @@ std::map<const char *, unsigned> copyUses;
 
 typedef std::string String;
 typedef std::vector<std::string> StringVec;
+typedef std::vector<int> IntVec;
 
 const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
                            "rem", "sink", "source", "split"};
