@@ -32,6 +32,7 @@
 #include <act/lang.h>
 #include <act/types.h>
 #include <act/expr.h>
+#include <algorithm>
 #include "lib.cc"
 #include "common.h"
 
@@ -42,6 +43,20 @@ unsigned getOpUses(const char *op);
 unsigned getCopyUses(const char *copyOp);
 
 const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bwList);
+
+const char *removeDot(const char* src) {
+  int len = strlen(src);
+  char* result = new char[len + 1];
+  int cnt = 0;
+  for (int i = 0; i < len; i++) {
+    if (src[i] != '.') {
+      result[cnt] = src[i];
+      cnt++;
+    }
+  }
+  result[cnt] = '\0';
+  return result;
+}
 
 int *getOpMetric(const char *op, int bitwidth) {
   auto opMetricsIt = opMetrics.find(op);
@@ -114,8 +129,8 @@ void printSink(const char *name, int bitwidth) {
   createSink(instance, metric);
 }
 
-const char *printInt(const char *out, unsigned val, int outWidth) {
-  fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, out, out);
+const char *printInt(const char *out, const char* normalizedOut, unsigned val, int outWidth) {
+  fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[50];
   sprintf(instance, "source<%u,%d>", val, outWidth);
   int *metric = getOpMetric("source", outWidth);
@@ -139,6 +154,12 @@ void printBitwidthInfo() {
     printf("(%s, %d) ", bitwidthMapIt->first, bitwidthMapIt->second);
   }
   printf("\n");
+}
+
+int getActIdBW(ActId *actId, Process *p) {
+  Array **aref = nullptr;
+  InstType *instType = p->CurScope()->FullLookup(actId, aref);
+  return TypeFactory::bitWidth(instType);
 }
 
 int getBitwidth(const char *varName) {
@@ -501,8 +522,11 @@ void handleProcess(Process *p) {
         const char *exprStr = printExpr(expr, procName, argList, bwList);
         /* handle right hand side */
         ActId *rhs = d->u.func.rhs;
-        const char *out = rhs->getName();
-        int outWidth = getBitwidth(out);
+        char out[10240];
+        out[0] = '\0';
+        rhs->sPrint(out, 10240, NULL, 0);
+        const char* normalizedOut = removeDot(out);
+        int outWidth = getActIdBW(rhs, p);
         bwList.push_back(outWidth);
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
@@ -516,9 +540,7 @@ void handleProcess(Process *p) {
         }
         if (type == E_INT) {
           unsigned int val = expr->u.v;
-          print_expr(stdout, expr);
-          printf(" RuiTmp. oW: %d\n", outWidth);
-          printInt(out, val, outWidth);
+          printInt(out, normalizedOut, val, 32);  //TODO: can we assuem E_INT is always 32-bit?
         } else if (type == E_VAR) {
           unsigned initVal = 0;
           auto actId = (ActId *) expr->u.e.l;
@@ -532,16 +554,14 @@ void handleProcess(Process *p) {
               exit(-1);
             }
             initVal = init->u.v;
-
-            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, out);
-
+            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, normalizedOut);
             char *instance = new char[50];
             sprintf(instance, "init<%u,%d>", initVal, outWidth);
             int *metric = getOpMetric("buff", outWidth);
             createInit(instance, metric);
           } else {
             const char *inStr = getActId(actId);
-            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, out, inStr, out);
+            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, normalizedOut, inStr, out);
             char *instance = new char[50];
             sprintf(instance, "buffer<%d>", outWidth);
             int *metric = getOpMetric("buff", outWidth);
@@ -561,7 +581,7 @@ void handleProcess(Process *p) {
           for (; i < numArgs; i++) {
             fprintf(resFp, "%d,", bwList[i]);
           }
-          fprintf(resFp, "%d> %s_inst(", bwList[i], out);
+          fprintf(resFp, "%d> %s_inst(", bwList[i], normalizedOut);
           for (auto &arg : argList) {
             fprintf(resFp, "%s, ", arg.c_str());
           }
@@ -587,7 +607,8 @@ void handleProcess(Process *p) {
         ActId *input = d->u.splitmerge.single;
         const char *inputName = input->getName();
         int inputSize = strlen(inputName);
-        int bitwidth = getBitwidth(inputName);
+        int bitwidth = getActIdBW(input, p);
+//        int bitwidth = getBitwidth(inputName);
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
         ActId *rOut = outputs[1];
@@ -639,7 +660,8 @@ void handleProcess(Process *p) {
       case ACT_DFLOW_MERGE: {
         ActId *output = d->u.splitmerge.single;
         const char *outputName = output->getName();
-        int bitwidth = getBitwidth(outputName);
+        int bitwidth = getActIdBW(output, p);
+//        int bitwidth = getBitwidth(outputName);
         fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
         ActId *guard = d->u.splitmerge.guard;
         const char *guardStr = getActId(guard);
