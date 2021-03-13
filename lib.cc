@@ -34,16 +34,19 @@ bool hasProcess(const char *process) {
   return false;
 }
 
-void createFULib(const char* procName, const char* expr, int numArgs) {
+void createFULib(const char *procName, const char *calc, const char *def,
+                 int numArgs, int result_suffix, int numRes) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
     int i = 0;
-    for (; i < numArgs; i++) {
+    for (; i <= numArgs; i++) {
       fprintf(libFp, "W%d, ", i);
     }
-    fprintf(libFp, "W%d>\n", i);
+    for (i = 0; i < numRes - 1; i++) {
+      fprintf(libFp, "W%d, ", i + numArgs + 1);
+    }
+    fprintf(libFp, "W%d>\n", i + numArgs + 1);
     fprintf(libFp, "defproc %s(", procName);
-
     for (i = 0; i < numArgs; i++) {
       fprintf(libFp, "chan?(int<W%d>)arg%d; ", i, i);
     }
@@ -51,13 +54,18 @@ void createFULib(const char* procName, const char* expr, int numArgs) {
     for (i = 0; i < numArgs; i++) {
       fprintf(libFp, "  int<W%d> x%d;\n", i, i);
     }
-    fprintf(libFp, "  int<W%d> res;\n", i);
+    for (i = 0; i < numRes; i++) {
+      fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + 1, i);
+    }
+    fprintf(libFp, "%s", def);
     fprintf(libFp, "  chp {\n    *[");
     for (i = 0; i < numArgs - 1; i++) {
       fprintf(libFp, "arg%d?x%d, ", i, i);
     }
     fprintf(libFp, "arg%d?x%d; ", i, i);
-    fprintf(libFp, "res := %s; out!res; log(\"send \", res)]\n  }\n}\n\n", expr);
+    fprintf(libFp, "%s", calc);
+    fprintf(libFp, "      out!res%d; log(\"send \", res%d)]\n  }\n}\n\n",
+            result_suffix, result_suffix);
   }
 
 }
