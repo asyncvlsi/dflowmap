@@ -130,7 +130,7 @@ void printSink(const char *name, int bitwidth) {
   createSink(instance, metric);
 }
 
-const char *printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
+void printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
   fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[50];
   sprintf(instance, "source<%u,%d>", val, outWidth);
@@ -252,7 +252,7 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
         sprintf(procName, "source");
       }
       unsigned int val = expr->u.v;
-      return std::to_string(val).c_str();
+      return strdup (std::to_string(val).c_str());
     }
     case E_VAR: {
       int numArgs = argList.size();
@@ -394,6 +394,8 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       break;
     }
   }
+  fatal_error ("Shouldn't be here");
+  return "-should-not-be-here-";
 }
 
 unsigned getCopyUses(const char *op) {
