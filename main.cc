@@ -45,6 +45,8 @@ unsigned getCopyUses(const char *copyOp);
 const char *printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
                       IntVec &argBWList, IntVec &resBWList, int &result_suffix, int result_bw);
 
+void collectExprUses(Expr *expr);
+
 const char *removeDot(const char *src) {
   int len = strlen(src);
   char *result = new char[len + 1];
@@ -101,7 +103,7 @@ static void usage(char *name) {
   exit(1);
 }
 
-const char *getActId(ActId *actId) {
+const char *getActIdName(ActId *actId) {
   char *str = new char[100];
   if (actId) {
     const char *actName = actId->getName();
@@ -249,18 +251,22 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
   switch (type) {
     case E_INT: {
       if (procName[0] == '\0') {
-        sprintf(procName, "source");
+        fatal_error("we should NOT process Source here!\n");
+//        sprintf(procName, "source");
       }
       unsigned int val = expr->u.v;
-      return strdup (std::to_string(val).c_str());
+      const char* valStr =strdup(std::to_string(val).c_str());
+      argList.push_back(valStr);
+      argBWList.push_back(result_bw);
+      return valStr;
     }
     case E_VAR: {
       int numArgs = argList.size();
       char *curArg = new char[10];
       strcpy(curArg, "x");
-      strcat(curArg, std::to_string(numArgs).c_str());
+      strcat(curArg, strdup(std::to_string(numArgs).c_str()));
       auto actId = (ActId *) expr->u.e.l;
-      const char *varStr = getActId(actId);
+      const char *varStr = actId->getName();
       argList.push_back(varStr);
       int argBW = getBitwidth(varStr);
       argBWList.push_back(argBW);
@@ -374,17 +380,20 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
       Expr *rExpr = expr->u.e.r;
-      int bw;
+      unsigned int bw;
       if (rExpr) {
         bw = rExpr->u.v;
       } else {
-        bw = 32;  //TODO: double check
+        bw = 1;  //TODO: double check
       }
-      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList, result_suffix,
-                       bw);
+      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+                       result_suffix, bw);
     }
     case E_BUILTIN_BOOL: {
-      //TODO
+      Expr *lExpr = expr->u.e.l;
+      int bw = 1;
+      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+                       result_suffix, bw);
       break;
     }
     default: {
@@ -402,8 +411,7 @@ unsigned getCopyUses(const char *op) {
   auto copyUsesIt = copyUses.find(op);
   if (copyUsesIt == copyUses.end()) {
     printf("We don't know how many times %s is used as COPY!\n", op);
-    return 0;
-//    exit(-1);
+    exit(-1);
   }
   unsigned uses = copyUsesIt->second;
   copyUsesIt->second++;
@@ -432,31 +440,83 @@ unsigned getOpUses(const char *op) {
   auto opUsesIt = opUses.find(op);
   if (opUsesIt == opUses.end()) {
     printf("We don't know how many times %s is used!\n", op);
-//    printOpUses();
-    return 0;
-//    exit(-1);
+    printOpUses();
+    exit(-1);
   }
   return opUsesIt->second;
 }
 
 void collectUniOpUses(Expr *expr) {
   Expr *lExpr = expr->u.e.l;
-  if (lExpr->type == E_VAR) {
-    auto actId = (ActId *) lExpr->u.e.l;
-    updateOpUses(actId->getName());
-  }
+  collectExprUses(lExpr);
 }
 
 void collectBinOpUses(Expr *expr) {
+  printf("collect bin use: ");
+  print_expr(stdout, expr);
+  printf("\n");
   Expr *lExpr = expr->u.e.l;
-  if (lExpr->type == E_VAR) {
-    auto actId = (ActId *) lExpr->u.e.l;
-    updateOpUses(actId->getName());
-  }
+  collectExprUses(lExpr);
   Expr *rExpr = expr->u.e.r;
-  if (rExpr->type == E_VAR) {
-    auto actId = (ActId *) rExpr->u.e.l;
-    updateOpUses(actId->getName());
+  collectExprUses(rExpr);
+}
+
+void collectExprUses(Expr *expr) {
+  int type = expr->type;
+  switch (type) {
+    case E_AND:
+    case E_OR:
+    case E_PLUS:
+    case E_MINUS:
+    case E_MULT:
+    case E_DIV:
+    case E_MOD:
+    case E_LSL:
+    case E_LSR:
+    case E_ASR:
+    case E_XOR:
+    case E_LT:
+    case E_GT:
+    case E_LE:
+    case E_GE:
+    case E_EQ:
+    case E_NE: {
+      collectBinOpUses(expr);
+      break;
+    }
+    case E_NOT:
+    case E_UMINUS:
+    case E_COMPLEMENT: {
+      collectUniOpUses(expr);
+      break;
+    }
+    case E_INT: {
+      break;
+    }
+    case E_VAR: {
+      printf("aha, processing ");
+      print_expr(stdout, expr);
+      printf("\n");
+      auto actId = (ActId *) expr->u.e.l;
+      updateOpUses(actId->getName());
+      break;
+    }
+    case E_BUILTIN_INT: {
+      Expr *lExpr = expr->u.e.l;
+      printf("track: ");
+      print_expr(stdout, lExpr);
+      printf("\n");
+      collectExprUses(lExpr);
+      break;
+    }
+    case E_BUILTIN_BOOL: {
+      Expr *lExpr = expr->u.e.l;
+      collectExprUses(lExpr);
+      break;
+    }
+    default: {
+      fatal_error("Unknown expression type %d\n", type);
+    }
   }
 }
 
@@ -469,53 +529,7 @@ void collectOpUses(Process *p) {
     switch (d->t) {
       case ACT_DFLOW_FUNC: {
         Expr *expr = d->u.func.lhs;
-        ActId *rhs = d->u.func.rhs;
-        if (!rhs) {
-          fprintf(stdout, "dflow function has empty RHS!\n");
-          print_expr(stdout, expr);
-          exit(-1);
-        }
-        int type = expr->type;
-        switch (type) {
-          case E_AND:
-          case E_OR:
-          case E_PLUS:
-          case E_MINUS:
-          case E_MULT:
-          case E_DIV:
-          case E_MOD:
-          case E_LSL:
-          case E_LSR:
-          case E_ASR:
-          case E_XOR:
-          case E_LT:
-          case E_GT:
-          case E_LE:
-          case E_GE:
-          case E_EQ:
-          case E_NE: {
-            collectBinOpUses(expr);
-            break;
-          }
-          case E_NOT:
-          case E_UMINUS:
-          case E_COMPLEMENT: {
-            collectUniOpUses(expr);
-            break;
-          }
-          case E_INT: {
-            break;
-          }
-          case E_VAR: {
-            auto actId = (ActId *) expr->u.e.l;
-            updateOpUses(actId->getName());
-            break;
-          }
-          default: {
-            break;
-//            fatal_error("Unknown expression type %d\n", type);
-          }
-        }
+        collectExprUses(expr);
         break;
       }
       case ACT_DFLOW_SPLIT: {
@@ -562,6 +576,7 @@ void createCopyProcs() {
     if (uses) {
       int N = uses + 1;
       const char *opName = opUsesIt.first;
+      printf("handle op %s\n", opName);
       int bitwidth = getBitwidth(opName);
       char *instance = new char[50];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
@@ -574,7 +589,6 @@ void createCopyProcs() {
 }
 
 void handleProcess(Process *p) {
-  p->Print(stdout);
   const char *pName = p->getName();
   printf("processing %s\n", pName);
   bool mainProc = (strcmp(pName, "main<>") == 0);
@@ -608,63 +622,67 @@ void handleProcess(Process *p) {
         const char *normalizedOut = removeDot(out);
         int outWidth = getActIdBW(rhs, p);
 
-        char *procName = new char[200];
-        procName[0] = '\0';
-//        strcat(procName, "func");
-        char *calc = new char[10240];
-        calc[0] = '\0';
-        sprintf(calc, "\n");
-        char *def = new char[10240];
-        def[0] = '\0';
-        sprintf(def, "\n");
-        StringVec argList;
-        IntVec argBWList;
-        IntVec resBWList;
-        int result_suffix = -1;
-        const char *exprStr = printExpr(expr, procName, calc, def, argList, argBWList,
-                                        resBWList, result_suffix, outWidth);
-        argBWList.push_back(outWidth);
+
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
         if (initExpr) {
-          StringVec argList;
-          IntVec argBWList;
-          char *procName = new char[200];
-          procName[0] = '\0';
-//          strcat(procName, "func");
-          const char *initValStr = printExpr(initExpr, procName, calc, def, argList, argBWList,
-                                             resBWList, result_suffix, outWidth);
+//          StringVec argList;
+//          IntVec argBWList;
+//          char *procName = new char[200];
+//          procName[0] = '\0';
+////          strcat(procName, "func");
+//          const char *initValStr = printExpr(initExpr, procName, calc, def, argList, argBWList,
+//                                             resBWList, result_suffix, outWidth);
         }
         if (type == E_INT) {
           unsigned int val = expr->u.v;
           printInt(out, normalizedOut, val, 32);  //TODO: can we assuem E_INT is always 32-bit?
-        } else if (type == E_VAR) {
-          unsigned initVal = 0;
-          auto actId = (ActId *) expr->u.e.l;
-          const char *inStr = getActId(actId);
-          Expr *init = d->u.func.init;
-          if (init) {
-            int initValType = init->type;
-            if (initValType != E_INT) {
-              print_expr(stdout, init);
-              printf("The init value is not E_INT type!\n");
-              exit(-1);
-            }
-            initVal = init->u.v;
-            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, normalizedOut);
-            char *instance = new char[50];
-            sprintf(instance, "init<%u,%d>", initVal, outWidth);
-            int *metric = getOpMetric("buff", outWidth);
-            createInit(instance, metric);
-          } else {
-            const char *inStr = getActId(actId);
-            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, normalizedOut, inStr, out);
-            char *instance = new char[50];
-            sprintf(instance, "buffer<%d>", outWidth);
-            int *metric = getOpMetric("buff", outWidth);
-            createBuff(instance, metric);
-          }
-        } else {
+        }
+//        else if (type == E_VAR) {
+//          unsigned initVal = 0;
+//          auto actId = (ActId *) expr->u.e.l;
+//          const char *inStr = getActIdName(actId);
+//          Expr *init = d->u.func.init;
+//          if (init) {
+//            int initValType = init->type;
+//            if (initValType != E_INT) {
+//              print_expr(stdout, init);
+//              printf("The init value is not E_INT type!\n");
+//              exit(-1);
+//            }
+//            initVal = init->u.v;
+//            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, normalizedOut);
+//            char *instance = new char[50];
+//            sprintf(instance, "init<%u,%d>", initVal, outWidth);
+//            int *metric = getOpMetric("buff", outWidth);
+//            createInit(instance, metric);
+//          } else {
+//            const char *inStr = getActIdName(actId);
+//            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, normalizedOut, inStr, out);
+//            char *instance = new char[50];
+//            sprintf(instance, "buffer<%d>", outWidth);
+//            int *metric = getOpMetric("buff", outWidth);
+//            createBuff(instance, metric);
+//          }
+//        }
+        else {
+          char *procName = new char[200];
+          procName[0] = '\0';
+//        strcat(procName, "func");
+          char *calc = new char[10240];
+          calc[0] = '\0';
+          sprintf(calc, "\n");
+          char *def = new char[10240];
+          def[0] = '\0';
+          sprintf(def, "\n");
+          StringVec argList;
+          IntVec argBWList;
+          IntVec resBWList;
+          int result_suffix = -1;
+          const char *exprStr = printExpr(expr, procName, calc, def, argList, argBWList,
+                                          resBWList, result_suffix, outWidth);
+          argBWList.push_back(outWidth);
+
           int numArgs = argList.size();
           if (DEBUG_VERBOSE) {
             printf("procName: %s\n", procName);
@@ -719,7 +737,6 @@ void handleProcess(Process *p) {
         const char *inputName = input->getName();
         int inputSize = strlen(inputName);
         int bitwidth = getActIdBW(input, p);
-//        int bitwidth = getBitwidth(inputName);
         ActId **outputs = d->u.splitmerge.multi;
         ActId *lOut = outputs[0];
         ActId *rOut = outputs[1];
@@ -759,8 +776,8 @@ void handleProcess(Process *p) {
           printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
         }
         fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
-        const char *guardStr = getActId(guard);
-        const char *inputStr = getActId(input);
+        const char *guardStr = getActIdName(guard);
+        const char *inputStr = getActIdName(input);
         fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName, splitName);
         char *instance = new char[50];
         sprintf(instance, "control_split<%d>", bitwidth);
@@ -772,15 +789,14 @@ void handleProcess(Process *p) {
         ActId *output = d->u.splitmerge.single;
         const char *outputName = output->getName();
         int bitwidth = getActIdBW(output, p);
-//        int bitwidth = getBitwidth(outputName);
         fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
         ActId *guard = d->u.splitmerge.guard;
-        const char *guardStr = getActId(guard);
+        const char *guardStr = getActIdName(guard);
         ActId **inputs = d->u.splitmerge.multi;
         ActId *lIn = inputs[0];
-        const char *lInStr = getActId(lIn);
+        const char *lInStr = getActIdName(lIn);
         ActId *rIn = inputs[1];
-        const char *rInStr = getActId(rIn);
+        const char *rInStr = getActIdName(rIn);
         fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
         char *instance = new char[50];
         sprintf(instance, "control_merge<%d>", bitwidth);
@@ -833,7 +849,7 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
-
+  a->Print(stdout);
   /* create output file */
   char *result_file = new char[8 + strlen(argv[1])];
   strcpy(result_file, "result_");
