@@ -42,11 +42,12 @@ unsigned getOpUses(const char *op);
 
 unsigned getCopyUses(const char *copyOp);
 
-const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bwList);
+const char *printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
+                      IntVec &argBWList, IntVec &resBWList, int &result_suffix, int result_bw);
 
-const char *removeDot(const char* src) {
+const char *removeDot(const char *src) {
   int len = strlen(src);
-  char* result = new char[len + 1];
+  char *result = new char[len + 1];
   int cnt = 0;
   for (int i = 0; i < len; i++) {
     if (src[i] != '.') {
@@ -129,7 +130,7 @@ void printSink(const char *name, int bitwidth) {
   createSink(instance, metric);
 }
 
-const char *printInt(const char *out, const char* normalizedOut, unsigned val, int outWidth) {
+const char *printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
   fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[50];
   sprintf(instance, "source<%u,%d>", val, outWidth);
@@ -175,39 +176,75 @@ int getBitwidth(const char *varName) {
 }
 
 const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-                     char *procName, StringVec &argList, IntVec &bwList) {
+                     char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+                     IntVec &resBWList, int &result_suffix, int result_bw) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
-  int inWidth = 32;
   /* print */
-  const char *lStr = printExpr(lExpr, procName, argList, bwList);
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+                               result_suffix, result_bw);
+  if (procName[0] == '\0') {
+    sprintf(procName, "func");
+  }
   sprintf(procName, "%s_%s", procName, sym);
-  const char *rStr = printExpr(rExpr, procName, argList, bwList);
+  const char *rStr = printExpr(rExpr, procName, calc, def, argList, argBWList, resBWList,
+                               result_suffix, result_bw);
   char *newExpr = new char[100];
-  sprintf(newExpr, "%s %s %s", lStr, op, rStr);
+  result_suffix++;
+  sprintf(newExpr, "res%d", result_suffix);
+  char *curCal = new char[300];
+  sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+  strcat(calc, curCal);
+  resBWList.push_back(result_bw);
   printf("binary expr: ");
   print_expr(stdout, expr);
-  printf("\ndflowmap generates expr: %s\n", newExpr);
+  printf("\ndflowmap generates calc: %s\n", calc);
+  printf("arg list: ");
+  for (auto &arg : argList) {
+    printf("%s ", arg.c_str());
+  }
+  printf("\n");
+  printf("arg bw list: ");
+  for (auto &bw : argBWList) {
+    printf("%d ", bw);
+  }
+  printf("\n");
+  printf("res bw list: ");
+  for (auto &bw2:resBWList) {
+    printf("%d ", bw2);
+  }
+  printf("\n");
   return newExpr;
 }
 
 const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-                     char *procName, StringVec &argList, IntVec &bwList) {
+                     char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+                     IntVec &resBWList, int &result_suffix, int result_bw) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
-  int lWidth = 32;
+  if (procName[0] == '\0') {
+    sprintf(procName, "func");
+  }
   sprintf(procName, "%s_%s", procName, sym);
-  const char *lStr = printExpr(lExpr, procName, argList, bwList);
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+                               result_suffix, result_bw);
   char *newExpr = new char[100];
-  sprintf(newExpr, "%s %s", lStr, op);
+  result_suffix++;
+  sprintf(newExpr, "res%d", result_suffix);
+  char *curCal = new char[300];
+  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, lStr, op);
+  resBWList.push_back(result_bw);
+  strcat(calc, curCal);
   printf("unary expr: ");
   print_expr(stdout, expr);
-  printf("\ndflowmap generates expr: %s\n", newExpr);
+  printf("\ndflowmap generates calc: %s\n", calc);
   return newExpr;
 }
 
-const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bwList) {
+const char *
+printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+          IntVec &resBWList, int &result_suffix, int result_bw) {
   int type = expr->type;
   switch (type) {
     case E_INT: {
@@ -226,78 +263,125 @@ const char *printExpr(Expr *expr, char *procName, StringVec &argList, IntVec &bw
       const char *varStr = getActId(actId);
       argList.push_back(varStr);
       int argBW = getBitwidth(varStr);
-      bwList.push_back(argBW);
+      argBWList.push_back(argBW);
+      if (procName[0] == '\0') {
+        resBWList.push_back(result_bw);
+      } else {
+        printf("proc name: %s\n", procName);
+      }
       return curArg;
     }
     case E_AND: {
-      return EMIT_BIN(expr, "and", "&", type, "and", procName, argList, bwList);
+      return EMIT_BIN(expr, "and", "&", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_OR: {
-      return EMIT_BIN(expr, "or", "|", type, "and", procName, argList, bwList);
+      return EMIT_BIN(expr, "or", "|", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_NOT: {
-      return EMIT_UNI(expr, "not", "~", type, "and", procName, argList, bwList);
+      return EMIT_UNI(expr, "not", "~", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_PLUS: {
-      return EMIT_BIN(expr, "add", "+", type, "add", procName, argList, bwList);
+      return EMIT_BIN(expr, "add", "+", type, "add", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_MINUS: {
-      return EMIT_BIN(expr, "minus", "-", type, "add", procName, argList, bwList);
+      return EMIT_BIN(expr, "minus", "-", type, "add", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_MULT: {
-      return EMIT_BIN(expr, "multi", "*", type, "mul", procName, argList, bwList);
+      return EMIT_BIN(expr, "multi", "*", type, "mul", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_DIV: {
-      return EMIT_BIN(expr, "div", "/", type, "div", procName, argList, bwList);
+      return EMIT_BIN(expr, "div", "/", type, "div", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_MOD: {
-      return EMIT_BIN(expr, "mod", "%", type, "rem", procName, argList, bwList);
+      return EMIT_BIN(expr, "mod", "%", type, "rem", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_LSL: {
-      return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, argList, bwList);
+      return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_LSR: {
-      return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, argList, bwList);
+      return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_ASR: {
-      return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, argList, bwList);
+      return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_UMINUS: {
-      return EMIT_UNI(expr, "neg", "-", type, "and", procName, argList, bwList);
+      return EMIT_UNI(expr, "neg", "-", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_XOR: {
-      return EMIT_BIN(expr, "xor", "^", type, "and", procName, argList, bwList);
+      return EMIT_BIN(expr, "xor", "^", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_LT: {
-      return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_GT: {
-      return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_LE: {
-      return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_GE: {
-      return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_EQ: {
-      return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_NE: {
-      return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, argList, bwList);
+      return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_COMPLEMENT: {
-      return EMIT_UNI(expr, "comple", "~", type, "and", procName, argList, bwList);
+      return EMIT_UNI(expr, "comple", "~", type, "and", procName, calc, def, argList, argBWList,
+                      resBWList,
+                      result_suffix, result_bw);
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
       Expr *rExpr = expr->u.e.r;
+      int bw;
       if (rExpr) {
-        bwList.push_back(rExpr->u.v);
+        bw = rExpr->u.v;
       } else {
-        bwList.push_back(32);
+        bw = 32;  //TODO: double check
       }
-      return printExpr(lExpr, procName, argList, bwList);
+      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList, result_suffix,
+                       bw);
     }
     case E_BUILTIN_BOOL: {
       //TODO
@@ -514,29 +598,40 @@ void handleProcess(Process *p) {
         /* handle left hand side */
         Expr *expr = d->u.func.lhs;
         int type = expr->type;
-        char *procName = new char[200];
-        procName[0] = '\0';
-        strcat(procName, "func");
-        StringVec argList;
-        IntVec bwList;
-        const char *exprStr = printExpr(expr, procName, argList, bwList);
         /* handle right hand side */
         ActId *rhs = d->u.func.rhs;
         char out[10240];
         out[0] = '\0';
         rhs->sPrint(out, 10240, NULL, 0);
-        const char* normalizedOut = removeDot(out);
+        const char *normalizedOut = removeDot(out);
         int outWidth = getActIdBW(rhs, p);
-        bwList.push_back(outWidth);
+
+        char *procName = new char[200];
+        procName[0] = '\0';
+//        strcat(procName, "func");
+        char *calc = new char[10240];
+        calc[0] = '\0';
+        sprintf(calc, "\n");
+        char *def = new char[10240];
+        def[0] = '\0';
+        sprintf(def, "\n");
+        StringVec argList;
+        IntVec argBWList;
+        IntVec resBWList;
+        int result_suffix = -1;
+        const char *exprStr = printExpr(expr, procName, calc, def, argList, argBWList,
+                                        resBWList, result_suffix, outWidth);
+        argBWList.push_back(outWidth);
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
         if (initExpr) {
           StringVec argList;
-          IntVec bwList;
+          IntVec argBWList;
           char *procName = new char[200];
           procName[0] = '\0';
-          strcat(procName, "func");
-          const char *initValStr = printExpr(initExpr, procName, argList, bwList);
+//          strcat(procName, "func");
+          const char *initValStr = printExpr(initExpr, procName, calc, def, argList, argBWList,
+                                             resBWList, result_suffix, outWidth);
         }
         if (type == E_INT) {
           unsigned int val = expr->u.v;
@@ -568,25 +663,7 @@ void handleProcess(Process *p) {
             createBuff(instance, metric);
           }
         } else {
-//          char *procName = new char[200];
-//          procName[0] = '\0';
-//          strcat(procName, "func");
-//          StringVec argList;
-//          IntVec bwList;
-//          const char *exprStr = printExpr(expr, procName, argList, bwList);
-//          bwList.push_back(outWidth);
           int numArgs = argList.size();
-          fprintf(resFp, "%s<", procName);
-          int i = 0;
-          for (; i < numArgs; i++) {
-            fprintf(resFp, "%d,", bwList[i]);
-          }
-          fprintf(resFp, "%d> %s_inst(", bwList[i], normalizedOut);
-          for (auto &arg : argList) {
-            fprintf(resFp, "%s, ", arg.c_str());
-          }
-          fprintf(resFp, "%s);\n", out);
-          createFULib(procName, exprStr, numArgs);
           if (DEBUG_VERBOSE) {
             printf("procName: %s\n", procName);
             printf("arg list:\n");
@@ -595,11 +672,43 @@ void handleProcess(Process *p) {
             }
             printf("\n");
             printf("bw list:\n");
-            for (auto &bw : bwList) {
+            for (auto &bw : argBWList) {
               printf("%d ", bw);
             }
             printf("\n");
+            printf("calc: %s\n", calc);
+            printf("result_suffix: %d\n", result_suffix);
           }
+          if (procName[0] == '\0') {
+            sprintf(procName, "func_pass");
+            if ((numArgs != 1) || (result_suffix != -1) || (calc[0] != '\n')) {
+              printf("We are processing expression ");
+              print_expr(stdout, expr);
+              printf(", the procName is empty, "
+                     "but the argList or result_suffix or calc is abnormal!\n");
+              exit(-1);
+            }
+            result_suffix++;
+            sprintf(calc, "%s      res0 := x0;\n", calc);
+          }
+          fprintf(resFp, "%s<", procName);
+          int i = 0;
+          for (; i <= numArgs; i++) {
+            fprintf(resFp, "%d,", argBWList[i]);
+          }
+          int numRes = resBWList.size();
+          printf("numRes: %d\n", numRes);
+          for (i = 0; i < numRes - 1; i++) {
+            fprintf(resFp, "%d,", resBWList[i]);
+            printf("%d ", resBWList[i]);
+          }
+          fprintf(resFp, "%d> %s_inst(", resBWList[i], normalizedOut);
+          for (auto &arg : argList) {
+            fprintf(resFp, "%s, ", arg.c_str());
+          }
+          fprintf(resFp, "%s);\n", out);
+          createFULib(procName, calc, def, numArgs, result_suffix, numRes);
+
         }
         break;
       }
