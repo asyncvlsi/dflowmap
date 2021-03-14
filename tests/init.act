@@ -1,0 +1,73 @@
+defproc calc (chan(int<32>)? calc_in_0; chan(int<32>)! calc_out)
+{
+
+/* instances */
+chan(int<1>) calc_init0;
+chan(int<1>) calc_I7_;
+chan(int<32>) sig_calc_I6__calc_I7__L;
+chan(int<32>) sig_calc_in_0_calc_I0__L;
+chan(int<32>) calc_I6_;
+chan(int<32>) const_calc_0_3_;
+chan(int<32>) const_calc_0_2_;
+chan(int<32>) const_calc_0_0_;
+chan(int<32>) sig_calc_in_0_calc_I0__R;
+chan(int<32>) Merge_calc_I4_;
+chan(int<32>) Merge_loopMS_calc_0;
+chan(int<1>) calc_I0_;
+chan(int<32>) Merge_calc_I10_;
+chan(int<32>) Merge_calc_I3_;
+chan(int<32>) sig_Merge_loopMS_calc_0_calc_I7__R;
+chan(int<32>) calc_I5_;
+chan(int<32>) sig_calc_I5__calc_I7__L;
+chan(int<32>) sig_Merge_loopMS_calc_0_calc_I7__L;
+chan(int<1>) calc_init2;
+chan(int<32>) const_calc_1_0_;
+chan(int<32>) const_calc_0_1_;
+chan(int<1>) calc_init1;
+chan(int<32>) sig_calc_I5__calc_I7__R;
+chan(int<32>) sig_calc_I6__calc_I7__R;
+
+/* connections */
+dataflow {
+{calc_init0} sig_calc_in_0_calc_I0__R, sig_Merge_loopMS_calc_0_calc_I7__R -> Merge_loopMS_calc_0;
+{calc_I0_} const_calc_0_3_, sig_calc_I5__calc_I7__L -> Merge_calc_I10_;
+{calc_init1} const_calc_0_1_, sig_calc_I6__calc_I7__R -> Merge_calc_I3_;
+{calc_init2} const_calc_0_2_, sig_calc_I5__calc_I7__R -> Merge_calc_I4_;
+{calc_I7_} calc_I5_ -> sig_calc_I5__calc_I7__L, sig_calc_I5__calc_I7__R;
+{calc_I7_} calc_I6_ -> *, sig_calc_I6__calc_I7__R;
+{calc_I0_} calc_in_0 -> *, sig_calc_in_0_calc_I0__R;
+{calc_I7_} Merge_loopMS_calc_0 -> *, sig_Merge_loopMS_calc_0_calc_I7__R;
+int(calc_in_0>int(0,32)) -> calc_I0_;
+0 -> const_calc_0_1_;
+0 -> const_calc_0_2_;
+int(int(Merge_calc_I3_+int(1,32),32)<Merge_loopMS_calc_0) -> [1,0] calc_init0;
+int(int(Merge_calc_I3_+int(1,32),32)<Merge_loopMS_calc_0) -> [1,0] calc_init1;
+int(int(Merge_calc_I3_+int(1,32),32)<Merge_loopMS_calc_0) -> [1,0] calc_init2;
+int(int(Merge_calc_I3_+int(1,32),32)<Merge_loopMS_calc_0) -> calc_I7_;
+Merge_calc_I3_+int(1,32) -> calc_I6_;
+0 -> const_calc_0_3_;
+Merge_calc_I10_ -> calc_out;
+Merge_calc_I4_+Merge_calc_I3_ -> calc_I5_
+}
+}
+
+defproc main (chan(int<32>)! main_out)
+{
+
+/* instances */
+calc calc_inst;
+chan(int<32>) main_I1_;
+chan(int<32>) maincalc_out;
+chan(int<32>) maincalc_in_0;
+chan(int<32>) main_I0_;
+
+/* connections */
+calc_inst.calc_in_0=maincalc_in_0;
+calc_inst.calc_out=maincalc_out;
+dataflow {
+int(10,32) -> calc_inst.calc_in_0;
+int(maincalc_out,32) -> main_out
+}
+}
+
+main m;

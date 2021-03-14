@@ -635,50 +635,24 @@ void handleProcess(Process *p) {
         const char *normalizedOut = removeDot(out);
         int outWidth = getActIdBW(rhs, p);
 
-
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
         if (initExpr) {
-//          StringVec argList;
-//          IntVec argBWList;
-//          char *procName = new char[200];
-//          procName[0] = '\0';
-////          strcat(procName, "func");
-//          const char *initValStr = printExpr(initExpr, procName, calc, def, argList, argBWList,
-//                                             resBWList, result_suffix, outWidth);
+          if (initExpr->type != E_INT) {
+            print_expr(stdout, initExpr);
+            printf("The init value is not E_INT type!\n");
+            exit(-1);
+          }
         }
-        if (type == E_INT) {  //TODO: should handle this in printExpr
+        if (type == E_INT) {
           unsigned int val = expr->u.v;
-          printInt(out, normalizedOut, val, 32);  //TODO: can we assuem E_INT is always 32-bit?
-        }
-//        else if (type == E_VAR) {
-//          unsigned initVal = 0;
-//          auto actId = (ActId *) expr->u.e.l;
-//          const char *inStr = getActIdName(actId);
-//          Expr *init = d->u.func.init;
-//          if (init) {
-//            int initValType = init->type;
-//            if (initValType != E_INT) {
-//              print_expr(stdout, init);
-//              printf("The init value is not E_INT type!\n");
-//              exit(-1);
-//            }
-//            initVal = init->u.v;
-//            fprintf(resFp, "init<%u,%d> %s_inst(", initVal, outWidth, normalizedOut);
-//            char *instance = new char[50];
-//            sprintf(instance, "init<%u,%d>", initVal, outWidth);
-//            int *metric = getOpMetric("buff", outWidth);
-//            createInit(instance, metric);
-//          } else {
-//            const char *inStr = getActIdName(actId);
-//            fprintf(resFp, "buffer<%d> %s_inst(%s, %s);\n", outWidth, normalizedOut, inStr, out);
-//            char *instance = new char[50];
-//            sprintf(instance, "buffer<%d>", outWidth);
-//            int *metric = getOpMetric("buff", outWidth);
-//            createBuff(instance, metric);
-//          }
-//        }
-        else {
+          printInt(out, normalizedOut, val, outWidth);
+          if (initExpr) {
+            print_expr(stdout, expr);
+            printf(" has const lOp, but its rOp has init token!\n");
+            exit(-1);
+          }
+        } else {
           char *procName = new char[200];
           procName[0] = '\0';
           char *calc = new char[10240];
@@ -692,14 +666,14 @@ void handleProcess(Process *p) {
           IntVec resBWList;
           int result_suffix = -1;
           bool constant = false;
-          const char *exprStr = printExpr(expr, procName, calc, def, argList, argBWList,
-                                          resBWList, result_suffix, outWidth, constant);
+          printExpr(expr, procName, calc, def, argList, argBWList, resBWList,
+                    result_suffix, outWidth, constant);
           if (constant) {
             print_expr(stdout, expr);
             printf("=> we should not process constant lhs here!\n");
             exit(-1);
           }
-          argBWList.push_back(outWidth);
+//          argBWList.push_back(outWidth);
 
           int numArgs = argList.size();
           if (DEBUG_VERBOSE) {
@@ -709,11 +683,12 @@ void handleProcess(Process *p) {
               printf("%s ", arg.c_str());
             }
             printf("\n");
-            printf("bw list:\n");
+            printf("arg bw list:\n");
             for (auto &bw : argBWList) {
               printf("%d ", bw);
             }
             printf("\n");
+            printf("out bw: %d\n", outWidth);
             printf("calc: %s\n", calc);
             printf("result_suffix: %d\n", result_suffix);
           }
@@ -729,11 +704,16 @@ void handleProcess(Process *p) {
             result_suffix++;
             sprintf(calc, "%s      res0 := x0;\n", calc);
           }
+          if (initExpr) {
+            int initVal = initExpr->u.v;
+            sprintf(procName, "%s_init%d", procName, initVal);
+          }
           fprintf(resFp, "%s<", procName);
           int i = 0;
-          for (; i <= numArgs; i++) {
+          for (; i < numArgs; i++) {
             fprintf(resFp, "%d,", argBWList[i]);
           }
+          fprintf(resFp, "%d, ", outWidth);
           int numRes = resBWList.size();
           printf("numRes: %d\n", numRes);
           for (i = 0; i < numRes - 1; i++) {
@@ -745,8 +725,14 @@ void handleProcess(Process *p) {
             fprintf(resFp, "%s, ", arg.c_str());
           }
           fprintf(resFp, "%s);\n", out);
-          createFULib(procName, calc, def, numArgs, result_suffix, numRes);
-
+          if (initExpr) {
+            int initVal = initExpr->u.v;
+            int calcLen = strlen(calc);
+            calc[calcLen - 2] = '\0';
+            createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes, initVal);
+          } else {
+            createFULib(procName, calc, def, numArgs, result_suffix, numRes);
+          }
         }
         break;
       }
