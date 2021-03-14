@@ -43,7 +43,8 @@ unsigned getOpUses(const char *op);
 unsigned getCopyUses(const char *copyOp);
 
 const char *printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
-                      IntVec &argBWList, IntVec &resBWList, int &result_suffix, int result_bw);
+                      IntVec &argBWList, IntVec &resBWList, int &result_suffix,
+                      int result_bw, bool &constant);
 
 void collectExprUses(Expr *expr);
 
@@ -180,18 +181,30 @@ int getBitwidth(const char *varName) {
 const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
                      char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
                      IntVec &resBWList, int &result_suffix, int result_bw) {
-  /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
-  /* print */
-  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
-                               result_suffix, result_bw);
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  sprintf(procName, "%s_%s", procName, sym);
+  bool lConst;
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+                               result_suffix, result_bw, lConst);
+  if (lConst) {
+    sprintf(procName, "%s_%s%s", procName, lStr, sym);
+  } else {
+    sprintf(procName, "%s_%s", procName, sym);
+  }
+  bool rConst;
   const char *rStr = printExpr(rExpr, procName, calc, def, argList, argBWList, resBWList,
-                               result_suffix, result_bw);
+                               result_suffix, result_bw, rConst);
+  if (rConst) {
+    strcat(procName, rStr);
+    if (lConst) {
+      print_expr(stdout, expr);
+      printf(" has both const operands!\n");
+      exit(-1);
+    }
+  }
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
@@ -228,9 +241,14 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  sprintf(procName, "%s_%s", procName, sym);
+  bool lConst;
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
-                               result_suffix, result_bw);
+                               result_suffix, result_bw, lConst);
+  if (lConst) {
+    sprintf(procName, "%s_%s%s", procName, sym, lStr);
+  } else {
+    sprintf(procName, "%s_%s", procName, sym);
+  }
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
@@ -246,18 +264,16 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
 
 const char *
 printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
-          IntVec &resBWList, int &result_suffix, int result_bw) {
+          IntVec &resBWList, int &result_suffix, int result_bw, bool &constant) {
   int type = expr->type;
   switch (type) {
     case E_INT: {
       if (procName[0] == '\0') {
         fatal_error("we should NOT process Source here!\n");
-//        sprintf(procName, "source");
       }
       unsigned int val = expr->u.v;
-      const char* valStr =strdup(std::to_string(val).c_str());
-      argList.push_back(valStr);
-      argBWList.push_back(result_bw);
+      const char *valStr = strdup(std::to_string(val).c_str());
+      constant = true;
       return valStr;
     }
     case E_VAR: {
@@ -387,13 +403,13 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
         bw = 1;  //TODO: double check
       }
       return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
-                       result_suffix, bw);
+                       result_suffix, bw, constant);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       int bw = 1;
       return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
-                       result_suffix, bw);
+                       result_suffix, bw, constant);
       break;
     }
     default: {
@@ -403,7 +419,7 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       break;
     }
   }
-  fatal_error ("Shouldn't be here");
+  fatal_error("Shouldn't be here");
   return "-should-not-be-here-";
 }
 
@@ -634,7 +650,7 @@ void handleProcess(Process *p) {
 //          const char *initValStr = printExpr(initExpr, procName, calc, def, argList, argBWList,
 //                                             resBWList, result_suffix, outWidth);
         }
-        if (type == E_INT) {
+        if (type == E_INT) {  //TODO: should handle this in printExpr
           unsigned int val = expr->u.v;
           printInt(out, normalizedOut, val, 32);  //TODO: can we assuem E_INT is always 32-bit?
         }
@@ -668,7 +684,6 @@ void handleProcess(Process *p) {
         else {
           char *procName = new char[200];
           procName[0] = '\0';
-//        strcat(procName, "func");
           char *calc = new char[10240];
           calc[0] = '\0';
           sprintf(calc, "\n");
@@ -679,8 +694,14 @@ void handleProcess(Process *p) {
           IntVec argBWList;
           IntVec resBWList;
           int result_suffix = -1;
+          bool constant = false;
           const char *exprStr = printExpr(expr, procName, calc, def, argList, argBWList,
-                                          resBWList, result_suffix, outWidth);
+                                          resBWList, result_suffix, outWidth, constant);
+          if (constant) {
+            print_expr(stdout, expr);
+            printf("=> we should not process constant lhs here!\n");
+            exit(-1);
+          }
           argBWList.push_back(outWidth);
 
           int numArgs = argList.size();
