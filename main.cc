@@ -282,9 +282,9 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       strcpy(curArg, "x");
       strcat(curArg, strdup(std::to_string(numArgs).c_str()));
       auto actId = (ActId *) expr->u.e.l;
-      const char *varStr = actId->getName();
+      int argBW = getBitwidth(actId->getName());
+      const char *varStr = getActIdName(actId);
       argList.push_back(varStr);
-      int argBW = getBitwidth(varStr);
       argBWList.push_back(argBW);
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
@@ -510,9 +510,6 @@ void collectExprUses(Expr *expr) {
       break;
     }
     case E_VAR: {
-      printf("aha, processing ");
-      print_expr(stdout, expr);
-      printf("\n");
       auto actId = (ActId *) expr->u.e.l;
       updateOpUses(actId->getName());
       break;
