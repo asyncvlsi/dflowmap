@@ -220,24 +220,26 @@ const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, cons
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
-  printf("binary expr: ");
-  print_expr(stdout, expr);
-  printf("\ndflowmap generates calc: %s\n", calc);
-  printf("arg list: ");
-  for (auto &arg : argList) {
-    printf("%s ", arg.c_str());
+  if (DEBUG_VERBOSE) {
+    printf("binary expr: ");
+    print_expr(stdout, expr);
+    printf("\ndflowmap generates calc: %s\n", calc);
+    printf("arg list: ");
+    for (auto &arg : argList) {
+      printf("%s ", arg.c_str());
+    }
+    printf("\n");
+    printf("arg bw list: ");
+    for (auto &bw : argBWList) {
+      printf("%d ", bw);
+    }
+    printf("\n");
+    printf("res bw list: ");
+    for (auto &bw2:resBWList) {
+      printf("%d ", bw2);
+    }
+    printf("\n");
   }
-  printf("\n");
-  printf("arg bw list: ");
-  for (auto &bw : argBWList) {
-    printf("%d ", bw);
-  }
-  printf("\n");
-  printf("res bw list: ");
-  for (auto &bw2:resBWList) {
-    printf("%d ", bw2);
-  }
-  printf("\n");
   return newExpr;
 }
 
@@ -264,9 +266,11 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, lStr, op);
   resBWList.push_back(result_bw);
   strcat(calc, curCal);
-  printf("unary expr: ");
-  print_expr(stdout, expr);
-  printf("\ndflowmap generates calc: %s\n", calc);
+  if (DEBUG_VERBOSE) {
+    printf("unary expr: ");
+    print_expr(stdout, expr);
+    printf("\ndflowmap generates calc: %s\n", calc);
+  }
   return newExpr;
 }
 
@@ -296,8 +300,6 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       argBWList.push_back(argBW);
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
-      } else {
-        printf("proc name: %s\n", procName);
       }
       return curArg;
     }
@@ -476,9 +478,6 @@ void collectUniOpUses(Expr *expr) {
 }
 
 void collectBinOpUses(Expr *expr) {
-  printf("collect bin use: ");
-  print_expr(stdout, expr);
-  printf("\n");
   Expr *lExpr = expr->u.e.l;
   collectExprUses(lExpr);
   Expr *rExpr = expr->u.e.r;
@@ -524,9 +523,6 @@ void collectExprUses(Expr *expr) {
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
-      printf("track: ");
-      print_expr(stdout, lExpr);
-      printf("\n");
       collectExprUses(lExpr);
       break;
     }
@@ -642,10 +638,11 @@ void handleProcess(Process *p) {
         rhs->sPrint(out, 10240, NULL, 0);
         const char *normalizedOut = removeDot(out);
         int outWidth = getActIdBW(rhs, p);
-        printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
-        print_expr(stdout, expr);
-        printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
-
+        if (DEBUG_VERBOSE) {
+          printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
+          print_expr(stdout, expr);
+          printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
+        }
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
         if (initExpr) {
@@ -684,8 +681,6 @@ void handleProcess(Process *p) {
             printf("=> we should not process constant lhs here!\n");
             exit(-1);
           }
-//          argBWList.push_back(outWidth);
-
           int numArgs = argList.size();
           if (DEBUG_VERBOSE) {
             printf("procName: %s\n", procName);
@@ -726,10 +721,15 @@ void handleProcess(Process *p) {
           }
           fprintf(resFp, "%d, ", outWidth);
           int numRes = resBWList.size();
-          printf("numRes: %d\n", numRes);
+          if (DEBUG_VERBOSE) {
+            printf("numRes: %d\n", numRes);
+            for (i = 0; i < numRes; i++) {
+              printf("%d ", resBWList[i]);
+            }
+            printf("\n");
+          }
           for (i = 0; i < numRes - 1; i++) {
             fprintf(resFp, "%d,", resBWList[i]);
-            printf("%d ", resBWList[i]);
           }
           fprintf(resFp, "%d> %s_inst(", resBWList[i], normalizedOut);
           for (auto &arg : argList) {
@@ -864,7 +864,11 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
-  a->Print(stdout);
+  if (DEBUG_VERBOSE) {
+    printf("------------------ACT FILE--------------------\n");
+    a->Print(stdout);
+    printf("\n\n\n");
+  }
   /* create output file */
   char *result_file = new char[8 + strlen(argv[1])];
   strcpy(result_file, "result_");
