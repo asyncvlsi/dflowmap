@@ -43,9 +43,9 @@ unsigned getOpUses(const char *op);
 
 unsigned getCopyUses(const char *copyOp);
 
-const char *printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
-                      IntVec &argBWList, IntVec &resBWList, int &result_suffix,
-                      int result_bw, bool &constant);
+const char *printExpr(Expr *expr, char *procName, char *calc, char *def,
+                      StringVec &argList, IntVec &argBWList, IntVec &resBWList,
+                      int &result_suffix, int result_bw, bool &constant);
 
 void collectExprUses(Expr *expr);
 
@@ -66,35 +66,35 @@ const char *removeDot(const char *src) {
 void printOpMetrics() {
   printf("Info in opMetrics:\n");
   for (auto &opMetricsIt : opMetrics) {
-    printf("op: %s(", opMetricsIt.first);
-    std::map<int, int *>&metrics = opMetricsIt.second;
-    for (auto &metricsIt : metrics) {
-      printf("%d ", metricsIt.first);
-    }
-    printf(");\n");
+    printf("%s ", opMetricsIt.first);
   }
   printf("\n");
 }
 
-int *getOpMetric(const char *op, int bitwidth) {
-  char *metricOp = new char[1500];
-  sprintf(metricOp, "%s%d", op, bitwidth);
+void normalizeName(char *src, char toDel, char newChar) {
+  char *pos = strchr(src, toDel);
+  while (pos) {
+    *pos = newChar;
+    pos = strchr(pos + 1, toDel);
+  }
+}
+
+int *getOpMetric(const char *op) {
+  if (DEBUG_VERBOSE) {
+    printf("get op metric for %s\n", op);
+  }
+  char *normalizedOp = new char[1500];
+  strcat(normalizedOp, op);
+  normalizeName(normalizedOp, '<', '_');
+  normalizeName(normalizedOp, '>', '_');
+  normalizeName(normalizedOp, ',', '_');
   for (auto &opMetricsIt : opMetrics) {
-    if (!strcmp(opMetricsIt.first, metricOp)) {
-      std::map<int, int *>&metrics = opMetricsIt.second;
-      auto metricsIt = metrics.find(bitwidth);
-      if (metricsIt == metrics.end()) {
-        printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
-        printf("We have metrics for %s, not no info for %d-bit", metricOp, bitwidth);
-        printOpMetrics();
-        printf("\n\n\n\n\n");
-        return nullptr;
-      }
-      return metricsIt->second;
+    if (!strcmp(opMetricsIt.first, normalizedOp)) {
+      return opMetricsIt.second;
     }
   }
   printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-         "We could not find metric info for %s(%d)\n", metricOp, bitwidth);
+         "We could not find metric info for %s\n", normalizedOp);
   printOpMetrics();
   printf("\n\n\n\n\n");
   return nullptr;
@@ -133,7 +133,7 @@ void printSink(const char *name, int bitwidth) {
   fprintf(resFp, "sink<%d> %s_sink(%s);\n", bitwidth, name, name);
   char *instance = new char[1500];
   sprintf(instance, "sink<%d>", bitwidth);
-  int *metric = getOpMetric("sink", bitwidth);
+  int *metric = getOpMetric(instance);
   createSink(instance, metric);
 }
 
@@ -141,7 +141,9 @@ void printInt(const char *out, const char *normalizedOut, unsigned val, int outW
   fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[1500];
   sprintf(instance, "source<%u,%d>", val, outWidth);
-  int *metric = getOpMetric("source", outWidth);
+  char *opName = new char[1500];
+  sprintf(opName, "source%d", outWidth);
+  int *metric = getOpMetric(opName);
   createSource(instance, metric);
 }
 
@@ -200,9 +202,10 @@ void getCurProc(const char *str, char *val) {
   strcpy(val, curProc);
 }
 
-const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-                     char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
-                     IntVec &resBWList, int &result_suffix, int result_bw) {
+const char *
+EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+         char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+         IntVec &resBWList, int &result_suffix, int result_bw) {
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
   if (procName[0] == '\0') {
@@ -261,9 +264,10 @@ const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, cons
   return newExpr;
 }
 
-const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-                     char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
-                     IntVec &resBWList, int &result_suffix, int result_bw) {
+const char *
+EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+         char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+         IntVec &resBWList, int &result_suffix, int result_bw) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   if (procName[0] == '\0') {
@@ -301,7 +305,8 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
 }
 
 const char *
-printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
+          IntVec &argBWList,
           IntVec &resBWList, int &result_suffix, int result_bw, bool &constant) {
   int type = expr->type;
   switch (type) {
@@ -330,102 +335,122 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       return curArg;
     }
     case E_AND: {
-      return EMIT_BIN(expr, "and", "&", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "and", "&", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_OR: {
-      return EMIT_BIN(expr, "or", "|", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "or", "|", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_NOT: {
-      return EMIT_UNI(expr, "not", "~", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_UNI(expr, "not", "~", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_PLUS: {
-      return EMIT_BIN(expr, "add", "+", type, "add", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "add", "+", type, "add", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MINUS: {
-      return EMIT_BIN(expr, "minus", "-", type, "add", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "minus", "-", type, "add", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MULT: {
-      return EMIT_BIN(expr, "mul", "*", type, "mul", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "mul", "*", type, "mul", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_DIV: {
-      return EMIT_BIN(expr, "div", "/", type, "div", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "div", "/", type, "div", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MOD: {
-      return EMIT_BIN(expr, "mod", "%", type, "rem", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "mod", "%", type, "rem", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LSL: {
-      return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LSR: {
-      return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_ASR: {
-      return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_UMINUS: {
-      return EMIT_UNI(expr, "neg", "-", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_UNI(expr, "neg", "-", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_XOR: {
-      return EMIT_BIN(expr, "xor", "^", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "xor", "^", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LT: {
-      return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_GT: {
-      return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LE: {
-      return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_GE: {
-      return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_EQ: {
-      return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_NE: {
-      return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_COMPLEMENT: {
-      return EMIT_UNI(expr, "compl", "~", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_UNI(expr, "compl", "~", type, "and", procName, calc, def, argList,
+                      argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
@@ -451,7 +476,8 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     default: {
       print_expr(stdout, expr);
       printf("\n");
-      fatal_error("when printing expression, encounter unknown expression type %d\n", type);
+      fatal_error("when printing expression, encounter unknown expression type %d\n",
+                  type);
       break;
     }
   }
@@ -623,8 +649,8 @@ void createCopyProcs() {
       int bitwidth = getBitwidth(opName);
       char *instance = new char[1500];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
-      int *metric = getOpMetric("copy", bitwidth);
-      createCopy(N, instance, metric);
+      int *metric = getOpMetric(instance);
+      createCopy(instance, metric);
       fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
     }
   }
@@ -736,13 +762,10 @@ void handleProcess(Process *p) {
             result_suffix++;
             sprintf(calc, "%s      res0 := x0;\n", calc);
           }
-          char opName[1500];
-          strncpy(opName, procName + 5, strlen(procName) - 5);
-          printf("proc: %s, op: %s\n", procName, opName);
-          int *metric = getOpMetric(opName, outWidth);
           if (initExpr) {
             int initVal = initExpr->u.v;
-            sprintf(procName, "%s_init%d", procName, initVal);  //TODO: collect metric for init
+            sprintf(procName, "%s_init%d", procName,
+                    initVal);  //TODO: collect metric for init
           }
           char *instance = new char[2000];
           sprintf(instance, "%s<", procName);
@@ -750,7 +773,7 @@ void handleProcess(Process *p) {
           for (; i < numArgs; i++) {
             sprintf(instance, "%s%d,", instance, argBWList[i]);
           }
-          sprintf(instance, "%s%d, ", instance, outWidth);
+          sprintf(instance, "%s%d,", instance, outWidth);
           int numRes = resBWList.size();
           if (DEBUG_VERBOSE) {
             printf("numRes: %d\n", numRes);
@@ -771,13 +794,18 @@ void handleProcess(Process *p) {
             fprintf(resFp, "%s, ", arg.c_str());
           }
           fprintf(resFp, "%s);\n", out);
+          /* create chp library */
+          char *opName = new char[1500];
+          strncpy(opName, instance + 5, strlen(instance) - 5);
+          int *metric = getOpMetric(opName);
           if (initExpr) {
             int initVal = initExpr->u.v;
             int calcLen = strlen(calc);
             calc[calcLen - 2] = '\0';
             createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes, initVal);
           } else {
-            createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance, metric);
+            createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
+                        metric);
           }
         }
         break;
@@ -828,10 +856,11 @@ void handleProcess(Process *p) {
         fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
         const char *guardStr = getActIdName(guard);
         const char *inputStr = getActIdName(input);
-        fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName, splitName);
+        fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName,
+                splitName);
         char *instance = new char[1500];
         sprintf(instance, "control_split<%d>", bitwidth);
-        int *metric = getOpMetric("split", bitwidth);
+        int *metric = getOpMetric(instance);
         createSplit(instance, metric);
         break;
       }
@@ -850,7 +879,7 @@ void handleProcess(Process *p) {
         fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
         char *instance = new char[1500];
         sprintf(instance, "control_merge<%d>", bitwidth);
-        int *metric = getOpMetric("merge", bitwidth);
+        int *metric = getOpMetric(instance);
         createMerge(instance, metric);
         break;
       }
@@ -885,21 +914,15 @@ void initialize() {
   }
 }
 
-void updateMetrics(const char* op, int bw, int* metric) {
-//  printf("Update metrics for %s-%d\n", op, bw);
+void updateMetrics(const char *op, int *metric) {
+  if (DEBUG_VERBOSE) {
+    printf("Update metrics for %s\n", op);
+  }
   auto opMetricsIt = opMetrics.find(op);
   if (opMetricsIt != opMetrics.end()) {
-    std::map<int, int *> &metrics = opMetricsIt->second;
-    auto metricsIt = metrics.find(bw);
-    if (metricsIt != metrics.end()) {
-      fatal_error("We already have metric info for %s-%d", op, bw);
-    }
-    metrics.insert(std::make_pair(bw, metric));
-  } else {
-    std::map<int, int *> metrics;
-    metrics.insert(std::make_pair(bw, metric));
-    opMetrics.insert(std::make_pair(op, metrics));
+    fatal_error("We already have metric info for %s", op);
   }
+  opMetrics.insert(std::make_pair(op, metric));
 }
 
 int main(int argc, char **argv) {
@@ -956,9 +979,6 @@ int main(int argc, char **argv) {
       std::ifstream metricFp(metricFilePath);
       std::string line;
       std::getline(metricFp, line);
-      printf("get %s\n", line.c_str());
-      int bw = std::stoi(line);
-      std::getline(metricFp, line);
       std::istringstream iss(line);
       int metricCount = 0;
       int *metric = new int[4];
@@ -978,7 +998,7 @@ int main(int argc, char **argv) {
       int opLen = strlen(metricFile) - 7;
       strncpy(op, metricFile, opLen);
       op[opLen] = '\0';
-      updateMetrics(op, bw, metric);
+      updateMetrics(op, metric);
     }
     entry = readdir(dir);
   }
