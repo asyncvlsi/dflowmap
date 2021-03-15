@@ -290,7 +290,7 @@ void createSink(const char *instance, int *metric) {
   }
 }
 
-void createCopy(int N, const char *instance, int *metric) {
+void createCopy(const char *instance, int *metric) {
   if (!hasProcess("copy")) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
@@ -307,11 +307,11 @@ void createCopy(int N, const char *instance, int *metric) {
     fprintf(confFp, "  begin out\n");
     if (metric != nullptr) {
       fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1] * (N - 1));
+      fprintf(confFp, "    int E %d\n", metric[1]);
     }
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0] * (N - 1));
+      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
     }
     fprintf(confFp, "end\n");
   }

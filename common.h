@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#define DEBUG_VERBOSE true
+#define DEBUG_VERBOSE false
 #define numOps 13
 #define numBWs 5
 
@@ -44,10 +44,10 @@ typedef std::string String;
 typedef std::vector<std::string> StringVec;
 typedef std::vector<int> IntVec;
 
-const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
-                           "rem", "sink", "source", "split"};
-const int opBWs[numBWs] = {1, 8, 16, 32, 64};
-/* operator, <BW, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2))> */
-std::map<const char *, int**> opMetrics;
+//const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
+//                           "rem", "sink", "source", "split"};
+//const int opBWs[numBWs] = {1, 8, 16, 32, 64};
+/* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
+std::map<const char *, int *> opMetrics;
 
 #endif //DFLOWMAP_COMMON_H
