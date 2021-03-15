@@ -29,6 +29,7 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <dirent.h>
 #include <act/lang.h>
 #include <act/types.h>
 #include <act/expr.h>
@@ -62,43 +63,41 @@ const char *removeDot(const char *src) {
   return result;
 }
 
+void printOpMetrics() {
+  printf("Info in opMetrics:\n");
+  for (auto &opMetricsIt : opMetrics) {
+    printf("op: %s(", opMetricsIt.first);
+    std::map<int, int *>&metrics = opMetricsIt.second;
+    for (auto &metricsIt : metrics) {
+      printf("%d ", metricsIt.first);
+    }
+    printf(");\n");
+  }
+  printf("\n");
+}
+
 int *getOpMetric(const char *op, int bitwidth) {
-  auto opMetricsIt = opMetrics.find(op);
-  if (opMetricsIt == opMetrics.end()) {
-    printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-           "We could not find metric info for %s\n", op);
-    return nullptr;
-  }
-  int **metrics = opMetricsIt->second;
-  int row = -1;
-  switch (bitwidth) {
-    case 1: {
-      row = 0;
-      break;
-    }
-    case 8: {
-      row = 1;
-      break;
-    }
-    case 16: {
-      row = 2;
-      break;
-    }
-    case 32: {
-      row = 3;
-      break;
-    }
-    case 64: {
-      row = 4;
-      break;
-    }
-    default: {
-      printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
-      printf("Unknown bitwdith %d for %s\n\n\n", bitwidth, op);
-      return nullptr;
+  char *metricOp = new char[1500];
+  sprintf(metricOp, "%s%d", op, bitwidth);
+  for (auto &opMetricsIt : opMetrics) {
+    if (!strcmp(opMetricsIt.first, metricOp)) {
+      std::map<int, int *>&metrics = opMetricsIt.second;
+      auto metricsIt = metrics.find(bitwidth);
+      if (metricsIt == metrics.end()) {
+        printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+        printf("We have metrics for %s, not no info for %d-bit", metricOp, bitwidth);
+        printOpMetrics();
+        printf("\n\n\n\n\n");
+        return nullptr;
+      }
+      return metricsIt->second;
     }
   }
-  return metrics[row];
+  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+         "We could not find metric info for %s(%d)\n", metricOp, bitwidth);
+  printOpMetrics();
+  printf("\n\n\n\n\n");
+  return nullptr;
 }
 
 static void usage(char *name) {
@@ -745,14 +744,13 @@ void handleProcess(Process *p) {
             int initVal = initExpr->u.v;
             sprintf(procName, "%s_init%d", procName, initVal);  //TODO: collect metric for init
           }
-
           char *instance = new char[2000];
-          fprintf(resFp, "%s<", procName);
+          sprintf(instance, "%s<", procName);
           int i = 0;
           for (; i < numArgs; i++) {
-            fprintf(resFp, "%d,", argBWList[i]);
+            sprintf(instance, "%s%d,", instance, argBWList[i]);
           }
-          fprintf(resFp, "%d, ", outWidth);
+          sprintf(instance, "%s%d, ", instance, outWidth);
           int numRes = resBWList.size();
           if (DEBUG_VERBOSE) {
             printf("numRes: %d\n", numRes);
@@ -762,12 +760,13 @@ void handleProcess(Process *p) {
             printf("\n");
           }
           for (i = 0; i < numRes - 1; i++) {
-            fprintf(resFp, "%d,", resBWList[i]);
+            sprintf(instance, "%s%d,", instance, resBWList[i]);
           }
-          fprintf(resFp, "%d> %s_inst(", resBWList[i], normalizedOut);
+          sprintf(instance, "%s%d>", instance, resBWList[i]);
+          printf("instance: %s", instance);
 
 
-
+          fprintf(resFp, "%s %s_inst(", instance, normalizedOut);
           for (auto &arg : argList) {
             fprintf(resFp, "%s, ", arg.c_str());
           }
@@ -778,7 +777,7 @@ void handleProcess(Process *p) {
             calc[calcLen - 2] = '\0';
             createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes, initVal);
           } else {
-            createFULib(procName, calc, def, numArgs, result_suffix, numRes);
+            createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance, metric);
           }
         }
         break;
@@ -886,6 +885,23 @@ void initialize() {
   }
 }
 
+void updateMetrics(const char* op, int bw, int* metric) {
+//  printf("Update metrics for %s-%d\n", op, bw);
+  auto opMetricsIt = opMetrics.find(op);
+  if (opMetricsIt != opMetrics.end()) {
+    std::map<int, int *> &metrics = opMetricsIt->second;
+    auto metricsIt = metrics.find(bw);
+    if (metricsIt != metrics.end()) {
+      fatal_error("We already have metric info for %s-%d", op, bw);
+    }
+    metrics.insert(std::make_pair(bw, metric));
+  } else {
+    std::map<int, int *> metrics;
+    metrics.insert(std::make_pair(bw, metric));
+    opMetrics.insert(std::make_pair(op, metrics));
+  }
+}
+
 int main(int argc, char **argv) {
   /* initialize ACT library */
   Act::Init(&argc, &argv);
@@ -924,42 +940,94 @@ int main(int argc, char **argv) {
   fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
-  for (int i = 0; i < numOps; i++) {
-    const char *op = ops[i];
-    printf("Read metric file for %s\n", op);
-    char *metricFile = new char[strlen(op) + 16];
-    strcpy(metricFile, "metrics/");
-    strcat(metricFile, op);
-    strcat(metricFile, "_metric");
-    std::ifstream metricFp(metricFile);
-    std::string line;
-    int bwCount = 0;
-    int **metric = new int *[numBWs];
-    while (std::getline(metricFp, line)) {
+  const char *metricPath = "metrics/";
+  DIR *dir = opendir(metricPath);
+  if (!dir) {
+    fatal_error("Could not find metric path %s\n", metricPath);
+  }
+  struct dirent *entry;
+  entry = readdir(dir);
+  while (entry) {
+    char *metricFile = entry->d_name;
+    if (strcmp(metricFile, ".") != 0 && strcmp(metricFile, "..") != 0) {
+      char *metricFilePath = new char[1000];
+      sprintf(metricFilePath, "%s%s", metricPath, metricFile);
+      printf("Read metric file: %s\n", metricFilePath);
+      std::ifstream metricFp(metricFilePath);
+      std::string line;
+      std::getline(metricFp, line);
+      printf("get %s\n", line.c_str());
+      int bw = std::stoi(line);
+      std::getline(metricFp, line);
       std::istringstream iss(line);
       int metricCount = 0;
-      metric[bwCount] = new int[4];
+      int *metric = new int[4];
       do {
         std::string numStr;
         iss >> numStr;
         if (!numStr.empty()) {
-          metric[bwCount][metricCount] = std::atoi(numStr.c_str());
+          metric[metricCount] = std::atoi(numStr.c_str());
           metricCount++;
         }
       } while (iss);
       if (metricCount != 4) {
-        printf("%s has %d metrics for the %d-th bitwidth info!\n", metricFile, metricCount,
-               bwCount);
+        printf("%s has %d metrics!\n", metricFile, metricCount);
         exit(-1);
       }
-      bwCount++;
+      char *op = new char[1500];
+      int opLen = strlen(metricFile) - 7;
+      strncpy(op, metricFile, opLen);
+      op[opLen] = '\0';
+      updateMetrics(op, bw, metric);
     }
-    if (bwCount != numBWs) {
-      printf("%s has %d bitwidth info!\n", metricFile, bwCount);
-      exit(-1);
-    }
-    opMetrics.insert(std::make_pair(op, metric));
+    entry = readdir(dir);
   }
+  closedir(dir);
+
+
+
+
+
+//  for (int i = 0; i < numOps; i++) {
+//    const char *op = ops[i];
+//    printf("Read metric file for %s\n", op);
+//    char *metricFile = new char[strlen(op) + 16];
+//    strcpy(metricFile, "metrics/");
+//    strcat(metricFile, op);
+//    strcat(metricFile, ".metric");
+//    std::ifstream metricFp(metricFile);
+//    std::string line;
+//    int bwCount = 0;
+//    int **metric = new int *[numBWs];
+//
+//    while (std::getline(metricFp, line)) {
+//      std::istringstream iss(line);
+//      int metricCount = 0;
+//      metric[bwCount] = new int[4];
+//      do {
+//        std::string numStr;
+//        iss >> numStr;
+//        if (!numStr.empty()) {
+//          metric[bwCount][metricCount] = std::atoi(numStr.c_str());
+//          metricCount++;
+//        }
+//      } while (iss);
+//      if (metricCount != 4) {
+//        printf("%s has %d metrics for the %d-th bitwidth info!\n", metricFile, metricCount,
+//               bwCount);
+//        exit(-1);
+//      }
+//      bwCount++;
+//    }
+//    if (bwCount != numBWs) {
+//      printf("%s has %d bitwidth info!\n", metricFile, bwCount);
+//      exit(-1);
+//    }
+//    opMetrics.insert(std::make_pair(op, metric));
+//  }
+
+
+
 
   ActTypeiter it(a->Global());
   initialize();
