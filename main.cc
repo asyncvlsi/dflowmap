@@ -84,7 +84,8 @@ int *getOpMetric(const char *op) {
     printf("get op metric for %s\n", op);
   }
   char *normalizedOp = new char[1500];
-  strcat(normalizedOp, op);
+  sprintf(normalizedOp, "%s", op);
+//  strcat(normalizedOp, op);
   normalizeName(normalizedOp, '<', '_');
   normalizeName(normalizedOp, '>', '_');
   normalizeName(normalizedOp, ',', '_');
