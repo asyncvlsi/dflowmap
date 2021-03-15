@@ -35,7 +35,7 @@ bool hasProcess(const char *process) {
 }
 
 void createFULib(const char *procName, const char *calc, const char *def,
-                 int numArgs, int result_suffix, int numRes) {
+                 int numArgs, int result_suffix, int numRes, const char*instance, int* metric) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
     int i = 0;
