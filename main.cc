@@ -126,8 +126,11 @@ const char *getActIdName(ActId *actId) {
 }
 
 void printSink(const char *name, int bitwidth) {
+  if (name == nullptr) {
+    fatal_error("sink name is NULL!\n");
+  }
   fprintf(resFp, "sink<%d> %s_sink(%s);\n", bitwidth, name, name);
-  char *instance = new char[50];
+  char *instance = new char[1500];
   sprintf(instance, "sink<%d>", bitwidth);
   int *metric = getOpMetric("sink", bitwidth);
   createSink(instance, metric);
@@ -135,7 +138,7 @@ void printSink(const char *name, int bitwidth) {
 
 void printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
   fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
-  char *instance = new char[50];
+  char *instance = new char[1500];
   sprintf(instance, "source<%u,%d>", val, outWidth);
   int *metric = getOpMetric("source", outWidth);
   createSource(instance, metric);
@@ -202,6 +205,11 @@ const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, cons
     if (lConst) {
       print_expr(stdout, expr);
       printf(" has both const operands!\n");
+      printf("lExpr: ");
+      print_expr(stdout, lExpr);
+      printf(", rExpr: ");
+      print_expr(stdout, rExpr);
+      printf("\n");
       exit(-1);
     }
   }
@@ -591,7 +599,7 @@ void createCopyProcs() {
       const char *opName = opUsesIt.first;
       printf("handle op %s\n", opName);
       int bitwidth = getBitwidth(opName);
-      char *instance = new char[50];
+      char *instance = new char[1500];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
       int *metric = getOpMetric("copy", bitwidth);
       createCopy(N, instance, metric);
@@ -634,6 +642,9 @@ void handleProcess(Process *p) {
         rhs->sPrint(out, 10240, NULL, 0);
         const char *normalizedOut = removeDot(out);
         int outWidth = getActIdBW(rhs, p);
+        printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
+        print_expr(stdout, expr);
+        printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
 
         Expr *initExpr = d->u.func.init;
         Expr *nbufs = d->u.func.nbufs;
@@ -768,13 +779,13 @@ void handleProcess(Process *p) {
           splitName[splitSize - 1] = '\0';
         }
         if (!lOut) {
-          char *sinkName = new char[50];
+          char *sinkName = new char[1500];
           sprintf(sinkName, "%s_L", splitName);
           printSink(sinkName, bitwidth);
           printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
         }
         if (!rOut) {
-          char *sinkName = new char[50];
+          char *sinkName = new char[1500];
           sprintf(sinkName, "%s_R", splitName);
           printSink(sinkName, bitwidth);
           printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
@@ -783,7 +794,7 @@ void handleProcess(Process *p) {
         const char *guardStr = getActIdName(guard);
         const char *inputStr = getActIdName(input);
         fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName, splitName);
-        char *instance = new char[50];
+        char *instance = new char[1500];
         sprintf(instance, "control_split<%d>", bitwidth);
         int *metric = getOpMetric("split", bitwidth);
         createSplit(instance, metric);
@@ -802,7 +813,7 @@ void handleProcess(Process *p) {
         ActId *rIn = inputs[1];
         const char *rInStr = getActIdName(rIn);
         fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
-        char *instance = new char[50];
+        char *instance = new char[1500];
         sprintf(instance, "control_merge<%d>", bitwidth);
         int *metric = getOpMetric("merge", bitwidth);
         createMerge(instance, metric);
