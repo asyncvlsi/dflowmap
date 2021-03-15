@@ -65,8 +65,9 @@ const char *removeDot(const char *src) {
 int *getOpMetric(const char *op, int bitwidth) {
   auto opMetricsIt = opMetrics.find(op);
   if (opMetricsIt == opMetrics.end()) {
-    printf("We could not find metric info for %s\n", op);
-    exit(-1);
+    printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+           "We could not find metric info for %s\n", op);
+    return nullptr;
   }
   int **metrics = opMetricsIt->second;
   int row = -1;
@@ -92,7 +93,8 @@ int *getOpMetric(const char *op, int bitwidth) {
       break;
     }
     default: {
-      printf("Unknown bitwdith %d\n", bitwidth);
+      printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+      printf("Unknown bitwdith %d for %s\n\n\n", bitwidth, op);
       return nullptr;
     }
   }
@@ -181,6 +183,24 @@ int getBitwidth(const char *varName) {
   exit(-1);
 }
 
+void getCurProc(const char *str, char *val) {
+  char curProc[100];
+//  curProc[0]='\0';
+  if (strstr(str, "res")) {
+//    strncpy(curProc, str + 3, strlen(str) - 3);
+    sprintf(curProc, "r%s", str + 3);
+  } else if (strstr(str, "x")) {
+    sprintf(curProc, "%s", str + 1);
+//    printf("111: %s\n", str);
+//    strncpy(curProc, str + 1, strlen(str) - 1);
+//    printf("222: %s, %d\n", curProc, strlen(str));
+  } else {
+    sprintf(curProc, "c%s", str);
+  }
+//  curProc[strlen(curProc)] = '\0';
+  strcpy(val, curProc);
+}
+
 const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
                      char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
                      IntVec &resBWList, int &result_suffix, int result_bw) {
@@ -192,26 +212,18 @@ const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, cons
   bool lConst;
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
                                result_suffix, result_bw, lConst);
-  if (lConst) {
-    sprintf(procName, "%s_%s%s", procName, lStr, sym);
-  } else {
-    sprintf(procName, "%s_%s", procName, sym);
-  }
   bool rConst;
   const char *rStr = printExpr(rExpr, procName, calc, def, argList, argBWList, resBWList,
                                result_suffix, result_bw, rConst);
-  if (rConst) {
-    strcat(procName, rStr);
-    if (lConst) {
-      print_expr(stdout, expr);
-      printf(" has both const operands!\n");
-      printf("lExpr: ");
-      print_expr(stdout, lExpr);
-      printf(", rExpr: ");
-      print_expr(stdout, rExpr);
-      printf("\n");
-      exit(-1);
-    }
+  if (lConst && rConst) {
+    print_expr(stdout, expr);
+    printf(" has both const operands!\n");
+    printf("lExpr: ");
+    print_expr(stdout, lExpr);
+    printf(", rExpr: ");
+    print_expr(stdout, rExpr);
+    printf("\n");
+    exit(-1);
   }
   char *newExpr = new char[100];
   result_suffix++;
@@ -220,6 +232,13 @@ const char *EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, cons
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
+
+  char *lVal = new char[100];
+  getCurProc(lStr, lVal);
+  char *rVal = new char[100];
+  getCurProc(rStr, rVal);
+
+  sprintf(procName, "%s_%s%s%s", procName, lVal, sym, rVal);
   if (DEBUG_VERBOSE) {
     printf("binary expr: ");
     print_expr(stdout, expr);
@@ -255,10 +274,18 @@ const char *EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, cons
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
                                result_suffix, result_bw, lConst);
   if (lConst) {
-    sprintf(procName, "%s_%s%s", procName, sym, lStr);
-  } else {
-    sprintf(procName, "%s_%s", procName, sym);
+    print_expr(stdout, expr);
+    printf(" has const operands!\n");
+    exit(-1);
   }
+  char *val = new char[100];
+  getCurProc(lStr, val);
+  sprintf(procName, "%s_%s%s", procName, sym, val);
+//  if (lConst) {
+//    sprintf(procName, "%s_%s%s", procName, sym, lStr);
+//  } else {
+//    sprintf(procName, "%s_%s", procName, sym);
+//  }
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
@@ -329,7 +356,7 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
                       result_suffix, result_bw);
     }
     case E_MULT: {
-      return EMIT_BIN(expr, "multi", "*", type, "mul", procName, calc, def, argList, argBWList,
+      return EMIT_BIN(expr, "mul", "*", type, "mul", procName, calc, def, argList, argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
@@ -399,7 +426,7 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
                       result_suffix, result_bw);
     }
     case E_COMPLEMENT: {
-      return EMIT_UNI(expr, "comple", "~", type, "and", procName, calc, def, argList, argBWList,
+      return EMIT_UNI(expr, "compl", "~", type, "and", procName, calc, def, argList, argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
@@ -699,7 +726,7 @@ void handleProcess(Process *p) {
             printf("result_suffix: %d\n", result_suffix);
           }
           if (procName[0] == '\0') {
-            sprintf(procName, "func_pass");
+            sprintf(procName, "func_port");
             if ((numArgs != 1) || (result_suffix != -1) || (calc[0] != '\n')) {
               printf("We are processing expression ");
               print_expr(stdout, expr);
@@ -710,10 +737,16 @@ void handleProcess(Process *p) {
             result_suffix++;
             sprintf(calc, "%s      res0 := x0;\n", calc);
           }
+          char opName[1500];
+          strncpy(opName, procName + 5, strlen(procName) - 5);
+          printf("proc: %s, op: %s\n", procName, opName);
+          int *metric = getOpMetric(opName, outWidth);
           if (initExpr) {
             int initVal = initExpr->u.v;
-            sprintf(procName, "%s_init%d", procName, initVal);
+            sprintf(procName, "%s_init%d", procName, initVal);  //TODO: collect metric for init
           }
+
+          char *instance = new char[2000];
           fprintf(resFp, "%s<", procName);
           int i = 0;
           for (; i < numArgs; i++) {
@@ -732,6 +765,9 @@ void handleProcess(Process *p) {
             fprintf(resFp, "%d,", resBWList[i]);
           }
           fprintf(resFp, "%d> %s_inst(", resBWList[i], normalizedOut);
+
+
+
           for (auto &arg : argList) {
             fprintf(resFp, "%s, ", arg.c_str());
           }
