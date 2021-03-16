@@ -326,11 +326,15 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     }
     case E_VAR: {
       int numArgs = argList.size();
-      char *curArg = new char[10];
-      strcpy(curArg, "x");
-      strcat(curArg, strdup(std::to_string(numArgs).c_str()));
       auto actId = (ActId *) expr->u.e.l;
-      int argBW = getBitwidth(actId->getName());
+      const char *varName = actId->getName();
+
+      char *curArg = new char[1000];
+      sprintf(curArg, "%s_%d", varName, numArgs);
+//      strcpy(curArg, varName);
+//      strcat(curArg, strdup(std::to_string(numArgs).c_str()));
+
+      int argBW = getBitwidth(varName);
       const char *varStr = getActIdName(actId);
       argList.push_back(varStr);
       argBWList.push_back(argBW);
@@ -494,7 +498,8 @@ unsigned getCopyUses(const char *op) {
   auto copyUsesIt = copyUses.find(op);
   if (copyUsesIt == copyUses.end()) {
     printf("We don't know how many times %s is used as COPY!\n", op);
-    exit(-1);
+    return 0;
+//    exit(-1);
   }
   unsigned uses = copyUsesIt->second;
   copyUsesIt->second++;
@@ -523,8 +528,9 @@ unsigned getOpUses(const char *op) {
   auto opUsesIt = opUses.find(op);
   if (opUsesIt == opUses.end()) {
     printf("We don't know how many times %s is used!\n", op);
-    printOpUses();
-    exit(-1);
+//    printOpUses();
+    return 0;
+//    exit(-1);
   }
   return opUsesIt->second;
 }
@@ -635,6 +641,10 @@ void collectOpUses(Process *p) {
         fatal_error("We don't support ARBITER for now!\n");
         break;
       }
+      case ACT_DFLOW_CLUSTER: {
+        //TODO
+        break;
+      }
       default: {
         fatal_error("Unknown dataflow type %d\n", d->t);
         break;
@@ -662,6 +672,320 @@ void createCopyProcs() {
   fprintf(resFp, "\n");
 }
 
+void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
+                    IntVec &resBWList, int outWidth, const char *def, char *calc,
+                    int result_suffix,
+                    const char *normalizedOut, const char *out, Expr *initExpr) {
+  char *instance = new char[2000];
+  sprintf(instance, "%s<", procName);
+  int numArgs = argList.size();
+  int i = 0;
+  for (; i < numArgs; i++) {
+    sprintf(instance, "%s%d,", instance, argBWList[i]);
+  }
+  sprintf(instance, "%s%d,", instance, outWidth);
+  int numRes = resBWList.size();
+  if (DEBUG_VERBOSE) {
+    printf("numRes: %d\n", numRes);
+    for (i = 0; i < numRes; i++) {
+      printf("%d ", resBWList[i]);
+    }
+    printf("\n");
+  }
+  for (i = 0; i < numRes - 1; i++) {
+    sprintf(instance, "%s%d,", instance, resBWList[i]);
+  }
+  sprintf(instance, "%s%d>", instance, resBWList[i]);
+  printf("instance: %s", instance);
+
+  fprintf(resFp, "%s %s_inst(", instance, normalizedOut);
+  for (auto &arg : argList) {
+    fprintf(resFp, "%s, ", arg.c_str());
+  }
+  fprintf(resFp, "%s);\n", out);
+  /* create chp library */
+  char *opName = new char[1500];
+  strncpy(opName, instance + 5, strlen(instance) - 5);
+  int *metric = getOpMetric(opName);
+  if (initExpr) {
+    int initVal = initExpr->u.v;
+    int calcLen = strlen(calc);
+    calc[calcLen - 2] = '\0';
+    createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
+                    initVal, instance, metric);
+  } else {
+    createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
+                metric);
+  }
+}
+
+void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *calc,
+                     char *def, StringVec &argList, IntVec &argBWList,
+                     IntVec &resBWList, int &result_suffix) {
+  if (d->t != ACT_DFLOW_FUNC) {
+    dflow_print(stdout, d);
+    printf("This is not dflow_func!\n");
+    exit(-1);
+  }
+  /* handle left hand side */
+  Expr *expr = d->u.func.lhs;
+  int type = expr->type;
+  /* handle right hand side */
+  ActId *rhs = d->u.func.rhs;
+  char out[10240];
+  out[0] = '\0';
+  rhs->sPrint(out, 10240, NULL, 0);
+  const char *normalizedOut = removeDot(out);
+  int outWidth = getActIdBW(rhs, p);
+  if (DEBUG_VERBOSE) {
+    printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
+    print_expr(stdout, expr);
+    printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
+  }
+  Expr *initExpr = d->u.func.init;
+  Expr *nbufs = d->u.func.nbufs;
+  if (initExpr) {
+    if (initExpr->type != E_INT) {
+      print_expr(stdout, initExpr);
+      printf("The init value is not E_INT type!\n");
+      exit(-1);
+    }
+  }
+  if (type == E_INT) {
+    unsigned int val = expr->u.v;
+    printInt(out, normalizedOut, val, outWidth);
+    if (initExpr) {
+      print_expr(stdout, expr);
+      printf(" has const lOp, but its rOp has init token!\n");
+      exit(-1);
+    }
+  } else {
+
+//    char *procName = new char[200];
+//    procName[0] = '\0';
+//    char *calc = new char[10240];
+//    calc[0] = '\0';
+//    sprintf(calc, "\n");
+//    char *def = new char[10240];
+//    def[0] = '\0';
+//    sprintf(def, "\n");
+//    StringVec argList;
+//    IntVec argBWList;
+//    IntVec resBWList;
+//    int result_suffix = -1;
+
+    bool constant = false;
+    printExpr(expr, procName, calc, def, argList, argBWList, resBWList,
+              result_suffix, outWidth, constant);
+    if (constant) {
+      print_expr(stdout, expr);
+      printf("=> we should not process constant lhs here!\n");
+      exit(-1);
+    }
+    int numArgs = argList.size();
+    if (procName[0] == '\0') {
+      sprintf(procName, "func_port");
+      if ((numArgs != 1) || (result_suffix != -1) || (calc[0] != '\n')) {
+        printf("We are processing expression ");
+        print_expr(stdout, expr);
+        printf(", the procName is empty, "
+               "but the argList or result_suffix or calc is abnormal!\n");
+        exit(-1);
+      }
+      result_suffix++;
+      sprintf(calc, "%s      res0 := x0;\n", calc);
+    }
+    if (initExpr) {
+      int initVal = initExpr->u.v;
+      sprintf(procName, "%s_init%d", procName,
+              initVal);  //TODO: collect metric for init
+    }
+//    if (DEBUG_VERBOSE) {
+    printf("___________________________________\nFor dataflow element: ");
+    dflow_print(stdout, d);
+    printf("\n___________________________________________\n\n\n\n\n\n");
+    printf("procName: %s\n", procName);
+    printf("arg list:\n");
+    for (auto &arg : argList) {
+      printf("%s ", arg.c_str());
+    }
+    printf("\n");
+    printf("arg bw list:\n");
+    for (auto &bw : argBWList) {
+      printf("%d ", bw);
+    }
+    printf("\n");
+    printf("res bw list:\n");
+    for (auto &resBW : resBWList) {
+      printf("%d ", resBW);
+    }
+    printf("\n");
+    printf("out bw: %d\n", outWidth);
+    printf("def: %s\n", def);
+    printf("calc: %s\n", calc);
+    printf("result_suffix: %d\n", result_suffix);
+    printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
+    printf("init expr: ");
+    print_expr(stdout, initExpr);
+    printf("\n");
+//    }
+    printDFlowFunc(procName, argList, argBWList, resBWList, outWidth, def, calc,
+                   result_suffix, normalizedOut, out, initExpr);
+  }
+}
+
+void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
+  switch (d->t) {
+    case ACT_DFLOW_FUNC: {
+
+      char *procName = new char[200];
+      procName[0] = '\0';
+      char *calc = new char[10240];
+      calc[0] = '\0';
+      sprintf(calc, "\n");
+      char *def = new char[10240];
+      def[0] = '\0';
+      sprintf(def, "\n");
+      StringVec argList;
+      IntVec argBWList;
+      IntVec resBWList;
+      int result_suffix = -1;
+      handleDFlowFunc(p, d, procName, calc, def, argList, argBWList, resBWList,
+                      result_suffix);
+      break;
+    }
+    case ACT_DFLOW_SPLIT: {
+      ActId *input = d->u.splitmerge.single;
+      const char *inputName = input->getName();
+      int inputSize = strlen(inputName);
+      int bitwidth = getActIdBW(input, p);
+      ActId **outputs = d->u.splitmerge.multi;
+      ActId *lOut = outputs[0];
+      ActId *rOut = outputs[1];
+      const char *outName = nullptr;
+      char *splitName = nullptr;
+      ActId *guard = d->u.splitmerge.guard;
+      const char *guardName = guard->getName();
+      int guardSize = strlen(guardName);
+      if (!lOut && !rOut) {  // split has empty target for both ports
+        splitName = new char[inputSize + guardSize + 8];
+        printf("no target. iS: %d, gS: %d\n", inputSize, guardSize);
+        strcpy(splitName, inputName);
+        strcat(splitName, "_");
+        strcat(splitName, guardName);
+        strcat(splitName, "_SPLIT");
+      } else {
+        if (lOut) {
+          outName = lOut->getName();
+        } else {
+          outName = rOut->getName();
+        }
+        size_t splitSize = strlen(outName) - 1;
+        splitName = new char[splitSize];
+        memcpy(splitName, outName, splitSize - 1);
+        splitName[splitSize - 1] = '\0';
+      }
+      if (!lOut) {
+        char *sinkName = new char[1500];
+        sprintf(sinkName, "%s_L", splitName);
+        printSink(sinkName, bitwidth);
+        printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
+      }
+      if (!rOut) {
+        char *sinkName = new char[1500];
+        sprintf(sinkName, "%s_R", splitName);
+        printSink(sinkName, bitwidth);
+        printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
+      }
+      fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
+      const char *guardStr = getActIdName(guard);
+      const char *inputStr = getActIdName(input);
+      fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName,
+              splitName);
+      char *instance = new char[1500];
+      sprintf(instance, "control_split<%d>", bitwidth);
+      int *metric = getOpMetric(instance);
+      createSplit(instance, metric);
+      break;
+    }
+    case ACT_DFLOW_MERGE: {
+      ActId *output = d->u.splitmerge.single;
+      const char *outputName = output->getName();
+      int bitwidth = getActIdBW(output, p);
+      fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
+      ActId *guard = d->u.splitmerge.guard;
+      const char *guardStr = getActIdName(guard);
+      ActId **inputs = d->u.splitmerge.multi;
+      ActId *lIn = inputs[0];
+      const char *lInStr = getActIdName(lIn);
+      ActId *rIn = inputs[1];
+      const char *rInStr = getActIdName(rIn);
+      fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
+      char *instance = new char[1500];
+      sprintf(instance, "control_merge<%d>", bitwidth);
+      int *metric = getOpMetric(instance);
+      createMerge(instance, metric);
+      break;
+    }
+    case ACT_DFLOW_MIXER: {
+      fatal_error("We don't support MIXER for now!\n");
+      break;
+    }
+    case ACT_DFLOW_ARBITER: {
+      fatal_error("We don't support ARBITER for now!\n");
+      break;
+    }
+    case ACT_DFLOW_CLUSTER: {
+      dflow_print(stdout, d);
+      fatal_error("We should not process dflow_clsuter here!");
+    }
+    default: {
+      fatal_error("Unknown dataflow type %d\n", d->t);
+      break;
+    }
+  }
+}
+
+void dflow_print(FILE *fp, list_t *dflow) {
+  listitem_t *li;
+  act_dataflow_element *e;
+
+  for (li = list_first (dflow); li; li = list_next (li)) {
+    e = (act_dataflow_element *) list_value (li);
+    dflow_print(fp, e);
+    if (list_next (li)) {
+      fprintf(fp, ";");
+    }
+    fprintf(fp, "\n");
+  }
+}
+
+void handleDFlowCluster(Process *p, list_t *dflow) {
+  listitem_t *li;
+  char *procName = new char[200];
+  procName[0] = '\0';
+  char *calc = new char[10240];
+  calc[0] = '\0';
+  sprintf(calc, "\n");
+  char *def = new char[10240];
+  def[0] = '\0';
+  sprintf(def, "\n");
+  StringVec argList;
+  IntVec argBWList;
+  IntVec resBWList;
+  int result_suffix = -1;
+  for (li = list_first (dflow); li; li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    if (d->t == ACT_DFLOW_FUNC) {
+      handleDFlowFunc(p, d, procName, calc, def, argList, argBWList, resBWList,
+                      result_suffix);
+    } else {
+      dflow_print(stdout, d);
+      fatal_error("This dflow statement should not appear in dflow-cluster!\n");
+    }
+  }
+}
+
 void handleProcess(Process *p) {
   const char *pName = p->getName();
   printf("processing %s\n", pName);
@@ -683,224 +1007,12 @@ void handleProcess(Process *p) {
        li;
        li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
-    switch (d->t) {
-      case ACT_DFLOW_FUNC: {
-        /* handle left hand side */
-        Expr *expr = d->u.func.lhs;
-        int type = expr->type;
-        /* handle right hand side */
-        ActId *rhs = d->u.func.rhs;
-        char out[10240];
-        out[0] = '\0';
-        rhs->sPrint(out, 10240, NULL, 0);
-        const char *normalizedOut = removeDot(out);
-        int outWidth = getActIdBW(rhs, p);
-        if (DEBUG_VERBOSE) {
-          printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
-          print_expr(stdout, expr);
-          printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
-        }
-        Expr *initExpr = d->u.func.init;
-        Expr *nbufs = d->u.func.nbufs;
-        if (initExpr) {
-          if (initExpr->type != E_INT) {
-            print_expr(stdout, initExpr);
-            printf("The init value is not E_INT type!\n");
-            exit(-1);
-          }
-        }
-        if (type == E_INT) {
-          unsigned int val = expr->u.v;
-          printInt(out, normalizedOut, val, outWidth);
-          if (initExpr) {
-            print_expr(stdout, expr);
-            printf(" has const lOp, but its rOp has init token!\n");
-            exit(-1);
-          }
-        } else {
-          char *procName = new char[200];
-          procName[0] = '\0';
-          char *calc = new char[10240];
-          calc[0] = '\0';
-          sprintf(calc, "\n");
-          char *def = new char[10240];
-          def[0] = '\0';
-          sprintf(def, "\n");
-          StringVec argList;
-          IntVec argBWList;
-          IntVec resBWList;
-          int result_suffix = -1;
-          bool constant = false;
-          printExpr(expr, procName, calc, def, argList, argBWList, resBWList,
-                    result_suffix, outWidth, constant);
-          if (constant) {
-            print_expr(stdout, expr);
-            printf("=> we should not process constant lhs here!\n");
-            exit(-1);
-          }
-          int numArgs = argList.size();
-          if (DEBUG_VERBOSE) {
-            printf("procName: %s\n", procName);
-            printf("arg list:\n");
-            for (auto &arg : argList) {
-              printf("%s ", arg.c_str());
-            }
-            printf("\n");
-            printf("arg bw list:\n");
-            for (auto &bw : argBWList) {
-              printf("%d ", bw);
-            }
-            printf("\n");
-            printf("out bw: %d\n", outWidth);
-            printf("calc: %s\n", calc);
-            printf("result_suffix: %d\n", result_suffix);
-          }
-          if (procName[0] == '\0') {
-            sprintf(procName, "func_port");
-            if ((numArgs != 1) || (result_suffix != -1) || (calc[0] != '\n')) {
-              printf("We are processing expression ");
-              print_expr(stdout, expr);
-              printf(", the procName is empty, "
-                     "but the argList or result_suffix or calc is abnormal!\n");
-              exit(-1);
-            }
-            result_suffix++;
-            sprintf(calc, "%s      res0 := x0;\n", calc);
-          }
-          if (initExpr) {
-            int initVal = initExpr->u.v;
-            sprintf(procName, "%s_init%d", procName,
-                    initVal);  //TODO: collect metric for init
-          }
-          char *instance = new char[2000];
-          sprintf(instance, "%s<", procName);
-          int i = 0;
-          for (; i < numArgs; i++) {
-            sprintf(instance, "%s%d,", instance, argBWList[i]);
-          }
-          sprintf(instance, "%s%d,", instance, outWidth);
-          int numRes = resBWList.size();
-          if (DEBUG_VERBOSE) {
-            printf("numRes: %d\n", numRes);
-            for (i = 0; i < numRes; i++) {
-              printf("%d ", resBWList[i]);
-            }
-            printf("\n");
-          }
-          for (i = 0; i < numRes - 1; i++) {
-            sprintf(instance, "%s%d,", instance, resBWList[i]);
-          }
-          sprintf(instance, "%s%d>", instance, resBWList[i]);
-          printf("instance: %s", instance);
-
-
-          fprintf(resFp, "%s %s_inst(", instance, normalizedOut);
-          for (auto &arg : argList) {
-            fprintf(resFp, "%s, ", arg.c_str());
-          }
-          fprintf(resFp, "%s);\n", out);
-          /* create chp library */
-          char *opName = new char[1500];
-          strncpy(opName, instance + 5, strlen(instance) - 5);
-          int *metric = getOpMetric(opName);
-          if (initExpr) {
-            int initVal = initExpr->u.v;
-            int calcLen = strlen(calc);
-            calc[calcLen - 2] = '\0';
-            createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
-                            initVal, instance, metric);
-          } else {
-            createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
-                        metric);
-          }
-        }
-        break;
-      }
-      case ACT_DFLOW_SPLIT: {
-        ActId *input = d->u.splitmerge.single;
-        const char *inputName = input->getName();
-        int inputSize = strlen(inputName);
-        int bitwidth = getActIdBW(input, p);
-        ActId **outputs = d->u.splitmerge.multi;
-        ActId *lOut = outputs[0];
-        ActId *rOut = outputs[1];
-        const char *outName = nullptr;
-        char *splitName = nullptr;
-        ActId *guard = d->u.splitmerge.guard;
-        const char *guardName = guard->getName();
-        int guardSize = strlen(guardName);
-        if (!lOut && !rOut) {  // split has empty target for both ports
-          splitName = new char[inputSize + guardSize + 8];
-          printf("no target. iS: %d, gS: %d\n", inputSize, guardSize);
-          strcpy(splitName, inputName);
-          strcat(splitName, "_");
-          strcat(splitName, guardName);
-          strcat(splitName, "_SPLIT");
-        } else {
-          if (lOut) {
-            outName = lOut->getName();
-          } else {
-            outName = rOut->getName();
-          }
-          size_t splitSize = strlen(outName) - 1;
-          splitName = new char[splitSize];
-          memcpy(splitName, outName, splitSize - 1);
-          splitName[splitSize - 1] = '\0';
-        }
-        if (!lOut) {
-          char *sinkName = new char[1500];
-          sprintf(sinkName, "%s_L", splitName);
-          printSink(sinkName, bitwidth);
-          printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
-        }
-        if (!rOut) {
-          char *sinkName = new char[1500];
-          sprintf(sinkName, "%s_R", splitName);
-          printSink(sinkName, bitwidth);
-          printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
-        }
-        fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
-        const char *guardStr = getActIdName(guard);
-        const char *inputStr = getActIdName(input);
-        fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName,
-                splitName);
-        char *instance = new char[1500];
-        sprintf(instance, "control_split<%d>", bitwidth);
-        int *metric = getOpMetric(instance);
-        createSplit(instance, metric);
-        break;
-      }
-      case ACT_DFLOW_MERGE: {
-        ActId *output = d->u.splitmerge.single;
-        const char *outputName = output->getName();
-        int bitwidth = getActIdBW(output, p);
-        fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
-        ActId *guard = d->u.splitmerge.guard;
-        const char *guardStr = getActIdName(guard);
-        ActId **inputs = d->u.splitmerge.multi;
-        ActId *lIn = inputs[0];
-        const char *lInStr = getActIdName(lIn);
-        ActId *rIn = inputs[1];
-        const char *rInStr = getActIdName(rIn);
-        fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
-        char *instance = new char[1500];
-        sprintf(instance, "control_merge<%d>", bitwidth);
-        int *metric = getOpMetric(instance);
-        createMerge(instance, metric);
-        break;
-      }
-      case ACT_DFLOW_MIXER: {
-        fatal_error("We don't support MIXER for now!\n");
-        break;
-      }
-      case ACT_DFLOW_ARBITER: {
-        fatal_error("We don't support ARBITER for now!\n");
-        break;
-      }
-      default: {
-        fatal_error("Unknown dataflow type %d\n", d->t);
-        break;
-      }
+    if (d->t == ACT_DFLOW_CLUSTER) {
+      list_t *dflow_cluster = d->u.dflow_cluster;
+      dflow_print(stdout, dflow_cluster);
+      handleDFlowCluster(p, dflow_cluster);
+    } else {
+//      handleNormalDflowElement(p, d);
     }
   }
   if (mainProc) {
@@ -1094,8 +1206,8 @@ int main(int argc, char **argv) {
       index++;
     }
   }
-//  for (int i = 0; i < index; i++) {
-  for (int i = index - 1; i >= 0; i--) {
+  for (int i = 0; i < index; i++) {
+//  for (int i = index - 1; i >= 0; i--) {
     Process *p = procArray[i];
     handleProcess(p);
   }
