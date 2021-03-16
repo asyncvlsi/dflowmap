@@ -89,10 +89,14 @@ int *getOpMetric(const char *op) {
   normalizeName(normalizedOp, '<', '_');
   normalizeName(normalizedOp, '>', '_');
   normalizeName(normalizedOp, ',', '_');
+//  sprintf(normalizedOp, "%s", normalizedOp);
+//  normalizedOp[strlen(normalizedOp)] = '\0';
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, normalizedOp)) {
       return opMetricsIt.second;
     }
+//    printf("Compare: %s, %s %d %d\n", normalizedOp, opMetricsIt.first,
+//           strlen(normalizedOp), strlen(opMetricsIt.first));
   }
   printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
          "We could not find metric info for %s\n", normalizedOp);
@@ -803,7 +807,8 @@ void handleProcess(Process *p) {
             int initVal = initExpr->u.v;
             int calcLen = strlen(calc);
             calc[calcLen - 2] = '\0';
-            createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes, initVal);
+            createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
+                            initVal, instance, metric);
           } else {
             createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
                         metric);
@@ -964,51 +969,78 @@ int main(int argc, char **argv) {
   fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
-  const char *metricPath = "metrics/";
-  DIR *dir = opendir(metricPath);
-  if (!dir) {
-    fatal_error("Could not find metric path %s\n", metricPath);
-  }
-  struct dirent *entry;
-  entry = readdir(dir);
-  while (entry) {
-    char *metricFile = entry->d_name;
-    if (strcmp(metricFile, ".") != 0 && strcmp(metricFile, "..") != 0) {
-      char *metricFilePath = new char[1000];
-      sprintf(metricFilePath, "%s%s", metricPath, metricFile);
-      printf("Read metric file: %s\n", metricFilePath);
-      std::ifstream metricFp(metricFilePath);
-      std::string line;
-      std::getline(metricFp, line);
-      std::istringstream iss(line);
-      int metricCount = 0;
-      int *metric = new int[4];
-      do {
-        std::string numStr;
-        iss >> numStr;
-        if (!numStr.empty()) {
+  char *metricFilePath = new char[1000];
+  sprintf(metricFilePath, "metrics/fluid.metrics");
+  printf("Read metric file: %s\n", metricFilePath);
+  std::ifstream metricFp(metricFilePath);
+  std::string line;
+  while (std::getline(metricFp, line)) {
+    std::istringstream iss(line);
+    char *instance = new char[2000];
+//    instance[0] = '\0';
+    int metricCount = -1;
+    int *metric = new int[4];
+    do {
+      std::string numStr;
+      iss >> numStr;
+      if (!numStr.empty()) {
+        if (metricCount >= 0) {
           metric[metricCount] = std::atoi(numStr.c_str());
-          metricCount++;
+        } else {
+          sprintf(instance, "%s", numStr.c_str());
         }
-      } while (iss);
-      if (metricCount != 4) {
-        printf("%s has %d metrics!\n", metricFile, metricCount);
-        exit(-1);
+        metricCount++;
       }
-      char *op = new char[1500];
-      int opLen = strlen(metricFile) - 7;
-      strncpy(op, metricFile, opLen);
-      op[opLen] = '\0';
-      updateMetrics(op, metric);
+    } while (iss);
+    if (metricCount != 4) {
+      printf("%s has %d metrics!\n", metricFilePath, metricCount);
+      exit(-1);
     }
-    entry = readdir(dir);
+    if (DEBUG_VERBOSE) {
+      printf("Add metrics for %s\n", instance);
+    }
+    updateMetrics(instance, metric);
   }
-  closedir(dir);
-
-
-
-
-
+//  const char *metricPath = "metrics/";
+//  DIR *dir = opendir(metricPath);
+//  if (!dir) {
+//    fatal_error("Could not find metric path %s\n", metricPath);
+//  }
+//  struct dirent *entry;
+//  entry = readdir(dir);
+//  while (entry) {
+//    char *metricFile = entry->d_name;
+//    if (strcmp(metricFile, ".") != 0 && strcmp(metricFile, "..") != 0) {
+//      char *metricFilePath = new char[1000];
+//      sprintf(metricFilePath, "%s%s", metricPath, metricFile);
+//      printf("Read metric file: %s\n", metricFilePath);
+//      std::ifstream metricFp(metricFilePath);
+//      std::string line;
+//      std::getline(metricFp, line);
+//      std::istringstream iss(line);
+//      int metricCount = 0;
+//      int *metric = new int[4];
+//      do {
+//        std::string numStr;
+//        iss >> numStr;
+//        if (!numStr.empty()) {
+//          metric[metricCount] = std::atoi(numStr.c_str());
+//          metricCount++;
+//        }
+//      } while (iss);
+//      if (metricCount != 4) {
+//        printf("%s has %d metrics!\n", metricFile, metricCount);
+//        exit(-1);
+//      }
+//      char *op = new char[1500];
+//      int opLen = strlen(metricFile) - 7;
+//      strncpy(op, metricFile, opLen);
+//      op[opLen] = '\0';
+//      updateMetrics(op, metric);
+//    }
+//    entry = readdir(dir);
+//  }
+//  closedir(dir);
 //  for (int i = 0; i < numOps; i++) {
 //    const char *op = ops[i];
 //    printf("Read metric file for %s\n", op);
@@ -1062,8 +1094,8 @@ int main(int argc, char **argv) {
       index++;
     }
   }
-  for (int i = 0; i < index; i++) {
-//  for (int i = index - 1; i >= 0; i--) {
+//  for (int i = 0; i < index; i++) {
+  for (int i = index - 1; i >= 0; i--) {
     Process *p = procArray[i];
     handleProcess(p);
   }
