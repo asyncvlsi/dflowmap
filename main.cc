@@ -44,10 +44,20 @@ unsigned getOpUses(const char *op);
 unsigned getCopyUses(const char *copyOp);
 
 const char *printExpr(Expr *expr, char *procName, char *calc, char *def,
-                      StringVec &argList, IntVec &argBWList, IntVec &resBWList,
+                      StringVec &argList, StringVec &oriArgList, IntVec &argBWList,
+                      IntVec &resBWList,
                       int &result_suffix, int result_bw, bool &constant);
 
 void collectExprUses(Expr *expr);
+
+int searchStringVec(StringVec &strVec, const char *str) {
+  auto it = std::find(strVec.begin(), strVec.end(), str);
+  if (it != strVec.end()) {
+    return (it - strVec.begin());
+  } else {
+    return -1;
+  }
+}
 
 const char *removeDot(const char *src) {
   int len = strlen(src);
@@ -209,7 +219,8 @@ void getCurProc(const char *str, char *val) {
 
 const char *
 EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-         char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+         char *procName, char *calc, char *def, StringVec &argList, StringVec
+         &oriArgList, IntVec &argBWList,
          IntVec &resBWList, int &result_suffix, int result_bw) {
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
@@ -271,7 +282,8 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
 
 const char *
 EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
-         char *procName, char *calc, char *def, StringVec &argList, IntVec &argBWList,
+         char *procName, char *calc, char *def, StringVec &argList, StringVec &oriArgList,
+         IntVec &argBWList,
          IntVec &resBWList, int &result_suffix, int result_bw) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
@@ -311,6 +323,7 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
 
 const char *
 printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
+          StringVec &oriArgList,
           IntVec &argBWList,
           IntVec &resBWList, int &result_suffix, int result_bw, bool &constant) {
   int type = expr->type;
@@ -327,16 +340,24 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     case E_VAR: {
       int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
-      const char *varName = actId->getName();
+      const char *oriVarName = actId->getName();
+
 
       char *curArg = new char[1000];
-      sprintf(curArg, "%s_%d", varName, numArgs);
+//      sprintf(curArg, "%s_%d", oriVarName, numArgs);
 //      strcpy(curArg, varName);
 //      strcat(curArg, strdup(std::to_string(numArgs).c_str()));
 
-      int argBW = getBitwidth(varName);
-      const char *varStr = getActIdName(actId);
-      argList.push_back(varStr);
+      const char *mappedVarName = getActIdName(actId);
+      int idx = searchStringVec(oriArgList, oriVarName);
+      if (idx == -1) {
+        oriArgList.push_back(oriVarName);
+        argList.push_back(mappedVarName);
+        sprintf(curArg, "%s_%d", oriVarName, numArgs);
+      } else {
+        sprintf(curArg, "%s_%d", oriVarName, idx);
+      }
+      int argBW = getBitwidth(oriVarName);
       argBWList.push_back(argBW);
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
