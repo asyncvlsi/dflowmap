@@ -41,7 +41,7 @@ std::map<const char *, unsigned> opUses;
 std::map<const char *, unsigned> copyUses;
 
 typedef std::string String;
-typedef std::vector<std::string> StringVec;
+typedef std::vector<String> StringVec;
 typedef std::vector<int> IntVec;
 
 //const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
