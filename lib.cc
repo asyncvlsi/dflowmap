@@ -35,7 +35,8 @@ bool hasProcess(const char *process) {
 }
 
 void createFULib(const char *procName, const char *calc, const char *def,
-                 const char *outSend, int numArgs, int numOuts, int numRes,
+                 const char *outSend, const char *initSend, int numArgs, int numOuts, int
+                 numRes,
                  const char *instance, int *metric) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
@@ -60,7 +61,11 @@ void createFULib(const char *procName, const char *calc, const char *def,
       fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + numOuts, i);
     }
     fprintf(libFp, "%s", def);
-    fprintf(libFp, "  chp {\n    *[");
+    fprintf(libFp, "  chp {\n");
+    if (initSend) {
+      fprintf(libFp, "%s", initSend);
+    }
+    fprintf(libFp, "    *[");
     for (i = 0; i < numArgs - 1; i++) {
       fprintf(libFp, "arg%d?x%d, ", i, i);
     }
