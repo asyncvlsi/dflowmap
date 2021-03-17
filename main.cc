@@ -43,6 +43,8 @@ unsigned getOpUses(const char *op);
 
 unsigned getCopyUses(const char *copyOp);
 
+void recordExprUses(Expr *expr, CharPtrVec &charPtrVec);
+
 const char *printExpr(Expr *expr, char *procName, char *calc, char *def,
                       StringVec &argList, StringVec &oriArgList, IntVec &argBWList,
                       IntVec &resBWList,
@@ -256,7 +258,7 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s %s %s,\n", result_suffix, lStr, op, rStr);
+  sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
 //  sprintf(curCal, "      res%d := %s %s %s,\n", result_suffix, lCalcStr, op, rCalcStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
@@ -326,7 +328,7 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s %s,\n", result_suffix, op, lCalcStr);
+  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lCalcStr);
   resBWList.push_back(result_bw);
   strcat(calc, curCal);
   if (DEBUG_VERBOSE) {
@@ -573,6 +575,12 @@ void updateOpUses(const char *op) {
   }
 }
 
+void recordOpUses(const char *op, CharPtrVec &charPtrVec) {
+  if (std::find(charPtrVec.begin(), charPtrVec.end(), op) == charPtrVec.end()) {
+    charPtrVec.push_back(op);
+  }
+}
+
 void printOpUses() {
   printf("OP USES:\n");
   for (auto &opUsesIt : opUses) {
@@ -602,6 +610,18 @@ void collectBinOpUses(Expr *expr) {
   collectExprUses(lExpr);
   Expr *rExpr = expr->u.e.r;
   collectExprUses(rExpr);
+}
+
+void recordUniOpUses(Expr *expr, CharPtrVec &charPtrVec) {
+  Expr *lExpr = expr->u.e.l;
+  recordExprUses(lExpr, charPtrVec);
+}
+
+void recordBinOpUses(Expr *expr, CharPtrVec &charPtrVec) {
+  Expr *lExpr = expr->u.e.l;
+  recordExprUses(lExpr, charPtrVec);
+  Expr *rExpr = expr->u.e.r;
+  recordExprUses(rExpr, charPtrVec);
 }
 
 void collectExprUses(Expr *expr) {
@@ -657,6 +677,110 @@ void collectExprUses(Expr *expr) {
   }
 }
 
+void recordExprUses(Expr *expr, CharPtrVec &charPtrVec) {
+  int type = expr->type;
+  switch (type) {
+    case E_AND:
+    case E_OR:
+    case E_PLUS:
+    case E_MINUS:
+    case E_MULT:
+    case E_DIV:
+    case E_MOD:
+    case E_LSL:
+    case E_LSR:
+    case E_ASR:
+    case E_XOR:
+    case E_LT:
+    case E_GT:
+    case E_LE:
+    case E_GE:
+    case E_EQ:
+    case E_NE: {
+      recordBinOpUses(expr, charPtrVec);
+      break;
+    }
+    case E_NOT:
+    case E_UMINUS:
+    case E_COMPLEMENT: {
+      recordUniOpUses(expr, charPtrVec);
+      break;
+    }
+    case E_INT: {
+      break;
+    }
+    case E_VAR: {
+      auto actId = (ActId *) expr->u.e.l;
+      recordOpUses(actId->getName(), charPtrVec);
+      break;
+    }
+    case E_BUILTIN_INT: {
+      Expr *lExpr = expr->u.e.l;
+      recordExprUses(lExpr, charPtrVec);
+      break;
+    }
+    case E_BUILTIN_BOOL: {
+      Expr *lExpr = expr->u.e.l;
+      recordExprUses(lExpr, charPtrVec);
+      break;
+    }
+    default: {
+      fatal_error("Unknown expression type %d\n", type);
+    }
+  }
+}
+
+void collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec) {
+  listitem_t *li;
+  for (li = list_first (dflow); li; li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    switch (d->t) {
+      case ACT_DFLOW_FUNC: {
+        Expr *expr = d->u.func.lhs;
+        recordExprUses(expr, charPtrVec);
+        break;
+      }
+      case ACT_DFLOW_SPLIT: {
+        ActId *input = d->u.splitmerge.single;
+        recordOpUses(input->getName(), charPtrVec);
+        ActId *guard = d->u.splitmerge.guard;
+        recordOpUses(guard->getName(), charPtrVec);
+        break;
+      }
+      case ACT_DFLOW_MERGE: {
+        ActId *guard = d->u.splitmerge.guard;
+        recordOpUses(guard->getName(), charPtrVec);
+        int numInputs = d->u.splitmerge.nmulti;
+        if (numInputs != 2) {
+          fatal_error("Merge does not have TWO outputs!\n");
+        }
+        ActId **inputs = d->u.splitmerge.multi;
+        ActId *lIn = inputs[0];
+        recordOpUses(lIn->getName(), charPtrVec);
+        ActId *rIn = inputs[1];
+        recordOpUses(rIn->getName(), charPtrVec);
+        break;
+      }
+      case ACT_DFLOW_MIXER: {
+        fatal_error("We don't support MIXER for now!\n");
+        break;
+      }
+      case ACT_DFLOW_ARBITER: {
+        fatal_error("We don't support ARBITER for now!\n");
+        break;
+      }
+      case ACT_DFLOW_CLUSTER: {
+        fatal_error("Do not support nested dflow_cluster!\n");
+        break;
+      }
+      default: {
+        fatal_error("Unknown dataflow type %d\n", d->t);
+        break;
+      }
+    }
+  }
+}
+
 void collectOpUses(Process *p) {
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
@@ -699,7 +823,11 @@ void collectOpUses(Process *p) {
         break;
       }
       case ACT_DFLOW_CLUSTER: {
-        //TODO
+        CharPtrVec charPtrVec;
+        collectDflowClusterUses(d->u.dflow_cluster, charPtrVec);
+        for (auto &charPtr : charPtrVec) {
+          updateOpUses(charPtr);
+        }
         break;
       }
       default: {
@@ -732,6 +860,7 @@ void createCopyProcs() {
 void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
                     IntVec &resBWList, IntVec &outWidthList, const char *def, char *calc,
                     int result_suffix, StringVec &outSendStr,
+                    IntVec &outResSuffixs,
                     StringVec &normalizedOutList, StringVec &outList, StringVec
                     &initStrs) {
   calc[strlen(calc) - 2] = ';';
@@ -809,7 +938,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
 //    strcat(instance, std::to_string(resBWList[i]).c_str());
 //    sprintf(instance, "%s%d,", instance, resBWList[i]);
   }
-  char* subInstance = new char[100];
+  char *subInstance = new char[100];
   sprintf(subInstance, "%d>", resBWList[i]);
   strcat(instance, subInstance);
 //  sprintf(instance, "%s%d>", instance, resBWList[i]);
@@ -838,19 +967,32 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     fatal_error("Invalid instance name %s\n", instance);
   }
 //  strncpy(opName, instance + 5, strlen(instance) - 5);
-  char *opName = instance+5;
+  char *opName = instance + 5;
   int *metric = getOpMetric(opName);
   char *outSend = new char[10240];
   sprintf(outSend, "      ");
   for (i = 0; i < numOuts - 1; i++) {
-    char * subSend = new char[1500];
+    char *subSend = new char[1500];
     sprintf(subSend, "%s, ", outSendStr[i].c_str());
     strcat(outSend, subSend);
 //    sprintf(outSend, "%s%s, ", outSend, outSendStr[i].c_str());
   }
-  char * subSend = new char[1500];
-  sprintf(subSend, "%s ", outSendStr[i].c_str());
+  char *subSend = new char[1500];
+  sprintf(subSend, "%s;\n", outSendStr[i].c_str());
   strcat(outSend, subSend);
+  char *log = new char[1500];
+  sprintf(log, "      log(\"send (\", ");
+  for (auto &outResSuffix : outResSuffixs) {
+    char *subLog = new char[100];
+    sprintf(subLog, "res%d, \",\", ", outResSuffix);
+    strcat(log, subLog);
+  }
+  char *subLog = new char[100];
+  sprintf(subLog, "\")\")");
+  strcat(log, subLog);
+  strcat(outSend, log);
+
+
 //  sprintf(outSend, "%s%s ", outSend, outSendStr[i].c_str());
 
   char *initSend = nullptr;
@@ -862,12 +1004,12 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     initSend = new char[10240];
     sprintf(initSend, "    ");
     for (i = 0; i < numInitStrs - 1; i++) {
-      char * subInitSend = new char[1500];
+      char *subInitSend = new char[1500];
       sprintf(subInitSend, "%s, ", initStrs[i].c_str());
       strcat(initSend, subInitSend);
 //      sprintf(initSend, "%s%s, ", initSend, initStrs[i].c_str());
     }
-    char * subInitSend = new char[1500];
+    char *subInitSend = new char[1500];
     sprintf(subInitSend, "%s;\n", initStrs[i].c_str());
     strcat(initSend, subInitSend);
 //    sprintf(initSend, "%s%s;\n", initSend, initStrs[i].c_str());
@@ -880,6 +1022,7 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
                      char *def, StringVec &argList, StringVec &oriArgList,
                      IntVec &argBWList,
                      IntVec &resBWList, int &result_suffix, StringVec &outSendStr,
+                     IntVec &outResSuffixs,
                      StringVec &outList, StringVec &normalizedOutList,
                      IntVec &outWidthList, StringVec &initStrs) {
   if (d->t != ACT_DFLOW_FUNC) {
@@ -946,7 +1089,7 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     if (initExpr) {
       int initVal = initExpr->u.v;
       char *subProcName = new char[1500];
-      sprintf(subProcName, "_init%d",initVal);
+      sprintf(subProcName, "_init%d", initVal);
       strcat(procName, subProcName);
 //      sprintf(procName, "%s_init%d", procName,
 //              initVal);  //TODO: collect metric for init
@@ -1006,6 +1149,7 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
     }
     outSendStr.push_back(outStr);
+    outResSuffixs.push_back(result_suffix);
   }
 }
 
@@ -1026,12 +1170,13 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       IntVec resBWList;
       int result_suffix = -1;
       StringVec outSendStr;
+      IntVec outResSuffixs;
       StringVec outList;
       StringVec normalizedOutList;
       IntVec outWidthList;
       StringVec initStrs;
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
-                      resBWList, result_suffix, outSendStr, outList,
+                      resBWList, result_suffix, outSendStr, outResSuffixs,outList,
                       normalizedOutList, outWidthList, initStrs);
       if (DEBUG_CLUSTER) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -1041,7 +1186,9 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       }
       if (strlen(procName)) {
         printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                       result_suffix, outSendStr, normalizedOutList, outList, initStrs);
+                       result_suffix, outSendStr, outResSuffixs,normalizedOutList,
+                       outList,
+                       initStrs);
       }
 //      free(procName);
 //      free(calc);
@@ -1169,6 +1316,7 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
   IntVec resBWList;
   int result_suffix = -1;
   StringVec outSendStr;
+  IntVec outResSuffixs;
   StringVec outList;
   StringVec normalizedOutList;
   IntVec outWidthList;
@@ -1177,7 +1325,7 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
-                      resBWList, result_suffix, outSendStr, outList,
+                      resBWList, result_suffix, outSendStr, outResSuffixs, outList,
                       normalizedOutList, outWidthList, initStrs);
     } else {
       dflow_print(stdout, d);
@@ -1192,7 +1340,8 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
   }
   if (strlen(procName)) {
     printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                   result_suffix, outSendStr, normalizedOutList, outList, initStrs);
+                   result_suffix, outSendStr, outResSuffixs,normalizedOutList, outList,
+                   initStrs);
   }
 }
 
