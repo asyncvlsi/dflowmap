@@ -724,9 +724,9 @@ void createCopyProcs() {
 void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
                     IntVec &resBWList, IntVec &outWidthList, const char *def, char *calc,
                     int result_suffix, StringVec &outSendStr,
-                    StringVec &normalizedOutList, StringVec &outList) {
+                    StringVec &normalizedOutList, StringVec &outList, StringVec
+                    &initStrs) {
   calc[strlen(calc) - 2] = ';';
-//  printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
   printf("PRINT DFLOW FUNCTION\n");
   printf("procName: %s\n", procName);
   printf("arg list:\n");
@@ -766,6 +766,11 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     printf("%s ", out.c_str());
   }
   printf("\n");
+  printf("initStrs:\n");
+  for (auto &initStr : initStrs) {
+    printf("%s ", initStr.c_str());
+  }
+  printf("\n");
 
 
   char *instance = new char[2000];
@@ -784,7 +789,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     sprintf(instance, "%s%d,", instance, resBWList[i]);
   }
   sprintf(instance, "%s%d>", instance, resBWList[i]);
-  printf("instance: %s", instance);
+  printf("instance: %s\n", instance);
 
   fprintf(resFp, "%s ", instance);
   for (auto &normalizedOut : normalizedOutList) {
@@ -812,16 +817,21 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     sprintf(outSend, "%s%s, ", outSend, outSendStr[i].c_str());
   }
   sprintf(outSend, "%s%s ", outSend, outSendStr[i].c_str());
+  char *initSend = nullptr;
 
-//  if (initExpr) {
-//    int initVal = initExpr->u.v;
-//    int calcLen = strlen(calc);
-//    calc[calcLen - 2] = '\0';
-//    createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
-//                    initVal, instance, metric);
-//  } else {
-  createFULib(procName, calc, def, outSend, numArgs, numOuts, numRes, instance, metric);
-//  }
+
+  int numInitStrs = initStrs.size();
+  printf("numInitStrs: %d\n", numInitStrs);
+  if (numInitStrs > 0) {
+    initSend = new char[10240];
+    sprintf(initSend, "    ");
+    for (i = 0; i < numInitStrs - 1; i++) {
+      sprintf(initSend, "%s%s, ", initSend, initStrs[i].c_str());
+    }
+    sprintf(initSend, "%s%s;\n", initSend, initStrs[i].c_str());
+  }
+  createFULib(procName, calc, def, outSend, initSend, numArgs, numOuts, numRes, instance,
+              metric);
 }
 
 void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *calc,
@@ -829,7 +839,7 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
                      IntVec &argBWList,
                      IntVec &resBWList, int &result_suffix, StringVec &outSendStr,
                      StringVec &outList, StringVec &normalizedOutList,
-                     IntVec &outWidthList) {
+                     IntVec &outWidthList, StringVec &initStrs) {
   if (d->t != ACT_DFLOW_FUNC) {
     dflow_print(stdout, d);
     printf("This is not dflow_func!\n");
@@ -891,11 +901,6 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       result_suffix++;
       sprintf(calc, "%s      res0 := x0;\n", calc);
     }
-    char *ase = new char[1500];
-    ase[0] = '\0';
-    if (initExpr) {
-      int initVal = initExpr->u.v;
-    }
     if (initExpr) {
       int initVal = initExpr->u.v;
       sprintf(procName, "%s_init%d", procName,
@@ -944,6 +949,13 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     outStr[0] = '\0';
     int numOuts = outList.size();
     sprintf(outStr, "out%d!res%d", (numOuts - 1), result_suffix);
+    char *ase = new char[1500];
+//    ase[0] = '\0';
+    if (initExpr) {
+      int initVal = initExpr->u.v;
+      sprintf(ase, "out%d!%d", (numOuts - 1), initVal);
+      initStrs.push_back(ase);
+    }
 //    sprintf(outStr, "%s_out!res%d", normalizedOut, result_suffix);
     printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
     outSendStr.push_back(outStr);
@@ -970,15 +982,17 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       StringVec outList;
       StringVec normalizedOutList;
       IntVec outWidthList;
+      StringVec initStrs;
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
                       resBWList, result_suffix, outSendStr, outList,
-                      normalizedOutList, outWidthList);
+                      normalizedOutList, outWidthList, initStrs);
+      printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
       printf("Process normal dflow:\n");
       dflow_print(stdout, d);
       printf("\n");
       if (strlen(procName)) {
         printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                       result_suffix, outSendStr, normalizedOutList, outList);
+                       result_suffix, outSendStr, normalizedOutList, outList, initStrs);
       }
       break;
     }
@@ -1107,23 +1121,25 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
   StringVec outList;
   StringVec normalizedOutList;
   IntVec outWidthList;
+  StringVec initStrs;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
                       resBWList, result_suffix, outSendStr, outList,
-                      normalizedOutList, outWidthList);
+                      normalizedOutList, outWidthList, initStrs);
     } else {
       dflow_print(stdout, d);
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
     }
   }
+  printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
   printf("Process cluster dflow:\n");
   dflow_print(stdout, dflow);
   printf("\n");
   if (strlen(procName)) {
     printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                   result_suffix, outSendStr, normalizedOutList, outList);
+                   result_suffix, outSendStr, normalizedOutList, outList, initStrs);
   }
 }
 
