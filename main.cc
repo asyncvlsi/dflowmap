@@ -228,10 +228,12 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
     sprintf(procName, "func");
   }
   bool lConst;
-  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList,
                                result_suffix, result_bw, lConst);
   bool rConst;
-  const char *rStr = printExpr(rExpr, procName, calc, def, argList, argBWList, resBWList,
+  const char *rStr = printExpr(rExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList,
                                result_suffix, result_bw, rConst);
   if (lConst && rConst) {
     print_expr(stdout, expr);
@@ -291,7 +293,8 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
     sprintf(procName, "func");
   }
   bool lConst;
-  const char *lStr = printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList,
                                result_suffix, result_bw, lConst);
   if (lConst) {
     print_expr(stdout, expr);
@@ -366,120 +369,140 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     }
     case E_AND: {
       return EMIT_BIN(expr, "and", "&", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_OR: {
       return EMIT_BIN(expr, "or", "|", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_NOT: {
       return EMIT_UNI(expr, "not", "~", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_PLUS: {
       return EMIT_BIN(expr, "add", "+", type, "add", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MINUS: {
       return EMIT_BIN(expr, "minus", "-", type, "add", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MULT: {
       return EMIT_BIN(expr, "mul", "*", type, "mul", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_DIV: {
       return EMIT_BIN(expr, "div", "/", type, "div", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_MOD: {
       return EMIT_BIN(expr, "mod", "%", type, "rem", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LSL: {
       return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LSR: {
       return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_ASR: {
       return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_UMINUS: {
       return EMIT_UNI(expr, "neg", "-", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_XOR: {
       return EMIT_BIN(expr, "xor", "^", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LT: {
       return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_GT: {
       return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_LE: {
       return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_GE: {
       return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_EQ: {
       return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_NE: {
       return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
     }
     case E_COMPLEMENT: {
       return EMIT_UNI(expr, "compl", "~", type, "and", procName, calc, def, argList,
+                      oriArgList,
                       argBWList,
                       resBWList,
                       result_suffix, result_bw);
@@ -493,13 +516,15 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
       } else {
         bw = 1;  //TODO: double check
       }
-      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+      return printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
+                       resBWList,
                        result_suffix, bw, constant);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       int bw = 1;
-      return printExpr(lExpr, procName, calc, def, argList, argBWList, resBWList,
+      return printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
+                       resBWList,
                        result_suffix, bw, constant);
       break;
     }
@@ -694,9 +719,9 @@ void createCopyProcs() {
 }
 
 void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
-                    IntVec &resBWList, int outWidth, const char *def, char *calc,
-                    int result_suffix,
-                    const char *normalizedOut, const char *out, Expr *initExpr) {
+                    IntVec &resBWList, IntVec &outWidthList, const char *def, char *calc,
+                    int result_suffix, StringVec &outSendStr,
+                    StringVec &normalizedOutList, StringVec &outList) {
   char *instance = new char[2000];
   sprintf(instance, "%s<", procName);
   int numArgs = argList.size();
@@ -704,7 +729,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   for (; i < numArgs; i++) {
     sprintf(instance, "%s%d,", instance, argBWList[i]);
   }
-  sprintf(instance, "%s%d,", instance, outWidth);
+//  sprintf(instance, "%s%d,", instance, outWidth);
   int numRes = resBWList.size();
   if (DEBUG_VERBOSE) {
     printf("numRes: %d\n", numRes);
@@ -719,30 +744,33 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   sprintf(instance, "%s%d>", instance, resBWList[i]);
   printf("instance: %s", instance);
 
-  fprintf(resFp, "%s %s_inst(", instance, normalizedOut);
+//  fprintf(resFp, "%s %s_inst(", instance, normalizedOut);
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
-  fprintf(resFp, "%s);\n", out);
+//  fprintf(resFp, "%s);\n", out);
   /* create chp library */
   char *opName = new char[1500];
   strncpy(opName, instance + 5, strlen(instance) - 5);
   int *metric = getOpMetric(opName);
-  if (initExpr) {
-    int initVal = initExpr->u.v;
-    int calcLen = strlen(calc);
-    calc[calcLen - 2] = '\0';
-    createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
-                    initVal, instance, metric);
-  } else {
-    createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
-                metric);
-  }
+//  if (initExpr) {
+//    int initVal = initExpr->u.v;
+//    int calcLen = strlen(calc);
+//    calc[calcLen - 2] = '\0';
+//    createFUInitLib(procName, calc, def, numArgs, result_suffix, numRes,
+//                    initVal, instance, metric);
+//  } else {
+  createFULib(procName, calc, def, numArgs, result_suffix, numRes, instance,
+              metric);
+//  }
 }
 
 void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *calc,
-                     char *def, StringVec &argList, IntVec &argBWList,
-                     IntVec &resBWList, int &result_suffix) {
+                     char *def, StringVec &argList, StringVec &oriArgList,
+                     IntVec &argBWList,
+                     IntVec &resBWList, int &result_suffix, StringVec &outSendStr,
+                     StringVec &outList, StringVec &normalizedOutList,
+                     IntVec &outWidthList) {
   if (d->t != ACT_DFLOW_FUNC) {
     dflow_print(stdout, d);
     printf("This is not dflow_func!\n");
@@ -781,22 +809,8 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       exit(-1);
     }
   } else {
-
-//    char *procName = new char[200];
-//    procName[0] = '\0';
-//    char *calc = new char[10240];
-//    calc[0] = '\0';
-//    sprintf(calc, "\n");
-//    char *def = new char[10240];
-//    def[0] = '\0';
-//    sprintf(def, "\n");
-//    StringVec argList;
-//    IntVec argBWList;
-//    IntVec resBWList;
-//    int result_suffix = -1;
-
     bool constant = false;
-    printExpr(expr, procName, calc, def, argList, argBWList, resBWList,
+    printExpr(expr, procName, calc, def, argList, oriArgList, argBWList, resBWList,
               result_suffix, outWidth, constant);
     if (constant) {
       print_expr(stdout, expr);
@@ -816,6 +830,11 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       result_suffix++;
       sprintf(calc, "%s      res0 := x0;\n", calc);
     }
+    char *ase = new char[1500];
+    ase[0]= '\0';
+    if (initExpr) {
+      int initVal = initExpr->u.v;
+    }
     if (initExpr) {
       int initVal = initExpr->u.v;
       sprintf(procName, "%s_init%d", procName,
@@ -829,6 +848,11 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     printf("arg list:\n");
     for (auto &arg : argList) {
       printf("%s ", arg.c_str());
+    }
+    printf("\n");
+    printf("oriArgList:\n");
+    for (auto &oriArg : oriArgList) {
+      printf("%s ", oriArg.c_str());
     }
     printf("\n");
     printf("arg bw list:\n");
@@ -850,15 +874,22 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     print_expr(stdout, initExpr);
     printf("\n");
 //    }
-    printDFlowFunc(procName, argList, argBWList, resBWList, outWidth, def, calc,
-                   result_suffix, normalizedOut, out, initExpr);
+//    char *out_signature = new char[10240];
+//    sprintf(out_signature, "%s_out", out);
+    outList.push_back(out);
+    normalizedOutList.push_back(normalizedOut);
+    outWidthList.push_back(outWidth);
+    char *outStr = new char[10240];
+    outStr[0] = '\0';
+    sprintf(outStr, "%s_out!res%d", normalizedOut, result_suffix);
+    printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
+    outSendStr.push_back(outStr);
   }
 }
 
 void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
-
       char *procName = new char[200];
       procName[0] = '\0';
       char *calc = new char[10240];
@@ -868,11 +899,19 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       def[0] = '\0';
       sprintf(def, "\n");
       StringVec argList;
+      StringVec oriArgList;
       IntVec argBWList;
       IntVec resBWList;
       int result_suffix = -1;
-      handleDFlowFunc(p, d, procName, calc, def, argList, argBWList, resBWList,
-                      result_suffix);
+      StringVec outSendStr;
+      StringVec outList;
+      StringVec normalizedOutList;
+      IntVec outWidthList;
+      handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
+                      resBWList, result_suffix, outSendStr, outList,
+                      normalizedOutList, outWidthList);
+      printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
+                     result_suffix, outSendStr, normalizedOutList, outList);
       break;
     }
     case ACT_DFLOW_SPLIT: {
@@ -992,19 +1031,49 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
   def[0] = '\0';
   sprintf(def, "\n");
   StringVec argList;
+  StringVec oriArgList;
   IntVec argBWList;
   IntVec resBWList;
   int result_suffix = -1;
+  StringVec outSendStr;
+  StringVec outList;
+  StringVec normalizedOutList;
+  IntVec outWidthList;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_FUNC) {
-      handleDFlowFunc(p, d, procName, calc, def, argList, argBWList, resBWList,
-                      result_suffix);
+      handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
+                      resBWList, result_suffix, outSendStr, outList,
+                      normalizedOutList, outWidthList);
     } else {
       dflow_print(stdout, d);
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
     }
   }
+  printf("\n\n\n\n\n\n\n\n");
+  printf("outList:\n");
+  for (auto &out : outList) {
+    printf("%s ", out.c_str());
+  }
+  printf("\n");
+  printf("normalizedOutList:\n");
+  for (auto &out : normalizedOutList) {
+    printf("%s ", out.c_str());
+  }
+  printf("\n");
+  printf("outWidthList:\n");
+  for (auto &out : outWidthList) {
+    printf("%d ", out);
+  }
+  printf("\n");
+  printf("outSendStr:\n");
+  for (auto &outStr : outSendStr) {
+    printf("%s\n", outStr.c_str());
+  }
+  printf("\n");
+  printf("\n");
+  printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
+                 result_suffix, outSendStr, normalizedOutList, outList);
 }
 
 void handleProcess(Process *p) {
