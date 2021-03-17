@@ -787,17 +787,26 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   int numArgs = argList.size();
   int i = 0;
   for (; i < numArgs; i++) {
-    strcat(instance, std::to_string(argBWList[i]).c_str());
+    char *subInstance = new char[100];
+    sprintf(subInstance, "%d,", argBWList[i]);
+    strcat(instance, subInstance);
+//    strcat(instance, std::to_string(argBWList[i]).c_str());
 //    sprintf(instance, "%s%d,", instance, argBWList[i]);
   }
   for (auto &outWidth : outWidthList) {
-    strcat(instance, std::to_string(outWidth).c_str());
+    char *subInstance = new char[100];
+    sprintf(subInstance, "%d,", outWidth);
+    strcat(instance, subInstance);
+//    strcat(instance, std::to_string(outWidth).c_str());
 //    sprintf(instance, "%s%d,", instance, outWidth);
   }
 //  sprintf(instance, "%s%d,", instance, outWidth);
   int numRes = resBWList.size();
   for (i = 0; i < numRes - 1; i++) {
-    strcat(instance, std::to_string(resBWList[i]).c_str());
+    char *subInstance = new char[100];
+    sprintf(subInstance, "%d,", resBWList[i]);
+    strcat(instance, subInstance);
+//    strcat(instance, std::to_string(resBWList[i]).c_str());
 //    sprintf(instance, "%s%d,", instance, resBWList[i]);
   }
   char* subInstance = new char[100];
