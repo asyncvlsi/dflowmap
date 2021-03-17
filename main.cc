@@ -726,7 +726,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
                     int result_suffix, StringVec &outSendStr,
                     StringVec &normalizedOutList, StringVec &outList) {
   calc[strlen(calc) - 2] = ';';
-  printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//  printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
   printf("PRINT DFLOW FUNCTION\n");
   printf("procName: %s\n", procName);
   printf("arg list:\n");
@@ -973,8 +973,13 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
                       resBWList, result_suffix, outSendStr, outList,
                       normalizedOutList, outWidthList);
-      printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                     result_suffix, outSendStr, normalizedOutList, outList);
+      printf("Process normal dflow:\n");
+      dflow_print(stdout, d);
+      printf("\n");
+      if (strlen(procName)) {
+        printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
+                       result_suffix, outSendStr, normalizedOutList, outList);
+      }
       break;
     }
     case ACT_DFLOW_SPLIT: {
@@ -1113,30 +1118,13 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
     }
   }
-  printf("\n\n\n\n\n\n\n\n");
-  printf("outList:\n");
-  for (auto &out : outList) {
-    printf("%s ", out.c_str());
+  printf("Process cluster dflow:\n");
+  dflow_print(stdout, dflow);
+  printf("\n");
+  if (strlen(procName)) {
+    printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
+                   result_suffix, outSendStr, normalizedOutList, outList);
   }
-  printf("\n");
-  printf("normalizedOutList:\n");
-  for (auto &out : normalizedOutList) {
-    printf("%s ", out.c_str());
-  }
-  printf("\n");
-  printf("outWidthList:\n");
-  for (auto &out : outWidthList) {
-    printf("%d ", out);
-  }
-  printf("\n");
-  printf("outSendStr:\n");
-  for (auto &outStr : outSendStr) {
-    printf("%s\n", outStr.c_str());
-  }
-  printf("\n");
-  printf("\n");
-  printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                 result_suffix, outSendStr, normalizedOutList, outList);
 }
 
 void handleProcess(Process *p) {
@@ -1165,7 +1153,7 @@ void handleProcess(Process *p) {
       dflow_print(stdout, dflow_cluster);
       handleDFlowCluster(p, dflow_cluster);
     } else {
-//      handleNormalDflowElement(p, d);
+      handleNormalDflowElement(p, d);
     }
   }
   if (mainProc) {
