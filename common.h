@@ -44,6 +44,7 @@ std::map<const char *, unsigned> copyUses;
 typedef std::string String;
 typedef std::vector<String> StringVec;
 typedef std::vector<int> IntVec;
+typedef std::vector<const char*> CharPtrVec;
 
 //const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
 //                           "rem", "sink", "source", "split"};
