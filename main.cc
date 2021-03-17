@@ -93,8 +93,13 @@ int *getOpMetric(const char *op) {
   if (DEBUG_VERBOSE) {
     printf("get op metric for %s\n", op);
   }
+  if (op == nullptr) {
+    fatal_error("op is NULL\n");
+  }
   char *normalizedOp = new char[1500];
-  sprintf(normalizedOp, "%s", op);
+  normalizedOp[0] = '\0';
+  strcat(normalizedOp, op);
+//  sprintf(normalizedOp, "%s", op);
 //  strcat(normalizedOp, op);
   normalizeName(normalizedOp, '<', '_');
   normalizeName(normalizedOp, '>', '_');
@@ -227,12 +232,12 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  bool lConst;
+  bool lConst = false;
   char *lCalcStr = new char[1500];
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
                                result_suffix, result_bw, lConst, lCalcStr);
-  bool rConst;
+  bool rConst = false;
   char *rCalcStr = new char[1500];
   const char *rStr = printExpr(rExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
@@ -261,7 +266,10 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   char *rVal = new char[100];
   getCurProc(rStr, rVal);
 
-  sprintf(procName, "%s_%s%s%s", procName, lVal, sym, rVal);
+  char *subProcName = new char[1500];
+  sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  strcat(procName, subProcName);
+//  sprintf(procName, "%s_%s%s%s", procName, lVal, sym, rVal);
   if (DEBUG_VERBOSE) {
     printf("binary expr: ");
     print_expr(stdout, expr);
@@ -779,17 +787,23 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   int numArgs = argList.size();
   int i = 0;
   for (; i < numArgs; i++) {
-    sprintf(instance, "%s%d,", instance, argBWList[i]);
+    strcat(instance, std::to_string(argBWList[i]).c_str());
+//    sprintf(instance, "%s%d,", instance, argBWList[i]);
   }
   for (auto &outWidth : outWidthList) {
-    sprintf(instance, "%s%d,", instance, outWidth);
+    strcat(instance, std::to_string(outWidth).c_str());
+//    sprintf(instance, "%s%d,", instance, outWidth);
   }
 //  sprintf(instance, "%s%d,", instance, outWidth);
   int numRes = resBWList.size();
   for (i = 0; i < numRes - 1; i++) {
-    sprintf(instance, "%s%d,", instance, resBWList[i]);
+    strcat(instance, std::to_string(resBWList[i]).c_str());
+//    sprintf(instance, "%s%d,", instance, resBWList[i]);
   }
-  sprintf(instance, "%s%d>", instance, resBWList[i]);
+  char* subInstance = new char[100];
+  sprintf(subInstance, "%d>", resBWList[i]);
+  strcat(instance, subInstance);
+//  sprintf(instance, "%s%d>", instance, resBWList[i]);
   printf("instance: %s\n", instance);
 
   fprintf(resFp, "%s ", instance);
@@ -809,18 +823,28 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   }
   fprintf(resFp, "%s);\n", outList[i].c_str());
   /* create chp library */
-  char *opName = new char[1500];
-  strncpy(opName, instance + 5, strlen(instance) - 5);
+//  char *opName = new char[1500];
+//  opName[0] = '\0';
+  if (strlen(instance) < 5) {
+    fatal_error("Invalid instance name %s\n", instance);
+  }
+//  strncpy(opName, instance + 5, strlen(instance) - 5);
+  char *opName = instance+5;
   int *metric = getOpMetric(opName);
   char *outSend = new char[10240];
   sprintf(outSend, "      ");
   for (i = 0; i < numOuts - 1; i++) {
-    sprintf(outSend, "%s%s, ", outSend, outSendStr[i].c_str());
+    char * subSend = new char[1500];
+    sprintf(subSend, "%s, ", outSendStr[i].c_str());
+    strcat(outSend, subSend);
+//    sprintf(outSend, "%s%s, ", outSend, outSendStr[i].c_str());
   }
-  sprintf(outSend, "%s%s ", outSend, outSendStr[i].c_str());
+  char * subSend = new char[1500];
+  sprintf(subSend, "%s ", outSendStr[i].c_str());
+  strcat(outSend, subSend);
+//  sprintf(outSend, "%s%s ", outSend, outSendStr[i].c_str());
+
   char *initSend = nullptr;
-
-
   int numInitStrs = initStrs.size();
   if (DEBUG_CLUSTER) {
     printf("numInitStrs: %d\n", numInitStrs);
@@ -829,9 +853,15 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     initSend = new char[10240];
     sprintf(initSend, "    ");
     for (i = 0; i < numInitStrs - 1; i++) {
-      sprintf(initSend, "%s%s, ", initSend, initStrs[i].c_str());
+      char * subInitSend = new char[1500];
+      sprintf(subInitSend, "%s, ", initStrs[i].c_str());
+      strcat(initSend, subInitSend);
+//      sprintf(initSend, "%s%s, ", initSend, initStrs[i].c_str());
     }
-    sprintf(initSend, "%s%s;\n", initSend, initStrs[i].c_str());
+    char * subInitSend = new char[1500];
+    sprintf(subInitSend, "%s;\n", initStrs[i].c_str());
+    strcat(initSend, subInitSend);
+//    sprintf(initSend, "%s%s;\n", initSend, initStrs[i].c_str());
   }
   createFULib(procName, calc, def, outSend, initSend, numArgs, numOuts, numRes, instance,
               metric);
@@ -906,8 +936,11 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     }
     if (initExpr) {
       int initVal = initExpr->u.v;
-      sprintf(procName, "%s_init%d", procName,
-              initVal);  //TODO: collect metric for init
+      char *subProcName = new char[1500];
+      sprintf(subProcName, "_init%d",initVal);
+      strcat(procName, subProcName);
+//      sprintf(procName, "%s_init%d", procName,
+//              initVal);  //TODO: collect metric for init
     }
     if (DEBUG_CLUSTER) {
       printf("___________________________________\nFor dataflow element: ");
@@ -1001,6 +1034,8 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
         printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
                        result_suffix, outSendStr, normalizedOutList, outList, initStrs);
       }
+//      free(procName);
+//      free(calc);
       break;
     }
     case ACT_DFLOW_SPLIT: {
