@@ -27,6 +27,7 @@
 #include <vector>
 
 #define DEBUG_VERBOSE false
+#define DEBUG_CLUSTER false
 #define numOps 13
 #define numBWs 5
 

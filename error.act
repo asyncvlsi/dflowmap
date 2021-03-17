@@ -1,0 +1,143 @@
+defproc calc (chan(int<32>)? calc_in_0; chan(int<32>)? calc_in_1; chan(int<32>)! calc_out);
+defproc main (chan(int<32>)! main_out);
+
+defproc calc (chan(int<32>)? calc_in_0; chan(int<32>)? calc_in_1; chan(int<32>)! calc_out)
+{
+
+/* instances */
+chan(int<32>) Merge_calc_I15_;
+chan(int<1>) calc_init5;
+chan(int<32>) sig_Merge_calc_I4__Merge_loopMS_calc_0_R;
+chan(int<32>) calc_I10_;
+chan(int<32>) calc_I16_;
+chan(int<1>) calc_init3;
+chan(int<32>) sig_calc_I11__calc_I12__L;
+chan(int<32>) Merge_loopMS_calc_3;
+chan(int<32>) Merge_loopMS_calc_2;
+chan(int<32>) sig_calc_in_0_calc_I0__R;
+chan(int<1>) Merge_loopMS_calc_0;
+chan(int<32>) sig_Merge_loopMS_calc_2_calc_I17__L;
+chan(int<1>) calc_I0_;
+chan(int<32>) sig_Merge_loopMS_calc_2_calc_I17__R;
+chan(int<1>) sig_Merge_loopMS_calc_0_calc_I17__R;
+chan(int<1>) calc_init7;
+chan(int<1>) calc_init2;
+chan(int<32>) sig_calc_I16__calc_I17__R;
+chan(int<32>) const_calc_0_4_;
+chan(int<32>) sig_calc_I10__calc_I12__L;
+chan(int<1>) calc_init4;
+chan(int<1>) calc_init1;
+chan(int<32>) sig_calc_I16__calc_I17__L;
+chan(int<32>) calc_I11_;
+chan(int<32>) sig_calc_I10__calc_I12__R;
+chan(int<32>) sig_Merge_loopMS_calc_3_calc_I12__L;
+chan(int<1>) calc_init6;
+chan(int<1>) calc_init0;
+chan(int<32>) sig_calc_in_1_calc_I0__L;
+chan(int<32>) sig_calc_in_1_calc_I0__R;
+chan(int<32>) sig_calc_in_0_calc_I0__L;
+chan(int<1>) calc_I2_;
+chan(int<1>) calc_I17_;
+chan(int<32>) const_calc_0_2_;
+chan(int<32>) const_calc_0_3_;
+chan(int<32>) sig_Merge_loopMS_calc_3_calc_I12__R;
+chan(int<32>) Merge_calc_I4_;
+chan(int<32>) Merge_loopMS_calc_1;
+chan(int<32>) sig_Merge_calc_I15__calc_I17__R;
+chan(int<32>) Merge_calc_I8_;
+chan(int<1>) sig_Merge_loopMS_calc_0_calc_I17__L;
+chan(int<32>) Merge_calc_I9_;
+chan(int<32>) sig_Merge_loopMS_calc_1_calc_I17__L;
+chan(int<32>) const_calc_0_5_;
+chan(int<32>) sig_Merge_loopMS_calc_2_Merge_loopMS_calc_0_L;
+chan(int<32>) sig_Merge_loopMS_calc_1_calc_I17__R;
+chan(int<32>) sig_Merge_calc_I15__calc_I17__L;
+chan(int<32>) sig_Merge_calc_I4__Merge_loopMS_calc_0_L;
+chan(int<32>) sig_Merge_loopMS_calc_2_Merge_loopMS_calc_0_R;
+chan(int<1>) calc_I12_;
+chan(int<32>) sig_calc_I11__calc_I12__R;
+chan(int<32>) Merge_calc_I5_;
+
+/* connections */
+dataflow {
+{calc_init5} sig_Merge_loopMS_calc_2_Merge_loopMS_calc_0_R, sig_Merge_loopMS_calc_3_calc_I12__R -> Merge_loopMS_calc_3;
+{calc_init6} const_calc_0_4_, sig_calc_I11__calc_I12__R -> Merge_calc_I8_;
+{calc_init7} sig_Merge_calc_I4__Merge_loopMS_calc_0_R, sig_calc_I10__calc_I12__R -> Merge_calc_I9_;
+{calc_I0_} const_calc_0_5_, sig_Merge_calc_I15__calc_I17__L -> calc_out;
+{calc_init2} calc_I2_, sig_Merge_loopMS_calc_0_calc_I17__R -> Merge_loopMS_calc_0;
+{calc_init1} sig_calc_in_0_calc_I0__R, sig_Merge_loopMS_calc_1_calc_I17__R -> Merge_loopMS_calc_1;
+{calc_init0} sig_calc_in_1_calc_I0__R, sig_Merge_loopMS_calc_2_calc_I17__R -> Merge_loopMS_calc_2;
+{calc_init3} const_calc_0_2_, sig_Merge_calc_I15__calc_I17__R -> Merge_calc_I4_;
+{calc_init4} const_calc_0_3_, sig_calc_I16__calc_I17__R -> Merge_calc_I5_;
+{Merge_loopMS_calc_0} sig_Merge_calc_I4__Merge_loopMS_calc_0_L, sig_calc_I10__calc_I12__L -> Merge_calc_I15_;
+{calc_I17_} Merge_calc_I15_ -> sig_Merge_calc_I15__calc_I17__L, sig_Merge_calc_I15__calc_I17__R;
+{calc_I0_} calc_in_0 -> *, sig_calc_in_0_calc_I0__R;
+{calc_I0_} calc_in_1 -> *, sig_calc_in_1_calc_I0__R;
+{calc_I17_} calc_I16_ -> *, sig_calc_I16__calc_I17__R;
+{Merge_loopMS_calc_0} Merge_loopMS_calc_2 -> *, sig_Merge_loopMS_calc_2_Merge_loopMS_calc_0_R;
+{Merge_loopMS_calc_0} Merge_calc_I4_ -> sig_Merge_calc_I4__Merge_loopMS_calc_0_L, sig_Merge_calc_I4__Merge_loopMS_calc_0_R;
+{calc_I12_} calc_I10_ -> sig_calc_I10__calc_I12__L, sig_calc_I10__calc_I12__R;
+{calc_I12_} calc_I11_ -> *, sig_calc_I11__calc_I12__R;
+{calc_I12_} Merge_loopMS_calc_3 -> *, sig_Merge_loopMS_calc_3_calc_I12__R;
+{calc_I17_} Merge_loopMS_calc_0 -> *, sig_Merge_loopMS_calc_0_calc_I17__R;
+{calc_I17_} Merge_loopMS_calc_1 -> *, sig_Merge_loopMS_calc_1_calc_I17__R;
+{calc_I17_} Merge_loopMS_calc_2 -> *, sig_Merge_loopMS_calc_2_calc_I17__R;
+dataflow_cluster {
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> [1,0] calc_init0;
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> [1,0] calc_init1;
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> [1,0] calc_init2;
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> [1,0] calc_init3;
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> [1,0] calc_init4;
+int(int(Merge_calc_I5_+int(1,32),32)<Merge_loopMS_calc_1) -> calc_I17_;
+Merge_calc_I5_+int(1,32) -> calc_I16_
+}
+;
+dataflow_cluster {
+int(int(Merge_calc_I8_+int(1,32),32)<Merge_loopMS_calc_3) -> [1,0] calc_init5;
+int(int(Merge_calc_I8_+int(1,32),32)<Merge_loopMS_calc_3) -> [1,0] calc_init6;
+int(int(Merge_calc_I8_+int(1,32),32)<Merge_loopMS_calc_3) -> [1,0] calc_init7;
+int(int(Merge_calc_I8_+int(1,32),32)<Merge_loopMS_calc_3) -> calc_I12_;
+Merge_calc_I8_+int(1,32) -> calc_I11_
+}
+;
+Merge_calc_I9_+int(1,32) -> calc_I10_;
+int(sig_calc_in_1_calc_I0__R>int(0,32)) -> calc_I2_;
+0 -> const_calc_0_5_;
+0 -> const_calc_0_4_;
+int(calc_in_0>int(0,32)) -> calc_I0_;
+0 -> const_calc_0_2_;
+0 -> const_calc_0_3_
+}
+}
+
+defproc main (chan(int<32>)! main_out)
+{
+
+/* instances */
+calc calc_inst;
+chan(int<32>) main_I1_;
+chan(int<32>) maincalc_out;
+chan(int<32>) maincalc_in_1;
+chan(int<32>) maincalc_in_0;
+chan(int<32>) main_I2_;
+chan(int<32>) main_I0_;
+
+/* connections */
+calc_inst.calc_in_0=maincalc_in_0;
+calc_inst.calc_in_1=maincalc_in_1;
+calc_inst.calc_out=maincalc_out;
+dataflow {
+10 -> main_I0_;
+2 -> main_I1_;
+maincalc_out -> main_I2_;
+main_I2_ -> main_out;
+main_I0_ -> maincalc_in_0;
+main_I1_ -> maincalc_in_1
+}
+}
+
+
+/* instances */
+main m;
+
+/* connections */
