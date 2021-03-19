@@ -101,19 +101,13 @@ int *getOpMetric(const char *op) {
   char *normalizedOp = new char[1500];
   normalizedOp[0] = '\0';
   strcat(normalizedOp, op);
-//  sprintf(normalizedOp, "%s", op);
-//  strcat(normalizedOp, op);
   normalizeName(normalizedOp, '<', '_');
   normalizeName(normalizedOp, '>', '_');
   normalizeName(normalizedOp, ',', '_');
-//  sprintf(normalizedOp, "%s", normalizedOp);
-//  normalizedOp[strlen(normalizedOp)] = '\0';
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, normalizedOp)) {
       return opMetricsIt.second;
     }
-//    printf("Compare: %s, %s %d %d\n", normalizedOp, opMetricsIt.first,
-//           strlen(normalizedOp), strlen(opMetricsIt.first));
   }
   printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
          "We could not find metric info for %s\n", normalizedOp);
@@ -208,19 +202,13 @@ int getBitwidth(const char *varName) {
 
 void getCurProc(const char *str, char *val) {
   char curProc[100];
-//  curProc[0]='\0';
   if (strstr(str, "res")) {
-//    strncpy(curProc, str + 3, strlen(str) - 3);
     sprintf(curProc, "r%s", str + 3);
   } else if (strstr(str, "x")) {
     sprintf(curProc, "%s", str + 1);
-//    printf("111: %s\n", str);
-//    strncpy(curProc, str + 1, strlen(str) - 1);
-//    printf("222: %s, %d\n", curProc, strlen(str));
   } else {
     sprintf(curProc, "c%s", str);
   }
-//  curProc[strlen(curProc)] = '\0';
   strcpy(val, curProc);
 }
 
@@ -259,7 +247,6 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-//  sprintf(curCal, "      res%d := %s %s %s,\n", result_suffix, lCalcStr, op, rCalcStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
 
@@ -271,7 +258,6 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
-//  sprintf(procName, "%s_%s%s%s", procName, lVal, sym, rVal);
   if (DEBUG_VERBOSE) {
     printf("binary expr: ");
     print_expr(stdout, expr);
@@ -319,11 +305,6 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
   char *val = new char[100];
   getCurProc(lStr, val);
   sprintf(procName, "%s_%s%s", procName, sym, val);
-//  if (lConst) {
-//    sprintf(procName, "%s_%s%s", procName, sym, lStr);
-//  } else {
-//    sprintf(procName, "%s_%s", procName, sym);
-//  }
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
@@ -557,8 +538,7 @@ unsigned getCopyUses(const char *op) {
   auto copyUsesIt = copyUses.find(op);
   if (copyUsesIt == copyUses.end()) {
     printf("We don't know how many times %s is used as COPY!\n", op);
-    return 0;
-//    exit(-1);
+    exit(-1);
   }
   unsigned uses = copyUsesIt->second;
   copyUsesIt->second++;
@@ -593,9 +573,8 @@ unsigned getOpUses(const char *op) {
   auto opUsesIt = opUses.find(op);
   if (opUsesIt == opUses.end()) {
     printf("We don't know how many times %s is used!\n", op);
-//    printOpUses();
-    return 0;
-//    exit(-1);
+    printOpUses();
+    exit(-1);
   }
   return opUsesIt->second;
 }
@@ -919,29 +898,21 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     char *subInstance = new char[100];
     sprintf(subInstance, "%d,", argBWList[i]);
     strcat(instance, subInstance);
-//    strcat(instance, std::to_string(argBWList[i]).c_str());
-//    sprintf(instance, "%s%d,", instance, argBWList[i]);
   }
   for (auto &outWidth : outWidthList) {
     char *subInstance = new char[100];
     sprintf(subInstance, "%d,", outWidth);
     strcat(instance, subInstance);
-//    strcat(instance, std::to_string(outWidth).c_str());
-//    sprintf(instance, "%s%d,", instance, outWidth);
   }
-//  sprintf(instance, "%s%d,", instance, outWidth);
   int numRes = resBWList.size();
   for (i = 0; i < numRes - 1; i++) {
     char *subInstance = new char[100];
     sprintf(subInstance, "%d,", resBWList[i]);
     strcat(instance, subInstance);
-//    strcat(instance, std::to_string(resBWList[i]).c_str());
-//    sprintf(instance, "%s%d,", instance, resBWList[i]);
   }
   char *subInstance = new char[100];
   sprintf(subInstance, "%d>", resBWList[i]);
   strcat(instance, subInstance);
-//  sprintf(instance, "%s%d>", instance, resBWList[i]);
   printf("instance: %s\n", instance);
 
   fprintf(resFp, "%s ", instance);
@@ -961,12 +932,9 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   }
   fprintf(resFp, "%s);\n", outList[i].c_str());
   /* create chp library */
-//  char *opName = new char[1500];
-//  opName[0] = '\0';
   if (strlen(instance) < 5) {
     fatal_error("Invalid instance name %s\n", instance);
   }
-//  strncpy(opName, instance + 5, strlen(instance) - 5);
   char *opName = instance + 5;
   int *metric = getOpMetric(opName);
   char *outSend = new char[10240];
@@ -975,7 +943,6 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     char *subSend = new char[1500];
     sprintf(subSend, "%s, ", outSendStr[i].c_str());
     strcat(outSend, subSend);
-//    sprintf(outSend, "%s%s, ", outSend, outSendStr[i].c_str());
   }
   char *subSend = new char[1500];
   sprintf(subSend, "%s;\n", outSendStr[i].c_str());
@@ -991,10 +958,6 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-
-
-//  sprintf(outSend, "%s%s ", outSend, outSendStr[i].c_str());
-
   char *initSend = nullptr;
   int numInitStrs = initStrs.size();
   if (DEBUG_CLUSTER) {
@@ -1007,12 +970,10 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
       char *subInitSend = new char[1500];
       sprintf(subInitSend, "%s, ", initStrs[i].c_str());
       strcat(initSend, subInitSend);
-//      sprintf(initSend, "%s%s, ", initSend, initStrs[i].c_str());
     }
     char *subInitSend = new char[1500];
     sprintf(subInitSend, "%s;\n", initStrs[i].c_str());
     strcat(initSend, subInitSend);
-//    sprintf(initSend, "%s%s;\n", initSend, initStrs[i].c_str());
   }
   createFULib(procName, calc, def, outSend, initSend, numArgs, numOuts, numRes, instance,
               metric);
@@ -1091,8 +1052,6 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       char *subProcName = new char[1500];
       sprintf(subProcName, "_init%d", initVal);
       strcat(procName, subProcName);
-//      sprintf(procName, "%s_init%d", procName,
-//              initVal);  //TODO: collect metric for init
     }
     if (DEBUG_CLUSTER) {
       printf("___________________________________\nFor dataflow element: ");
@@ -1128,8 +1087,6 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
       print_expr(stdout, initExpr);
       printf("\n");
     }
-//    char *out_signature = new char[10240];
-//    sprintf(out_signature, "%s_out", out);
     outList.push_back(out);
     normalizedOutList.push_back(normalizedOut);
     outWidthList.push_back(outWidth);
@@ -1138,13 +1095,11 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
     int numOuts = outList.size();
     sprintf(outStr, "out%d!res%d", (numOuts - 1), result_suffix);
     char *ase = new char[1500];
-//    ase[0] = '\0';
     if (initExpr) {
       int initVal = initExpr->u.v;
       sprintf(ase, "out%d!%d", (numOuts - 1), initVal);
       initStrs.push_back(ase);
     }
-//    sprintf(outStr, "%s_out!res%d", normalizedOut, result_suffix);
     if (DEBUG_CLUSTER) {
       printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
     }
@@ -1176,7 +1131,7 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       IntVec outWidthList;
       StringVec initStrs;
       handleDFlowFunc(p, d, procName, calc, def, argList, oriArgList, argBWList,
-                      resBWList, result_suffix, outSendStr, outResSuffixs,outList,
+                      resBWList, result_suffix, outSendStr, outResSuffixs, outList,
                       normalizedOutList, outWidthList, initStrs);
       if (DEBUG_CLUSTER) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -1186,12 +1141,10 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       }
       if (strlen(procName)) {
         printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                       result_suffix, outSendStr, outResSuffixs,normalizedOutList,
+                       result_suffix, outSendStr, outResSuffixs, normalizedOutList,
                        outList,
                        initStrs);
       }
-//      free(procName);
-//      free(calc);
       break;
     }
     case ACT_DFLOW_SPLIT: {
@@ -1340,7 +1293,7 @@ void handleDFlowCluster(Process *p, list_t *dflow) {
   }
   if (strlen(procName)) {
     printDFlowFunc(procName, argList, argBWList, resBWList, outWidthList, def, calc,
-                   result_suffix, outSendStr, outResSuffixs,normalizedOutList, outList,
+                   result_suffix, outSendStr, outResSuffixs, normalizedOutList, outList,
                    initStrs);
   }
 }
@@ -1397,9 +1350,10 @@ void updateMetrics(const char *op, int *metric) {
   if (DEBUG_VERBOSE) {
     printf("Update metrics for %s\n", op);
   }
-  auto opMetricsIt = opMetrics.find(op);
-  if (opMetricsIt != opMetrics.end()) {
-    fatal_error("We already have metric info for %s", op);
+  for (auto &opMetricsIt : opMetrics) {
+    if (!strcmp(opMetricsIt.first, op)) {
+      fatal_error("We already have metric info for %s", op);
+    }
   }
   opMetrics.insert(std::make_pair(op, metric));
 }
@@ -1450,13 +1404,14 @@ int main(int argc, char **argv) {
   while (std::getline(metricFp, line)) {
     std::istringstream iss(line);
     char *instance = new char[2000];
-//    instance[0] = '\0';
     int metricCount = -1;
     int *metric = new int[4];
+    bool emptyLine = true;
     do {
       std::string numStr;
       iss >> numStr;
       if (!numStr.empty()) {
+        emptyLine = false;
         if (metricCount >= 0) {
           metric[metricCount] = std::atoi(numStr.c_str());
         } else {
@@ -1465,7 +1420,7 @@ int main(int argc, char **argv) {
         metricCount++;
       }
     } while (iss);
-    if (metricCount != 4) {
+    if (!emptyLine && (metricCount != 4)) {
       printf("%s has %d metrics!\n", metricFilePath, metricCount);
       exit(-1);
     }
@@ -1474,87 +1429,6 @@ int main(int argc, char **argv) {
     }
     updateMetrics(instance, metric);
   }
-//  const char *metricPath = "metrics/";
-//  DIR *dir = opendir(metricPath);
-//  if (!dir) {
-//    fatal_error("Could not find metric path %s\n", metricPath);
-//  }
-//  struct dirent *entry;
-//  entry = readdir(dir);
-//  while (entry) {
-//    char *metricFile = entry->d_name;
-//    if (strcmp(metricFile, ".") != 0 && strcmp(metricFile, "..") != 0) {
-//      char *metricFilePath = new char[1000];
-//      sprintf(metricFilePath, "%s%s", metricPath, metricFile);
-//      printf("Read metric file: %s\n", metricFilePath);
-//      std::ifstream metricFp(metricFilePath);
-//      std::string line;
-//      std::getline(metricFp, line);
-//      std::istringstream iss(line);
-//      int metricCount = 0;
-//      int *metric = new int[4];
-//      do {
-//        std::string numStr;
-//        iss >> numStr;
-//        if (!numStr.empty()) {
-//          metric[metricCount] = std::atoi(numStr.c_str());
-//          metricCount++;
-//        }
-//      } while (iss);
-//      if (metricCount != 4) {
-//        printf("%s has %d metrics!\n", metricFile, metricCount);
-//        exit(-1);
-//      }
-//      char *op = new char[1500];
-//      int opLen = strlen(metricFile) - 7;
-//      strncpy(op, metricFile, opLen);
-//      op[opLen] = '\0';
-//      updateMetrics(op, metric);
-//    }
-//    entry = readdir(dir);
-//  }
-//  closedir(dir);
-//  for (int i = 0; i < numOps; i++) {
-//    const char *op = ops[i];
-//    printf("Read metric file for %s\n", op);
-//    char *metricFile = new char[strlen(op) + 16];
-//    strcpy(metricFile, "metrics/");
-//    strcat(metricFile, op);
-//    strcat(metricFile, ".metric");
-//    std::ifstream metricFp(metricFile);
-//    std::string line;
-//    int bwCount = 0;
-//    int **metric = new int *[numBWs];
-//
-//    while (std::getline(metricFp, line)) {
-//      std::istringstream iss(line);
-//      int metricCount = 0;
-//      metric[bwCount] = new int[4];
-//      do {
-//        std::string numStr;
-//        iss >> numStr;
-//        if (!numStr.empty()) {
-//          metric[bwCount][metricCount] = std::atoi(numStr.c_str());
-//          metricCount++;
-//        }
-//      } while (iss);
-//      if (metricCount != 4) {
-//        printf("%s has %d metrics for the %d-th bitwidth info!\n", metricFile, metricCount,
-//               bwCount);
-//        exit(-1);
-//      }
-//      bwCount++;
-//    }
-//    if (bwCount != numBWs) {
-//      printf("%s has %d bitwidth info!\n", metricFile, bwCount);
-//      exit(-1);
-//    }
-//    opMetrics.insert(std::make_pair(op, metric));
-//  }
-
-
-
-
   ActTypeiter it(a->Global());
   initialize();
   Process *procArray[MAX_PROCESSES];

@@ -76,12 +76,14 @@ void createFULib(const char *procName, const char *calc, const char *def,
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin out\n");
     if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
+      for (int i = 0; i < numOuts; i++) {
+        fprintf(confFp, "  begin out%d\n", i);
+        fprintf(confFp, "    int D %d\n", metric[2]);
+        fprintf(confFp, "    int E %d\n", (metric[1] / numOuts));
+        fprintf(confFp, "  end\n");
+      }
     }
-    fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
       fprintf(confFp, "    int area %d\n", metric[3]);
