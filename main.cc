@@ -52,6 +52,72 @@ const char *printExpr(Expr *expr, char *procName, char *calc, char *def,
 
 void collectExprUses(Expr *expr);
 
+template<typename A, typename B>
+std::pair<B, A> flip_pair(const std::pair<A, B> &p) {
+  return std::pair<B, A>(p.second, p.first);
+}
+
+template<typename A, typename B>
+std::multimap<B, A> flip_map(const std::map<A, B> &src) {
+  std::multimap<B, A> dst;
+  std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()),
+                 flip_pair<A, B>);
+  return dst;
+}
+
+void updateCopyStatistics(int bitwidth, int numOutputs) {
+  auto copyStatisticsIt = copyStatistics.find(bitwidth);
+  if (copyStatisticsIt != copyStatistics.end()) {
+    Map<int, int> &record = copyStatisticsIt->second;
+    auto recordIt = record.find(numOutputs);
+    if (recordIt != record.end()) {
+      recordIt->second++;
+    } else {
+      record.insert(GenPair(numOutputs, 1));
+    }
+  } else {
+    Map<int, int> record = {{numOutputs, 1}};
+    copyStatistics.insert(GenPair(bitwidth, record));
+  }
+}
+
+void printCopyStatistics() {
+  printf("COPY STATISTICS:\n");
+  for (auto &copyStatisticsIt : copyStatistics) {
+    printf("%d-bit COPY:\n", copyStatisticsIt.first);
+    Map<int, int> &record = copyStatisticsIt.second;
+    for (auto &recordIt : record) {
+      printf("  %d outputs: %d\n", recordIt.first, recordIt.second);
+    }
+  }
+  printf("\n");
+}
+
+void updateAreaStatistics(const char *instance, int area) {
+  totalArea += area;
+  for (auto &areaStatisticsIt : areaStatistics) {
+    if (!strcmp(areaStatisticsIt.first, instance)) {
+      areaStatisticsIt.second += area;
+      return;
+    }
+  }
+  areaStatistics.insert(GenPair(instance, area));
+}
+
+void printAreaStatistics() {
+  printf("Area Statistics:\n");
+  std::multimap<int, const char*> sortedAreas = flip_map(areaStatistics);
+  std::multimap<int, const char*>::iterator sortedAreasIt;
+  for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); ++iter) {
+    int area = iter->first;
+    double ratio = (double) area / totalArea * 100;
+//    if (ratio > 1) {
+      printf("%40.30s %5d %5.1f\%\n", iter->second, area, ratio);
+//    }
+  }
+  printf("\n");
+}
+
 int searchStringVec(StringVec &strVec, const char *str) {
   auto it = std::find(strVec.begin(), strVec.end(), str);
   if (it != strVec.end()) {
@@ -151,6 +217,7 @@ void printSink(const char *name, int bitwidth) {
   sprintf(instance, "sink<%d>", bitwidth);
   int *metric = getOpMetric(instance);
   createSink(instance, metric);
+  updateAreaStatistics(instance, metric[3]);
 }
 
 void printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
@@ -161,6 +228,7 @@ void printInt(const char *out, const char *normalizedOut, unsigned val, int outW
   sprintf(opName, "source%d", outWidth);
   int *metric = getOpMetric(opName);
   createSource(instance, metric);
+  updateAreaStatistics(instance, metric[3]);
 }
 
 void collectBitwidthInfo(Process *p) {
@@ -824,13 +892,14 @@ void createCopyProcs() {
     if (uses) {
       int N = uses + 1;
       const char *opName = opUsesIt.first;
-      printf("handle op %s\n", opName);
       int bitwidth = getBitwidth(opName);
+      fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
       char *instance = new char[1500];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
       int *metric = getOpMetric(instance);
       createCopy(instance, metric);
-      fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
+      updateCopyStatistics(bitwidth, N);
+      updateAreaStatistics(instance, metric[3]);
     }
   }
   fprintf(resFp, "\n");
@@ -913,7 +982,6 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   char *subInstance = new char[100];
   sprintf(subInstance, "%d>", resBWList[i]);
   strcat(instance, subInstance);
-  printf("instance: %s\n", instance);
 
   fprintf(resFp, "%s ", instance);
   for (auto &normalizedOut : normalizedOutList) {
@@ -977,6 +1045,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   }
   createFULib(procName, calc, def, outSend, initSend, numArgs, numOuts, numRes, instance,
               metric);
+  updateAreaStatistics(procName, metric[3]);
 }
 
 void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *calc,
@@ -1182,13 +1251,13 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
         char *sinkName = new char[1500];
         sprintf(sinkName, "%s_L", splitName);
         printSink(sinkName, bitwidth);
-        printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
+//        printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
       }
       if (!rOut) {
         char *sinkName = new char[1500];
         sprintf(sinkName, "%s_R", splitName);
         printSink(sinkName, bitwidth);
-        printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
+//        printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
       }
       fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
       const char *guardStr = getActIdName(guard);
@@ -1199,6 +1268,7 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       sprintf(instance, "control_split<%d>", bitwidth);
       int *metric = getOpMetric(instance);
       createSplit(instance, metric);
+      updateAreaStatistics(instance, metric[3]);
       break;
     }
     case ACT_DFLOW_MERGE: {
@@ -1218,6 +1288,7 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       sprintf(instance, "control_merge<%d>", bitwidth);
       int *metric = getOpMetric(instance);
       createMerge(instance, metric);
+      updateAreaStatistics(instance, metric[3]);
       break;
     }
     case ACT_DFLOW_MIXER: {
@@ -1450,6 +1521,9 @@ int main(int argc, char **argv) {
   fprintf(confFp, "end\n");
   fclose(resFp);
   fclose(confFp);
+
+  printCopyStatistics();
+  printAreaStatistics();
   return 0;
 }
 
