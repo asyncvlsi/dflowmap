@@ -28,28 +28,40 @@
 
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
-#define numOps 13
-#define numBWs 5
 
 FILE *libFp;
 FILE *resFp;
 FILE *confFp;
 
-std::map<const char *, int> bitwidthMap;
-/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
-std::map<const char *, unsigned> opUses;
-/* copy operator, # of times it has already been used */
-std::map<const char *, unsigned> copyUses;
 
 typedef std::string String;
 typedef std::vector<String> StringVec;
 typedef std::vector<int> IntVec;
-typedef std::vector<const char*> CharPtrVec;
+typedef std::vector<const char *> CharPtrVec;
 
-//const char *ops[numOps] = {"add", "and", "buff", "copy", "div", "icmp", "lshift", "merge", "mul",
-//                           "rem", "sink", "source", "split"};
-//const int opBWs[numBWs] = {1, 8, 16, 32, 64};
+template<class T1, class T2>
+using Map = std::map<T1, T2>;
+
+template<class T1, class T2>
+std::pair<T1, T2> GenPair(T1 a, T2 b) {
+  return std::make_pair(a, b);
+}
+
+/* op, its bitwidth */
+Map<const char *, int> bitwidthMap;
+/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
+Map<const char *, unsigned> opUses;
+/* copy operator, # of times it has already been used */
+Map<const char *, unsigned> copyUses;
+
 /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
-std::map<const char *, int *> opMetrics;
+Map<const char *, int *> opMetrics;
+
+/* copy bitwidth,< # of output, # of instances of this COPY> */
+Map<int, Map<int, int>> copyStatistics;
+
+int totalArea = 0;
+/* procName, area of all of the instances of the process */
+Map<const char*, int> areaStatistics;
 
 #endif //DFLOWMAP_COMMON_H

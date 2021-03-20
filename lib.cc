@@ -92,58 +92,6 @@ void createFULib(const char *procName, const char *calc, const char *def,
   }
 }
 
-void createFUInitLib(const char *procName, const char *calc, const char *def,
-                     int numArgs, int result_suffix, int numRes, int initVal,
-                     const char *instance, int *metric) {
-  if (!hasProcess(procName)) {
-    fprintf(libFp, "template<pint ");
-    int i = 0;
-    for (; i <= numArgs; i++) {
-      fprintf(libFp, "W%d, ", i);
-    }
-    for (i = 0; i < numRes - 1; i++) {
-      fprintf(libFp, "W%d, ", i + numArgs + 1);
-    }
-    fprintf(libFp, "W%d>\n", i + numArgs + 1);
-    fprintf(libFp, "defproc %s(", procName);
-    for (i = 0; i < numArgs; i++) {
-      fprintf(libFp, "chan?(int<W%d>)arg%d; ", i, i);
-    }
-    fprintf(libFp, "chan!(int<W%d>) out) {\n", i);
-    fprintf(libFp, "  bool b;\n");
-    for (i = 0; i < numArgs; i++) {
-      fprintf(libFp, "  int<W%d> x%d;\n", i, i);
-    }
-    for (i = 0; i < numRes; i++) {
-      fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + 1, i);
-    }
-    fprintf(libFp, "%s", def);
-    fprintf(libFp, "  chp {\n    b-;\n    *[");
-    fprintf(libFp, "[~b->res%d:=%d;b+ [] b->", result_suffix, initVal);
-    for (i = 0; i < numArgs - 1; i++) {
-      fprintf(libFp, "arg%d?x%d, ", i, i);
-    }
-    fprintf(libFp, "arg%d?x%d; ", i, i);
-    fprintf(libFp, "%s];\n", calc);
-    fprintf(libFp, "      out!res%d; log(\"send \", res%d)]\n  }\n}\n\n",
-            result_suffix, result_suffix);
-  }
-  if (!hasInstance(instance)) {
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin out\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
-    fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
-    }
-    fprintf(confFp, "end\n");
-  }
-}
-
 void createMerge(const char *instance, int *metric) {
   if (!hasProcess("control_merge")) {
     fprintf(libFp, "template<pint W>\n");
