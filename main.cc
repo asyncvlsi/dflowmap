@@ -217,7 +217,9 @@ void printSink(const char *name, int bitwidth) {
   sprintf(instance, "sink<%d>", bitwidth);
   int *metric = getOpMetric(instance);
   createSink(instance, metric);
-  updateAreaStatistics(instance, metric[3]);
+  if (metric != nullptr) {
+    updateAreaStatistics(instance, metric[3]);
+  }
 }
 
 void printInt(const char *out, const char *normalizedOut, unsigned val, int outWidth) {
@@ -228,7 +230,9 @@ void printInt(const char *out, const char *normalizedOut, unsigned val, int outW
   sprintf(opName, "source%d", outWidth);
   int *metric = getOpMetric(opName);
   createSource(instance, metric);
-  updateAreaStatistics(instance, metric[3]);
+  if (metric != nullptr) {
+    updateAreaStatistics(instance, metric[3]);
+  }
 }
 
 void collectBitwidthInfo(Process *p) {
@@ -365,11 +369,11 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
                                result_suffix, result_bw, lConst, lCalcStr);
-  if (lConst) {
-    print_expr(stdout, expr);
-    printf(" has const operands!\n");
-    exit(-1);
-  }
+//  if (lConst) {
+//    print_expr(stdout, expr);
+//    printf(" has const operands!\n");
+//    exit(-1);
+//  }
   char *val = new char[100];
   getCurProc(lStr, val);
   sprintf(procName, "%s_%s%s", procName, sym, val);
@@ -377,7 +381,7 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lCalcStr);
+  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
   resBWList.push_back(result_bw);
   strcat(calc, curCal);
   if (DEBUG_VERBOSE) {
@@ -899,7 +903,9 @@ void createCopyProcs() {
       int *metric = getOpMetric(instance);
       createCopy(instance, metric);
       updateCopyStatistics(bitwidth, N);
-      updateAreaStatistics(instance, metric[3]);
+      if (metric != nullptr) {
+        updateAreaStatistics(instance, metric[3]);
+      }
     }
   }
   fprintf(resFp, "\n");
@@ -1045,7 +1051,9 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
   }
   createFULib(procName, calc, def, outSend, initSend, numArgs, numOuts, numRes, instance,
               metric);
-  updateAreaStatistics(procName, metric[3]);
+  if (metric != nullptr) {
+    updateAreaStatistics(procName, metric[3]);
+  }
 }
 
 void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *calc,
@@ -1268,7 +1276,9 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       sprintf(instance, "control_split<%d>", bitwidth);
       int *metric = getOpMetric(instance);
       createSplit(instance, metric);
-      updateAreaStatistics(instance, metric[3]);
+      if (metric != nullptr) {
+        updateAreaStatistics(instance, metric[3]);
+      }
       break;
     }
     case ACT_DFLOW_MERGE: {
@@ -1288,7 +1298,9 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       sprintf(instance, "control_merge<%d>", bitwidth);
       int *metric = getOpMetric(instance);
       createMerge(instance, metric);
-      updateAreaStatistics(instance, metric[3]);
+      if (metric != nullptr) {
+        updateAreaStatistics(instance, metric[3]);
+      }
       break;
     }
     case ACT_DFLOW_MIXER: {
@@ -1443,6 +1455,7 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
+  a->Print(stdout);
   if (DEBUG_VERBOSE) {
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
