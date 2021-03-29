@@ -106,13 +106,13 @@ void updateAreaStatistics(const char *instance, int area) {
 
 void printAreaStatistics() {
   printf("Area Statistics:\n");
-  std::multimap<int, const char*> sortedAreas = flip_map(areaStatistics);
-  std::multimap<int, const char*>::iterator sortedAreasIt;
+  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
+  std::multimap<int, const char *>::iterator sortedAreasIt;
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); ++iter) {
     int area = iter->first;
     double ratio = (double) area / totalArea * 100;
 //    if (ratio > 1) {
-      printf("%40.30s %5d %5.1f\%\n", iter->second, area, ratio);
+    printf("%40.30s %5d %5.1f\%\n", iter->second, area, ratio);
 //    }
   }
   printf("\n");
@@ -282,6 +282,74 @@ void getCurProc(const char *str, char *val) {
     sprintf(curProc, "c%s", str);
   }
   strcpy(val, curProc);
+}
+
+const char *
+EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+           char *procName, char *calc, char *def, StringVec &argList, StringVec
+           &oriArgList, IntVec &argBWList,
+           IntVec &resBWList, int &result_suffix, int result_bw, char *calcStr) {
+  Expr *cExpr = expr->u.e.l;
+  Expr *lExpr = expr->u.e.r->u.e.l;
+  Expr *rExpr = expr->u.e.r->u.e.r;
+  if (procName[0] == '\0') {
+    sprintf(procName, "func");
+  }
+
+  bool cConst = false;
+  char *cCalcStr = new char[1500];
+  const char *cStr = printExpr(cExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList, result_suffix, result_bw, cConst, cCalcStr);
+  bool lConst = false;
+  char *lCalcStr = new char[1500];
+  const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList,
+                               result_suffix, result_bw, lConst, lCalcStr);
+  bool rConst = false;
+  char *rCalcStr = new char[1500];
+  const char *rStr = printExpr(rExpr, procName, calc, def, argList, oriArgList, argBWList,
+                               resBWList,
+                               result_suffix, result_bw, rConst, rCalcStr);
+
+  char *newExpr = new char[100];
+  result_suffix++;
+  sprintf(newExpr, "res%d", result_suffix);
+  char *curCal = new char[300];
+  sprintf(curCal, "      res%d := %s ? %s %s;\n", result_suffix, cStr, lStr, rStr);
+  strcat(calc, curCal);
+  resBWList.push_back(result_bw);
+
+  char *lVal = new char[100];
+  getCurProc(lStr, lVal);
+  char *rVal = new char[100];
+  getCurProc(rStr, rVal);
+
+  char *subProcName = new char[1500];
+  sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  strcat(procName, subProcName);
+//  if (DEBUG_VERBOSE) {
+    printf("\n\n\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+    printf("tri expr: ");
+    print_expr(stdout, expr);
+    printf("\ndflowmap generates calc: %s\n", calc);
+    printf("arg list: ");
+    for (auto &arg : argList) {
+      printf("%s ", arg.c_str());
+    }
+    printf("\n");
+    printf("arg bw list: ");
+    for (auto &bw : argBWList) {
+      printf("%d ", bw);
+    }
+    printf("\n");
+    printf("res bw list: ");
+    for (auto &bw2:resBWList) {
+      printf("%d ", bw2);
+    }
+    printf("\n");
+//  }
+  sprintf(calcStr, "%s", newExpr);
+  return newExpr;
 }
 
 const char *
@@ -589,10 +657,14 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       int bw = 1;
-      return printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
-                       resBWList,
-                       result_suffix, bw, constant, calcStr);
-      break;
+      return printExpr(lExpr, procName, calc, def, argList, oriArgList,
+                       argBWList, resBWList, result_suffix, bw,
+                       constant, calcStr);
+    }
+    case E_QUERY: {
+      return EMIT_QUERY(expr, "query", "?", type, "query", procName, calc, def,
+                        argList, oriArgList, argBWList, resBWList, result_suffix,
+                        result_bw, calcStr);
     }
     default: {
       print_expr(stdout, expr);
@@ -722,8 +794,19 @@ void collectExprUses(Expr *expr) {
       collectExprUses(lExpr);
       break;
     }
+    case E_QUERY: {
+      Expr *cExpr = expr->u.e.l;
+      Expr *lExpr = expr->u.e.r->u.e.l;
+      Expr *rExpr = expr->u.e.r->u.e.r;
+      collectExprUses(cExpr);
+      collectExprUses(lExpr);
+      collectExprUses(rExpr);
+      break;
+    }
     default: {
-      fatal_error("Unknown expression type %d\n", type);
+      print_expr(stdout, expr);
+      printf("\nUnknown expression type %d when collecting expr use\n", type);
+      exit(-1);
     }
   }
 }
@@ -775,8 +858,19 @@ void recordExprUses(Expr *expr, CharPtrVec &charPtrVec) {
       recordExprUses(lExpr, charPtrVec);
       break;
     }
+    case E_QUERY: {
+      Expr *cExpr = expr->u.e.l;
+      Expr *lExpr = expr->u.e.r->u.e.l;
+      Expr *rExpr = expr->u.e.r->u.e.r;
+      recordExprUses(cExpr, charPtrVec);
+      recordExprUses(lExpr, charPtrVec);
+      recordExprUses(rExpr, charPtrVec);
+      break;
+    }
     default: {
-      fatal_error("Unknown expression type %d\n", type);
+      print_expr(stdout, expr);
+      printf("\nUnknown expression type %d when recording expr use\n", type);
+      exit(-1);
     }
   }
 }
@@ -802,14 +896,15 @@ void collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec) {
         ActId *guard = d->u.splitmerge.guard;
         recordOpUses(guard->getName(), charPtrVec);
         int numInputs = d->u.splitmerge.nmulti;
-        if (numInputs != 2) {
-          fatal_error("Merge does not have TWO outputs!\n");
+        if (numInputs < 2) {
+          dflow_print(stdout, d);
+          fatal_error("\nMerge has less than TWO inputs!\n");
         }
         ActId **inputs = d->u.splitmerge.multi;
-        ActId *lIn = inputs[0];
-        recordOpUses(lIn->getName(), charPtrVec);
-        ActId *rIn = inputs[1];
-        recordOpUses(rIn->getName(), charPtrVec);
+        for (int i = 0; i < numInputs; i++) {
+          ActId *in = inputs[i];
+          recordOpUses(in->getName(), charPtrVec);
+        }
         break;
       }
       case ACT_DFLOW_MIXER: {
@@ -855,14 +950,15 @@ void collectOpUses(Process *p) {
         ActId *guard = d->u.splitmerge.guard;
         updateOpUses(guard->getName());
         int numInputs = d->u.splitmerge.nmulti;
-        if (numInputs != 2) {
-          fatal_error("Merge does not have TWO outputs!\n");
+        if (numInputs < 2) {
+          dflow_print(stdout, d);
+          fatal_error("\nMerge has less than TWO inputs!\n");
         }
         ActId **inputs = d->u.splitmerge.multi;
-        ActId *lIn = inputs[0];
-        updateOpUses(lIn->getName());
-        ActId *rIn = inputs[1];
-        updateOpUses(rIn->getName());
+        for (int i = 0; i < numInputs; i++) {
+          ActId *in = inputs[i];
+          updateOpUses(in->getName());
+        }
         break;
       }
       case ACT_DFLOW_MIXER: {
@@ -1284,20 +1380,27 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
     case ACT_DFLOW_MERGE: {
       ActId *output = d->u.splitmerge.single;
       const char *outputName = output->getName();
-      int bitwidth = getActIdBW(output, p);
-      fprintf(resFp, "control_merge<%d> %s_inst(", bitwidth, outputName);
+      int inBW = getActIdBW(output, p);
       ActId *guard = d->u.splitmerge.guard;
+      int guardBW = getActIdBW(guard, p);
+
+      fprintf(resFp, "control_merge<%d,%d> %s_inst(", guardBW, inBW, outputName);
       const char *guardStr = getActIdName(guard);
+      fprintf(resFp, "%s, ", guardStr);
+      int numInputs = d->u.splitmerge.nmulti;
       ActId **inputs = d->u.splitmerge.multi;
-      ActId *lIn = inputs[0];
-      const char *lInStr = getActIdName(lIn);
-      ActId *rIn = inputs[1];
-      const char *rInStr = getActIdName(rIn);
-      fprintf(resFp, "%s, %s, %s, %s);\n", guardStr, lInStr, rInStr, outputName);
+      for (int i = 0; i < numInputs; i++) {
+        ActId *in = inputs[i];
+        const char *inStr = getActIdName(in);
+        fprintf(resFp, "%s, ", inStr);
+      }
+      fprintf(resFp, "%s);\n", outputName);
+
+
       char *instance = new char[1500];
-      sprintf(instance, "control_merge<%d>", bitwidth);
+      sprintf(instance, "control_merge<%d,%d>", guardBW, inBW);
       int *metric = getOpMetric(instance);
-      createMerge(instance, metric);
+      createMerge(instance, metric, numInputs);
       if (metric != nullptr) {
         updateAreaStatistics(instance, metric[3]);
       }
