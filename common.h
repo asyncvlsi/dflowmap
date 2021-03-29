@@ -27,7 +27,7 @@
 #include <vector>
 
 #define DEBUG_VERBOSE false
-#define DEBUG_CLUSTER false
+#define DEBUG_CLUSTER true
 
 FILE *libFp;
 FILE *resFp;

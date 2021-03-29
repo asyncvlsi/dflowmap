@@ -92,32 +92,26 @@ void createFULib(const char *procName, const char *calc, const char *def,
   }
 }
 
-void createMerge(const char *instance, int *metric) {
+void createMerge(const char *instance, int *metric, int numInputs) {
   if (!hasProcess("control_merge")) {
-    fprintf(libFp, "template<pint W>\n");
-    fprintf(libFp,
-            "defproc control_merge(chan?(int<1>)ctrl; chan?(int<W>)lIn, "
-            "rIn; chan!(int<W>) out) {\n");
-    fprintf(libFp, "  int<W> x;\n  bool c;\n");
+    fprintf(libFp, "template<pint W1, W2>\n");
+    fprintf(libFp, "defproc control_merge(chan?(int<W1>)ctrl; ");
+    int i = 0;
+    for (i = 0; i < numInputs; i++) {
+      fprintf(libFp, "chan?(int<W2>) in%d; ", i);
+    }
+    fprintf(libFp, "chan!(int<W2>) out) {\n");
+    fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp,
-            "    *[ctrl?c; log(\"receive \", c); [~c -> lIn?x [] c -> rIn?x]; out!x; log(\"send \", x)]\n");
+    fprintf(libFp, "    *[ctrl?c; log(\"receive \", c); [");
+    for (i = 0; i < numInputs - 1; i++) {
+      fprintf(libFp, "c=%d -> in%d?x [] ", i, i);
+    }
+    fprintf(libFp, "c=%d -> in%d?x]; out!x; log(\"send \", x)]\n", i, i);
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin ctrl\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin lIn\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin rIn\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
     if (metric != nullptr) {
       fprintf(confFp, "    int D %d\n", metric[2]);
