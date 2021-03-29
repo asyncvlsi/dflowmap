@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <act/act.h>
+#include <algorithm>
 #include "common.h"
 
 #define MAX_EXPR_TYPE_NUM 100
@@ -37,7 +38,7 @@ bool hasProcess(const char *process) {
 void createFULib(const char *procName, const char *calc, const char *def,
                  const char *outSend, const char *initSend, int numArgs, int numOuts, int
                  numRes,
-                 const char *instance, int *metric) {
+                 const char *instance, int *metric, IntVec &boolRes) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
     int i = 0;
@@ -58,7 +59,11 @@ void createFULib(const char *procName, const char *calc, const char *def,
       fprintf(libFp, "  int<W%d> x%d;\n", i, i);
     }
     for (i = 0; i < numRes; i++) {
-      fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + numOuts, i);
+      if (std::find(boolRes.begin(), boolRes.end(), i) == boolRes.end()) {
+        fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + numOuts, i);
+      } else {
+        fprintf(libFp, "  bool res%d;\n", i);
+      }
     }
     fprintf(libFp, "%s", def);
     fprintf(libFp, "  chp {\n");
