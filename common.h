@@ -27,7 +27,7 @@
 #include <vector>
 
 #define DEBUG_VERBOSE false
-#define DEBUG_CLUSTER true
+#define DEBUG_CLUSTER false
 
 FILE *libFp;
 FILE *resFp;
@@ -53,7 +53,7 @@ Map<const char *, int> bitwidthMap;
 Map<const char *, unsigned> opUses;
 /* copy operator, # of times it has already been used */
 Map<const char *, unsigned> copyUses;
-
+unsigned sinkCnt = 0;
 /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
 Map<const char *, int *> opMetrics;
 

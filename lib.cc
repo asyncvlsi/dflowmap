@@ -91,16 +91,16 @@ void createFULib(const char *procName, const char *calc, const char *def,
     }
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
 }
 
-void createMerge(const char *instance, int *metric, int numInputs) {
-  if (!hasProcess("control_merge")) {
+void createMerge(const char *procName, const char *instance, int *metric, int numInputs) {
+  if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint W1, W2>\n");
-    fprintf(libFp, "defproc control_merge(chan?(int<W1>)ctrl; ");
+    fprintf(libFp, "defproc %s(chan?(int<W1>)ctrl; ", procName);
     int i = 0;
     for (i = 0; i < numInputs; i++) {
       fprintf(libFp, "chan?(int<W2>) in%d; ", i);
@@ -125,50 +125,43 @@ void createMerge(const char *instance, int *metric, int numInputs) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
 }
 
-void createSplit(const char *instance, int *metric) {
-  if (!hasProcess("control_split")) {
-    fprintf(libFp, "template<pint W>\n");
-    fprintf(libFp,
-            "defproc control_split(chan?(int<1>)ctrl; chan?(int<W>)in; "
-            "chan!(int<W>) lOut, rOut) {\n");
-    fprintf(libFp, "  int<W> x;\n  bool c;\n");
+void createSplit(const char *procName, const char *instance, int *metric,
+                 int numOutputs) {
+  if (!hasProcess(procName)) {
+    fprintf(libFp, "template<pint W1,W2>\n");
+    fprintf(libFp, "defproc %s(chan?(int<W1>)ctrl; chan?(int<W2>)in; ", procName);
+    int i = 0;
+    for (i = 0; i < numOutputs - 1; i++) {
+      fprintf(libFp, "chan!(int<W2>) out%d; ", i);
+    }
+    fprintf(libFp, "chan!(int<W2>) out%d) {\n", i);
+    fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp,
-            "    *[in?x, ctrl?c; log(\"receive \", c, \", \", x);"
-            "  [~c -> lOut!x [] c -> rOut!x]; log(\"send \", x)]\n");
+    fprintf(libFp, "    *[in?x, ctrl?c; log(\"receive \", c, \", \", x);[");
+
+    for (i = 0; i < numOutputs - 1; i++) {
+      fprintf(libFp, "c=%d -> out%d!x [] ", i, i);
+    }
+    fprintf(libFp, "c=%d -> out%d!x]; log(\"send \", x)]\n", i, i);
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin ctrl\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin in\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin lOut\n");
     if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin rOut\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
-    fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
+      for (int i = 0; i < numOutputs; i++) {
+        fprintf(confFp, "  begin out%d\n", i);
+        fprintf(confFp, "    int D %d\n", metric[2]);
+        fprintf(confFp, "    int E %d\n", metric[1]);
+        fprintf(confFp, "  end\n");
+      }
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
@@ -192,7 +185,7 @@ void createSource(const char *instance, int *metric) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
@@ -223,7 +216,7 @@ void createInit(const char *instance, int *metric) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
@@ -251,7 +244,7 @@ void createBuff(const char *instance, int *metric) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
@@ -260,10 +253,10 @@ void createBuff(const char *instance, int *metric) {
 void createSink(const char *instance, int *metric) {
   if (!hasProcess("sink")) {
     fprintf(libFp, "template<pint W>\n");
-    fprintf(libFp, "defproc sink(chan?(int<W>) x) {\n");
+    fprintf(libFp, "defproc sink(chan?(int<W>) in) {\n");
     fprintf(libFp, "  int<W> t;");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "  *[x?t; log (\"got \", t)]\n");
+    fprintf(libFp, "  *[in?t; log (\"got \", t)]\n");
     fprintf(libFp, "  }\n}\n");
   }
   if (!hasInstance(instance)) {
@@ -276,7 +269,7 @@ void createSink(const char *instance, int *metric) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
@@ -304,7 +297,7 @@ void createCopy(const char *instance, int *metric) {
     fprintf(confFp, "  end\n");
     if (metric != nullptr) {
       fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "    int area %d\n", metric[3]);
+      fprintf(confFp, "  int area %d\n", metric[3]);
     }
     fprintf(confFp, "end\n");
   }
