@@ -337,27 +337,27 @@ EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type, const char *me
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
-//  if (DEBUG_VERBOSE) {
-  printf("\n\n\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-  printf("tri expr: ");
-  print_expr(stdout, expr);
-  printf("\ndflowmap generates calc: %s\n", calc);
-  printf("arg list: ");
-  for (auto &arg : argList) {
-    printf("%s ", arg.c_str());
+  if (DEBUG_VERBOSE) {
+    printf("\n\n\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+    printf("tri expr: ");
+    print_expr(stdout, expr);
+    printf("\ndflowmap generates calc: %s\n", calc);
+    printf("arg list: ");
+    for (auto &arg : argList) {
+      printf("%s ", arg.c_str());
+    }
+    printf("\n");
+    printf("arg bw list: ");
+    for (auto &bw : argBWList) {
+      printf("%d ", bw);
+    }
+    printf("\n");
+    printf("res bw list: ");
+    for (auto &bw2:resBWList) {
+      printf("%d ", bw2);
+    }
+    printf("\n");
   }
-  printf("\n");
-  printf("arg bw list: ");
-  for (auto &bw : argBWList) {
-    printf("%d ", bw);
-  }
-  printf("\n");
-  printf("res bw list: ");
-  for (auto &bw2:resBWList) {
-    printf("%d ", bw2);
-  }
-  printf("\n");
-//  }
   sprintf(calcStr, "%s", newExpr);
   return newExpr;
 }
@@ -399,10 +399,6 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
-
-  printf("Handling bin expr ");
-  print_expr(stdout, expr);
-  printf(", and the resBW is %d\n", result_bw);
 
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
@@ -637,9 +633,6 @@ printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
                       result_suffix, result_bw, calcStr, boolRes);
     }
     case E_EQ: {
-      printf("EQ!\n");
-      print_expr(stdout, expr);
-      printf(", %d\n", result_bw);
       return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -1350,52 +1343,48 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       int inputSize = strlen(inputName);
       int bitwidth = getActIdBW(input, p);
       ActId **outputs = d->u.splitmerge.multi;
-      ActId *lOut = outputs[0];
-      ActId *rOut = outputs[1];
-      const char *outName = nullptr;
-      char *splitName = nullptr;
+      int numOutputs = d->u.splitmerge.nmulti;
+      char *procName = new char[200];
+      sprintf(procName, "control_split_%d", numOutputs);
+      char *splitName = new char[2000];
       ActId *guard = d->u.splitmerge.guard;
+      int guardBW = getActIdBW(guard, p);
       const char *guardName = guard->getName();
-      int guardSize = strlen(guardName);
-      if (!lOut && !rOut) {  // split has empty target for both ports
-        splitName = new char[inputSize + guardSize + 8];
-        printf("no target. iS: %d, gS: %d\n", inputSize, guardSize);
-        strcpy(splitName, inputName);
-        strcat(splitName, "_");
-        strcat(splitName, guardName);
-        strcat(splitName, "_SPLIT");
-      } else {
-        if (lOut) {
-          outName = lOut->getName();
+      sprintf(splitName, "%s", guardName);
+      for (int i = 0; i < numOutputs; i++) {
+        ActId *out = outputs[i];
+        if (!out) {
+          strcat(splitName, "sink_");
         } else {
-          outName = rOut->getName();
+          strcat(splitName, out->getName());
         }
-        size_t splitSize = strlen(outName) - 1;
-        splitName = new char[splitSize];
-        memcpy(splitName, outName, splitSize - 1);
-        splitName[splitSize - 1] = '\0';
       }
-      if (!lOut) {
-        char *sinkName = new char[1500];
-        sprintf(sinkName, "%s_L", splitName);
-        printSink(sinkName, bitwidth);
-//        printf("in: %s, c: %s, split: %s, L\n", inputName, guardName, splitName);
-      }
-      if (!rOut) {
-        char *sinkName = new char[1500];
-        sprintf(sinkName, "%s_R", splitName);
-        printSink(sinkName, bitwidth);
-//        printf("in: %s, c: %s, split: %s, R\n", inputName, guardName, splitName);
-      }
-      fprintf(resFp, "control_split<%d> %s_inst(", bitwidth, splitName);
+      printf("RuiTmp. splitName: %s\n", splitName);
+      fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
       const char *guardStr = getActIdName(guard);
       const char *inputStr = getActIdName(input);
-      fprintf(resFp, "%s, %s, %s_L, %s_R);\n", guardStr, inputStr, splitName,
-              splitName);
+      fprintf(resFp, "%s, %s", guardStr, inputStr);
+      StringVec sinkVec;
+      for (int i = 0; i < numOutputs; i++) {
+        ActId *out = outputs[i];
+        if (!out) {
+          char *sinkName = new char[2100];
+          sprintf(sinkName, "sink%d", sinkCnt);
+          sinkCnt++;
+          fprintf(resFp, ", %s", sinkName);
+          sinkVec.push_back(sinkName);
+        } else {
+          fprintf(resFp, ", %s", out->getName());
+        }
+      }
+      fprintf(resFp, ");\n");
+      for (auto &sink : sinkVec) {
+        printSink(sink.c_str(), bitwidth);
+      }
       char *instance = new char[1500];
-      sprintf(instance, "control_split<%d>", bitwidth);
+      sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
       int *metric = getOpMetric(instance);
-      createSplit(instance, metric);
+      createSplit(procName, instance, metric, numOutputs);
       if (metric != nullptr) {
         updateAreaStatistics(instance, metric[3]);
       }
@@ -1407,11 +1396,14 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       int inBW = getActIdBW(output, p);
       ActId *guard = d->u.splitmerge.guard;
       int guardBW = getActIdBW(guard, p);
+      int numInputs = d->u.splitmerge.nmulti;
+      char *procName = new char[200];
+      sprintf(procName, "control_merge_%d", numInputs);
 
-      fprintf(resFp, "control_merge<%d,%d> %s_inst(", guardBW, inBW, outputName);
+      fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, outputName);
       const char *guardStr = getActIdName(guard);
       fprintf(resFp, "%s, ", guardStr);
-      int numInputs = d->u.splitmerge.nmulti;
+
       ActId **inputs = d->u.splitmerge.multi;
       for (int i = 0; i < numInputs; i++) {
         ActId *in = inputs[i];
@@ -1420,11 +1412,10 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       }
       fprintf(resFp, "%s);\n", outputName);
 
-
       char *instance = new char[1500];
-      sprintf(instance, "control_merge<%d,%d>", guardBW, inBW);
+      sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
       int *metric = getOpMetric(instance);
-      createMerge(instance, metric, numInputs);
+      createMerge(procName, instance, metric, numInputs);
       if (metric != nullptr) {
         updateAreaStatistics(instance, metric[3]);
       }
