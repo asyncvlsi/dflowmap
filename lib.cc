@@ -70,11 +70,24 @@ void createFULib(const char *procName, const char *calc, const char *def,
     if (initSend) {
       fprintf(libFp, "%s", initSend);
     }
-    fprintf(libFp, "    *[");
-    for (i = 0; i < numArgs - 1; i++) {
-      fprintf(libFp, "arg%d?x%d, ", i, i);
+    fprintf(libFp, "    *[\n");
+
+    if (DEBUG_FU) {
+      for (i = 0; i < numArgs - 1; i++) {
+        fprintf(libFp, "      arg%d?x%d;  log(\"receive (\", x%d, \")\");\n", i, i, i);
+      }
+      fprintf(libFp, "      arg%d?x%d;  log(\"receive (\", x%d, \")\");\n", i, i, i);
+    } else {
+      for (i = 0; i < numArgs - 1; i++) {
+        fprintf(libFp, "arg%d?x%d, ", i, i);
+      }
+      fprintf(libFp, "arg%d?x%d;\n", i, i);
+      fprintf(libFp, "      log(\"receive (\", ");
+      for (i = 0; i < numArgs - 1; i++) {
+        fprintf(libFp, "x%d, \",\", ", i);
+      }
+      fprintf(libFp, "x%d, \")\");\n", i);
     }
-    fprintf(libFp, "arg%d?x%d; ", i, i);
     fprintf(libFp, "%s", calc);
     fprintf(libFp, "%s", outSend);
     fprintf(libFp, "\n    ]\n  }\n}\n\n");
@@ -280,7 +293,11 @@ void createCopy(const char *instance, int *metric) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
     fprintf(libFp, "  int<W> x;\n  chp {\n");
-    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x); log(\"send \", x) ]\n");
+
+    fprintf(libFp, "  *[ in?x; log(\"receive \", x); "
+                   "(,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
+
+//    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x); log(\"send \", x) ]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {

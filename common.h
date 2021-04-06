@@ -28,6 +28,7 @@
 
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
+#define DEBUG_FU false
 
 FILE *libFp;
 FILE *resFp;

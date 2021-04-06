@@ -171,7 +171,7 @@ int *getOpMetric(const char *op) {
   if (op == nullptr) {
     fatal_error("op is NULL\n");
   }
-  char *normalizedOp = new char[1500];
+  char *normalizedOp = new char[10240];
   normalizedOp[0] = '\0';
   strcat(normalizedOp, op);
   normalizeName(normalizedOp, '<', '_');
@@ -184,8 +184,10 @@ int *getOpMetric(const char *op) {
   }
   printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
          "We could not find metric info for %s\n", normalizedOp);
-  printOpMetrics();
-  printf("\n\n\n\n\n");
+  if (DEBUG_VERBOSE) {
+    printOpMetrics();
+    printf("\n\n\n\n\n");
+  }
   return nullptr;
 }
 
@@ -328,6 +330,8 @@ EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type, const char *me
   sprintf(curCal, "      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
+//  printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
+//  printf("  wire [%d:0] res%d;\n", (result_bw-1), result_suffix);
 
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
@@ -399,6 +403,8 @@ EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metr
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
+//  printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+//  printf("  wire [%d:0] res%d;\n", (result_bw-1), result_suffix);
 
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
@@ -463,6 +469,8 @@ EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metr
   char *curCal = new char[300];
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
   resBWList.push_back(result_bw);
+//  printf("      res%d := %s %s;\n", result_suffix, op, lStr);
+//  printf("  wire [%d:0] res%d;\n", (result_bw-1), result_suffix);
   strcat(calc, curCal);
   if (DEBUG_VERBOSE) {
     printf("unary expr: ");
@@ -1075,7 +1083,7 @@ void printDFlowFunc(const char *procName, StringVec &argList, IntVec &argBWList,
     printIntVec(boolRes);
   }
 
-  char *instance = new char[2000];
+  char *instance = new char[10240];
   sprintf(instance, "%s<", procName);
   int numArgs = argList.size();
   int i = 0;
@@ -1300,7 +1308,7 @@ void handleDFlowFunc(Process *p, act_dataflow_element *d, char *procName, char *
 void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
-      char *procName = new char[2000];
+      char *procName = new char[10240];
       procName[0] = '\0';
       char *calc = new char[20240];
       calc[0] = '\0';
@@ -1344,7 +1352,7 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       int bitwidth = getActIdBW(input, p);
       ActId **outputs = d->u.splitmerge.multi;
       int numOutputs = d->u.splitmerge.nmulti;
-      char *procName = new char[200];
+      char *procName = new char[10240];
       sprintf(procName, "control_split_%d", numOutputs);
       char *splitName = new char[2000];
       ActId *guard = d->u.splitmerge.guard;
@@ -1359,7 +1367,6 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
           strcat(splitName, out->getName());
         }
       }
-      printf("RuiTmp. splitName: %s\n", splitName);
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
       const char *guardStr = getActIdName(guard);
       const char *inputStr = getActIdName(input);
@@ -1397,7 +1404,7 @@ void handleNormalDflowElement(Process *p, act_dataflow_element *d) {
       ActId *guard = d->u.splitmerge.guard;
       int guardBW = getActIdBW(guard, p);
       int numInputs = d->u.splitmerge.nmulti;
-      char *procName = new char[200];
+      char *procName = new char[10240];
       sprintf(procName, "control_merge_%d", numInputs);
 
       fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, outputName);
@@ -1456,7 +1463,7 @@ void dflow_print(FILE *fp, list_t *dflow) {
 
 void handleDFlowCluster(Process *p, list_t *dflow) {
   listitem_t *li;
-  char *procName = new char[2000];
+  char *procName = new char[10240];
   procName[0] = '\0';
   char *calc = new char[20240];
   calc[0] = '\0';
@@ -1606,7 +1613,7 @@ int main(int argc, char **argv) {
   std::string line;
   while (std::getline(metricFp, line)) {
     std::istringstream iss(line);
-    char *instance = new char[2000];
+    char *instance = new char[10240];
     int metricCount = -1;
     int *metric = new int[4];
     bool emptyLine = true;
@@ -1644,8 +1651,8 @@ int main(int argc, char **argv) {
       index++;
     }
   }
-  for (int i = 0; i < index; i++) {
-//  for (int i = index - 1; i >= 0; i--) {
+//  for (int i = 0; i < index; i++) {
+  for (int i = index - 1; i >= 0; i--) {
     Process *p = procArray[i];
     handleProcess(p);
   }
