@@ -21,15 +21,17 @@
 EXE=dflowmap.$(EXT)
 
 TARGETS=$(EXE)
+TARGETINCS=ChpGenerator.h Metrics.h ChpProcGenerator.h
+#TARGETINCSUBDIR=act
 
-OBJS=main.o
+OBJS=ChpGenerator.o main.o Metrics.o ChpProcGenerator.o
 
 SRCS=$(OBJS:.o=.cc)
 
 include $(VLSI_TOOLS_SRC)/scripts/Makefile.std
-
 CXX += -g
+
 $(EXE): $(OBJS) $(ACTPASSDEPEND)
-	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS)
+	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS) -ldl -ledit
 
 -include Makefile.deps

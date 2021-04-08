@@ -25,15 +25,16 @@
 #define DFLOWMAP_COMMON_H
 
 #include <vector>
+#include <string>
+#include <algorithm>
+#include <map>
 
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
-#define DEBUG_FU false
+#define DEBUG_FU true
 
-FILE *libFp;
-FILE *resFp;
-FILE *confFp;
-
+#define MAX_EXPR_TYPE_NUM 100
+#define MAX_PROCESSES 500
 
 typedef std::string String;
 typedef std::vector<String> StringVec;
@@ -48,21 +49,17 @@ std::pair<T1, T2> GenPair(T1 a, T2 b) {
   return std::make_pair(a, b);
 }
 
-/* op, its bitwidth */
-Map<const char *, int> bitwidthMap;
-/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
-Map<const char *, unsigned> opUses;
-/* copy operator, # of times it has already been used */
-Map<const char *, unsigned> copyUses;
-unsigned sinkCnt = 0;
-/* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
-Map<const char *, int *> opMetrics;
+template<typename A, typename B>
+std::pair<B, A> flip_pair(const std::pair<A, B> &p) {
+  return std::pair<B, A>(p.second, p.first);
+}
 
-/* copy bitwidth,< # of output, # of instances of this COPY> */
-Map<int, Map<int, int>> copyStatistics;
-
-int totalArea = 0;
-/* procName, area of all of the instances of the process */
-Map<const char*, int> areaStatistics;
+template<typename A, typename B>
+std::multimap<B, A> flip_map(const std::map<A, B> &src) {
+  std::multimap<B, A> dst;
+  std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()),
+                 flip_pair<A, B>);
+  return dst;
+}
 
 #endif //DFLOWMAP_COMMON_H
