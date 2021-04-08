@@ -29,6 +29,7 @@ OBJS=ChpGenerator.o main.o Metrics.o ChpProcGenerator.o
 SRCS=$(OBJS:.o=.cc)
 
 include $(VLSI_TOOLS_SRC)/scripts/Makefile.std
+
 CXX += -g
 
 $(EXE): $(OBJS) $(ACTPASSDEPEND)
