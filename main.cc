@@ -85,7 +85,19 @@ int main(int argc, char **argv) {
   sprintf(metricFilePath, "metrics/fluid.metrics");
   Metrics metrics;
   metrics.readMetricsFile(metricFilePath);
+
+  /* declare all of the act processes first */
   ActTypeiter it(a->Global());
+  for (it = it.begin(); it != it.end(); it++) {
+    Type *t = *it;
+    auto p = dynamic_cast<Process *>(t);
+    if (p->isExpanded()) {
+      p->PrintHeader(resFp, "defproc");
+      fprintf(resFp, ";\n");
+    }
+  }
+
+  /* generate chp implementation for each act process */
   auto chpGenerator = new ChpGenerator(a, "ChpGenerator", &metrics);
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;

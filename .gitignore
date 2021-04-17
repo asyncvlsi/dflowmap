@@ -12,5 +12,6 @@ result_*
 .actsim_history
 include
 log*
+*log
 *.act
 
