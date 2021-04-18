@@ -582,6 +582,15 @@ void ChpGenerator::printOpUses() {
   printf("\n");
 }
 
+bool ChpGenerator::isOpUsed(const char *op) {
+  auto opUsesIt = opUses.find(op);
+  if (opUsesIt == opUses.end()) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 unsigned ChpGenerator::getOpUses(const char *op) {
   auto opUsesIt = opUses.find(op);
   if (opUsesIt == opUses.end()) {
@@ -1236,7 +1245,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       StringVec sinkVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
-        if (!out) {
+        if ((!out) || (!isOpUsed(out->getName()))) {
           char *sinkName = new char[2100];
           sprintf(sinkName, "sink%d", sinkCnt);
           sinkCnt++;
