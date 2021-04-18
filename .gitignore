@@ -13,5 +13,5 @@ result_*
 include
 log*
 *log
-*.act
-
+/*.act
+acts/

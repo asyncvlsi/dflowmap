@@ -1,0 +1,190 @@
+defproc f (chan?(int<32>) f_in_0; chan?(int<32>) f_in_1; chan?(int<32>) f_in_2; chan?(int<32>) f_in_3; chan?(int<32>) f_in_4; chan!(int<32>) f_out)
+{
+  /* Define channels */
+  chan(int<32>) const_f_32_0_;
+  chan(int<32>) const_f_16_0_;
+  chan(int<32>) const_f_0_0_;
+  chan(int<32>) const_f_1_0_;
+  chan(int<32>) const_f_0_1_;
+  chan(int<32>) const_f_1_1_;
+  chan(int<32>) const_f_1_2_;
+  chan(int<32>) const_f_1_3_;
+  chan(int<32>) const_f_0_2_;
+  chan(int<32>) const_f_1_4_;
+  chan(int<32>) const_f_1_5_;
+  chan(int<32>) const_f_0_3_;
+  chan(int<32>) const_f_1_6_;
+  chan(int<32>) const_f_1_7_;
+  chan(int<32>) f_I0_;
+  chan(int<32>) f_I1_;
+  chan(int<1>) f_I2_;
+  chan(int<1>) sig_f_I2_f_BB8_condVarSig_;
+  chan(int<32>) sig_f_in_4_f_I2__L;
+  chan(int<32>) sig_f_in_4_f_I2__R;
+  chan(int<32>) f_I4_;
+  chan(int<1>) f_I7_;
+  chan(int<32>) sig_f_I0__f_I7__L;
+  chan(int<32>) sig_f_I0__f_I7__R;
+  chan(int<32>) sig_f_I1__f_I7__L;
+  chan(int<32>) sig_f_I1__f_I7__R;
+  chan(int<32>) sig_Merge_f_I6__f_I7__L;
+  chan(int<32>) sig_Merge_f_I6__f_I7__R;
+  chan(int<32>) sig_f_in_1_f_I7__L;
+  chan(int<32>) sig_f_in_1_f_I7__R;
+  chan(int<32>) sig_f_in_2_f_I7__L;
+  chan(int<32>) sig_f_in_2_f_I7__R;
+  chan(int<32>) f_I9_;
+  chan(int<32>) f_I10_;
+  chan(int<32>) f_I11_;
+  chan(int<32>) f_I12_;
+  chan(int<32>) f_I13_;
+  chan(int<1>) f_I14_;
+  chan(int<32>) sig_f_I1__f_I14__L;
+  chan(int<32>) sig_f_I1__f_I14__R;
+  chan(int<32>) sig_f_I13__f_I14__L;
+  chan(int<32>) sig_f_I13__f_I14__R;
+  chan(int<32>) f_I16_;
+  chan(int<32>) f_I17_;
+  chan(int<1>) f_I19_;
+  chan(int<32>) sig_f_I0__f_I19__L;
+  chan(int<32>) sig_f_I0__f_I19__R;
+  chan(int<32>) sig_f_I1__f_I19__L;
+  chan(int<32>) sig_f_I1__f_I19__R;
+  chan(int<32>) sig_Merge_f_I6__f_I19__L;
+  chan(int<32>) sig_Merge_f_I6__f_I19__R;
+  chan(int<32>) sig_f_in_1_f_I19__L;
+  chan(int<32>) sig_f_in_1_f_I19__R;
+  chan(int<32>) sig_f_in_2_f_I19__L;
+  chan(int<32>) sig_f_in_2_f_I19__R;
+  chan(int<32>) f_I21_;
+  chan(int<32>) f_I22_;
+  chan(int<32>) f_I23_;
+  chan(int<32>) f_I24_;
+  chan(int<32>) f_I25_;
+  chan(int<32>) f_I26_;
+  chan(int<1>) f_I27_;
+  chan(int<32>) sig_f_I1__f_I27__L;
+  chan(int<32>) sig_f_I1__f_I27__R;
+  chan(int<32>) sig_f_I25__f_I27__L;
+  chan(int<32>) sig_f_I25__f_I27__R;
+  chan(int<32>) f_I29_;
+  chan(int<32>) f_I30_;
+  chan(int<32>) sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__L;
+  chan(int<32>) sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__R;
+  chan(int<32>) f_I34_;
+  chan(int<32>) Merge_f_I6_;
+  chan(int<32>) Merge_f_I32_;
+  chan(int<32>) Merge_f_I32_f_I14_;
+  chan(int<32>) Merge_f_I32_f_I19_;
+  chan(int<32>) Merge_f_I32_f_I27_;
+  chan(int<32>) Merge_f_I36_;
+  chan(int<32>) sink0;
+  chan(int<32>) sink1;
+  chan(int<32>) sink2;
+  chan(int<32>) sink3;
+  chan(int<32>) sink4;
+  chan(int<32>) sink5;
+  /* Handle invocations */
+  /* Define dataflow script */
+  dataflow {
+    32 -> const_f_32_0_;
+    16 -> const_f_16_0_;
+    0 -> const_f_0_0_;
+    1 -> const_f_1_0_;
+    0 -> const_f_0_1_;
+    -1 -> const_f_1_1_;
+    1 -> const_f_1_2_;
+    1 -> const_f_1_3_;
+    0 -> const_f_0_2_;
+    -1 -> const_f_1_4_;
+    -1 -> const_f_1_5_;
+    0 -> const_f_0_3_;
+    1 -> const_f_1_6_;
+    1 -> const_f_1_7_;
+    sig_f_in_4_f_I2__L >>> const_f_1_0_ -> f_I4_;
+    f_I10_ + sig_f_in_2_f_I7__R -> f_I11_;
+    sig_f_in_1_f_I19__R ^ const_f_1_4_ -> f_I21_;
+    sig_Merge_f_I6__f_I7__R + f_I12_ -> f_I13_;
+    f_I22_ + sig_f_in_2_f_I19__R -> f_I23_;
+    sig_Merge_f_I6__f_I19__R + f_I24_ -> f_I25_;
+    sig_f_I13__f_I14__L - f_I16_ -> f_I17_;
+    int(f_I25_ < f_I26_) -> f_I27_;
+    int(sig_f_in_1_f_I7__L < const_f_0_2_) -> f_I19_;
+    sig_f_I1__f_I27__R << const_f_1_6_ -> f_I29_;
+    Merge_f_I36_ -> f_out;
+    const_f_16_0_ << f_I0_ -> f_I1_;
+    int(f_in_1 > const_f_0_1_) -> f_I7_;
+    sig_f_in_1_f_I7__R + const_f_1_1_ -> f_I9_;
+    f_I9_ << sig_f_I0__f_I7__R -> f_I10_;
+    sig_f_I25__f_I27__R + f_I29_ -> f_I30_;
+    f_I21_ << sig_f_I0__f_I19__R -> f_I22_;
+    int(f_I13_ < sig_f_I1__f_I7__R) -> f_I14_;
+    f_I11_ + const_f_1_2_ -> f_I12_;
+    f_I23_ ^ const_f_1_5_ -> f_I24_;
+    sig_f_I1__f_I14__L << const_f_1_3_ -> f_I16_;
+    const_f_0_3_ - sig_f_I1__f_I19__R -> f_I26_;
+    sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__L << const_f_1_7_ -> f_I34_;
+    f_I2_ -> sig_f_I2_f_BB8_condVarSig_;
+    f_in_0 % const_f_32_0_ -> f_I0_;
+    int(f_in_3 = const_f_0_0_) -> f_I2_;
+    {f_I7_} Merge_f_I32_f_I19_, Merge_f_I32_f_I14_ -> Merge_f_I32_;
+    {f_I2_} f_I4_, sig_f_in_4_f_I2__R -> Merge_f_I6_;
+    {f_I14_} f_I17_, sig_f_I13__f_I14__R -> Merge_f_I32_f_I14_;
+    {sig_f_I2_f_BB8_condVarSig_} f_I34_, sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__R -> Merge_f_I36_;
+    {f_I27_} sig_f_I25__f_I27__L, f_I30_ -> Merge_f_I32_f_I27_;
+    {f_I19_} sig_Merge_f_I6__f_I19__L, Merge_f_I32_f_I27_ -> Merge_f_I32_f_I19_;
+    {f_I7_} f_I0_ -> sig_f_I0__f_I7__L, sig_f_I0__f_I7__R;
+    {f_I7_} f_I1_ -> sig_f_I1__f_I7__L, sig_f_I1__f_I7__R;
+    {f_I14_} f_I13_ -> sig_f_I13__f_I14__L, sig_f_I13__f_I14__R;
+    {f_I19_} sig_f_in_2_f_I7__L -> sig_f_in_2_f_I19__L, sig_f_in_2_f_I19__R;
+    {f_I19_} sig_f_in_1_f_I7__L -> sig_f_in_1_f_I19__L, sig_f_in_1_f_I19__R;
+    {f_I19_} sig_Merge_f_I6__f_I7__L -> sig_Merge_f_I6__f_I19__L, sig_Merge_f_I6__f_I19__R;
+    {f_I27_} f_I25_ -> sig_f_I25__f_I27__L, sig_f_I25__f_I27__R;
+    {f_I2_} f_in_4 -> sig_f_in_4_f_I2__L, sig_f_in_4_f_I2__R;
+    {f_I7_} f_in_1 -> sig_f_in_1_f_I7__L, sig_f_in_1_f_I7__R;
+    {f_I14_} sig_f_I1__f_I7__R -> sig_f_I1__f_I14__L, sig_f_I1__f_I14__R;
+    {f_I7_} f_in_2 -> sig_f_in_2_f_I7__L, sig_f_in_2_f_I7__R;
+    {f_I19_} sig_f_I0__f_I7__L -> sig_f_I0__f_I19__L, sig_f_I0__f_I19__R;
+    {f_I19_} sig_f_I1__f_I7__L -> sig_f_I1__f_I19__L, sig_f_I1__f_I19__R;
+    {f_I7_} Merge_f_I6_ -> sig_Merge_f_I6__f_I7__L, sig_Merge_f_I6__f_I7__R;
+    {f_I27_} sig_f_I1__f_I19__R -> sig_f_I1__f_I27__L, sig_f_I1__f_I27__R;
+    {sig_f_I2_f_BB8_condVarSig_} Merge_f_I32_ -> sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__L, sig_Merge_f_I32__sig_f_I2_f_BB8_condVarSig__R
+  }
+}
+
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I0_;
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  chan(int<32>) main_I3_;
+  chan(int<32>) main_I4_;
+  chan(int<32>) main_I5_;
+  chan(int<32>) mainf_in_0;
+  chan(int<32>) mainf_in_1;
+  chan(int<32>) mainf_in_2;
+  chan(int<32>) mainf_in_3;
+  chan(int<32>) mainf_in_4;
+  chan(int<32>) mainf_out;
+  /* Handle invocations */
+  f f_inst(mainf_in_0, mainf_in_1, mainf_in_2, mainf_in_3, mainf_in_4, mainf_out);
+
+  /* Define dataflow script */
+  dataflow {
+    200 -> main_I0_;
+    6 -> main_I1_;
+    240 -> main_I2_;
+    0 -> main_I3_;
+    45 -> main_I4_;
+    mainf_out -> main_I5_;
+    main_I0_ -> mainf_in_0;
+    main_I1_ -> mainf_in_1;
+    main_I2_ -> mainf_in_2;
+    main_I3_ -> mainf_in_3;
+    main_I4_ -> mainf_in_4;
+    main_I5_ -> main_out
+  }
+}
+
+main m;

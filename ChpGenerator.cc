@@ -37,6 +37,7 @@ const char *ChpGenerator::getActIdName(ActId *actId) {
     unsigned outUses = getOpUses(actName);
     if (outUses) {
       unsigned copyUse = getCopyUses(actName);
+      printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
       if (copyUse <= outUses) {
         sprintf(str, "%scopy.out[%u]", actId->getName(), copyUse);
       } else {
@@ -352,11 +353,12 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
       auto actId = (ActId *) expr->u.e.l;
       const char *oriVarName = actId->getName();
       char *curArg = new char[1000];
-      const char *mappedVarName = getActIdName(actId);
       int idx = searchStringVec(oriArgList, oriVarName);
       if (idx == -1) {
         oriArgList.push_back(oriVarName);
+        const char *mappedVarName = getActIdName(actId);
         argList.push_back(mappedVarName);
+        printf("oriVarName: %s, mappedVarName: %s\n", oriVarName, mappedVarName);
         sprintf(calcStr, "%s_%d", oriVarName, numArgs);
         sprintf(curArg, "x%d", numArgs);
       } else {
