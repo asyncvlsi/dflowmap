@@ -603,16 +603,16 @@ unsigned ChpGenerator::getOpUses(const char *op) {
   return opUsesIt->second;
 }
 
-void ChpGenerator::collectUniOpUses(Expr *expr) {
+void ChpGenerator::collectUniOpUses(Expr *expr, StringVec &recordedOps) {
   Expr *lExpr = expr->u.e.l;
-  collectExprUses(lExpr);
+  collectExprUses(lExpr, recordedOps);
 }
 
-void ChpGenerator::collectBinOpUses(Expr *expr) {
+void ChpGenerator::collectBinOpUses(Expr *expr, StringVec &recordedOps) {
   Expr *lExpr = expr->u.e.l;
-  collectExprUses(lExpr);
+  collectExprUses(lExpr, recordedOps);
   Expr *rExpr = expr->u.e.r;
-  collectExprUses(rExpr);
+  collectExprUses(rExpr, recordedOps);
 }
 
 void ChpGenerator::recordUniOpUses(Expr *expr, CharPtrVec &charPtrVec) {
@@ -627,7 +627,7 @@ void ChpGenerator::recordBinOpUses(Expr *expr, CharPtrVec &charPtrVec) {
   recordExprUses(rExpr, charPtrVec);
 }
 
-void ChpGenerator::collectExprUses(Expr *expr) {
+void ChpGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
   int type = expr->type;
   switch (type) {
     case E_AND:
@@ -647,13 +647,13 @@ void ChpGenerator::collectExprUses(Expr *expr) {
     case E_GE:
     case E_EQ:
     case E_NE: {
-      collectBinOpUses(expr);
+      collectBinOpUses(expr, recordedOps);
       break;
     }
     case E_NOT:
     case E_UMINUS:
     case E_COMPLEMENT: {
-      collectUniOpUses(expr);
+      collectUniOpUses(expr, recordedOps);
       break;
     }
     case E_INT: {
@@ -661,26 +661,30 @@ void ChpGenerator::collectExprUses(Expr *expr) {
     }
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
-      updateOpUses(actId->getName());
+      const char* varName = actId->getName();
+      if (searchStringVec(recordedOps, varName) == -1) {
+        updateOpUses(varName);
+        recordedOps.push_back(varName);
+      }
       break;
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
-      collectExprUses(lExpr);
+      collectExprUses(lExpr, recordedOps);
       break;
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
-      collectExprUses(lExpr);
+      collectExprUses(lExpr, recordedOps);
       break;
     }
     case E_QUERY: {
       Expr *cExpr = expr->u.e.l;
       Expr *lExpr = expr->u.e.r->u.e.l;
       Expr *rExpr = expr->u.e.r->u.e.r;
-      collectExprUses(cExpr);
-      collectExprUses(lExpr);
-      collectExprUses(rExpr);
+      collectExprUses(cExpr, recordedOps);
+      collectExprUses(lExpr, recordedOps);
+      collectExprUses(rExpr, recordedOps);
       break;
     }
     default: {
@@ -816,7 +820,8 @@ void ChpGenerator::collectOpUses(Process *p) {
     switch (d->t) {
       case ACT_DFLOW_FUNC: {
         Expr *expr = d->u.func.lhs;
-        collectExprUses(expr);
+        StringVec recordedOps;
+        collectExprUses(expr, recordedOps);
         break;
       }
       case ACT_DFLOW_SPLIT: {

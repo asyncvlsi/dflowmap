@@ -84,15 +84,15 @@ public:
 
   unsigned getOpUses(const char *op);
 
-  void collectUniOpUses(Expr *expr);
+  void collectUniOpUses(Expr *expr, StringVec &recordedOps);
 
-  void collectBinOpUses(Expr *expr);
+  void collectBinOpUses(Expr *expr, StringVec &recordedOps);
 
   void recordUniOpUses(Expr *expr, CharPtrVec &charPtrVec);
 
   void recordBinOpUses(Expr *expr, CharPtrVec &charPtrVec);
 
-  void collectExprUses(Expr *expr);
+  void collectExprUses(Expr *expr, StringVec &recordedOps);
 
   void recordExprUses(Expr *expr, CharPtrVec &charPtrVec);
 
