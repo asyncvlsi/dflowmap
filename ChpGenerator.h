@@ -131,6 +131,8 @@ public:
 
   void printIntVec(IntVec &intVec);
 
+  bool isOpUsed(const char *op);
+
 private:
   /* op, its bitwidth */
   Map<const char *, int> bitwidthMap;
