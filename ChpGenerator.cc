@@ -661,7 +661,7 @@ void ChpGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
     }
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
-      const char* varName = actId->getName();
+      const char *varName = actId->getName();
       if (searchStringVec(recordedOps, varName) == -1) {
         updateOpUses(varName);
         recordedOps.push_back(varName);
@@ -1181,7 +1181,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
 }
 
 void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
-                                            Process *p, act_dataflow_element *d) {
+                                            Process *p, act_dataflow_element *d,
+                                            unsigned &sinkCnt) {
+
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
       char *procName = new char[10240];
@@ -1416,9 +1418,8 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
   collectOpUses(p);
   createCopyProcs(resFp, libFp, confFp);
   listitem_t *li;
-  for (li = list_first (p->getlang()->getdflow()->dflow);
-       li;
-       li = list_next (li)) {
+  unsigned sinkCnt = 0;
+  for (li = list_first (p->getlang()->getdflow()->dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_CLUSTER) {
       list_t *dflow_cluster = d->u.dflow_cluster;
@@ -1427,7 +1428,7 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
       }
       handleDFlowCluster(resFp, libFp, confFp, p, dflow_cluster);
     } else {
-      handleNormalDflowElement(resFp, libFp, confFp, p, d);
+      handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt);
     }
   }
   if (mainProc) {

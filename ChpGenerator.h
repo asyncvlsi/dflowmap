@@ -122,7 +122,7 @@ public:
                   IntVec &outWidthList, StringVec &initStrs, IntVec &boolRes);
 
   void handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                                act_dataflow_element *d);
+                                act_dataflow_element *d, unsigned &sinkCnt);
 
   void print_dflow(FILE *fp, list_t *dflow);
 
@@ -140,7 +140,7 @@ private:
   Map<const char *, unsigned> opUses;
 /* copy operator, # of times it has already been used */
   Map<const char *, unsigned> copyUses;
-  unsigned sinkCnt = 0;
+//  unsigned sinkCnt = 0;
   Metrics *metrics;
   ChpProcGenerator processGenerator;
 };
