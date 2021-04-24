@@ -42,6 +42,25 @@ static void usage(char *name) {
   exit(1);
 }
 
+void printCustomNamespace(ActNamespace *ns, FILE *resFp, FILE *libFp) {
+  const char *nsName = ns->getName();
+  fprintf(resFp, "namespace %s {\n", nsName);
+  fprintf(libFp, "namespace %s {\n", nsName);
+  ActTypeiter it(ns);
+  for (it = it.begin(); it != it.end(); it++) {
+    Type *t = *it;
+    auto p = dynamic_cast<Process *>(t);
+//    p->Print(libFp);
+    if (p->isExpanded()) {
+      p->PrintHeader(resFp, "defproc");
+      fprintf(resFp, ";\n");
+      p->Print(libFp);
+    }
+  }
+  fprintf(resFp, "}\n\n");
+  fprintf(libFp, "}\n\n");
+}
+
 int main(int argc, char **argv) {
   /* initialize ACT library */
   Act::Init(&argc, &argv);
@@ -56,7 +75,6 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
-  a->Print(stdout);
   if (DEBUG_VERBOSE) {
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
@@ -86,7 +104,16 @@ int main(int argc, char **argv) {
   Metrics metrics;
   metrics.readMetricsFile(metricFilePath);
 
-  /* declare all of the act processes first */
+  /* declare custom namespace */
+  ActNamespaceiter i(a->Global());
+  for (i = i.begin(); i != i.end(); i++) {
+    ActNamespace *n = *i;
+    if (!n->isExported()) {
+      printCustomNamespace(n, resFp, libFp);
+    }
+  }
+
+  /* declare all of the act processes */
   ActTypeiter it(a->Global());
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;

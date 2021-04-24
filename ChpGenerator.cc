@@ -1404,6 +1404,10 @@ void
 ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) {
   const char *pName = p->getName();
   printf("processing %s\n", pName);
+  if (p->getlang()->getchp()) {
+    p->Print(libFp);
+    return;
+  }
   bool mainProc = (strcmp(pName, "main<>") == 0);
   if (!p->getlang()->getdflow()) {
     fatal_error("Process `%s': no dataflow body", p->getName());

@@ -1,0 +1,212 @@
+namespace mem {
+export defproc LMEM_main_I0_(chan?(int<1>) RD; chan?(int<1>) A;chan?(int<32>) DI; chan!(int<32>) DO) {
+  int<32> a[2];
+  int<1> addr;
+  int<1> rd;
+  int<32> data;
+
+  chp {
+    *[RD?rd, A?addr, DI?data; log("rd: ", rd, ", addr: ", addr, ", data: ", data);
+      [  rd = 0 -> DO!a[addr]; log ("read value ", a[addr])
+       []rd = 1 -> a[addr] := data; DO!data; log ("write value ", data)
+      ]
+    ]
+  }
+}
+}
+
+defproc main (chan!(int<32>) main_out)
+{
+  /* Define channels */
+  chan(int<32>) main_I1_;
+  chan(int<32>) main_I2_;
+  chan(int<32>) const_main_0_0_;
+  chan(int<32>) const_main_1_0_;
+  chan(int<32>) const_main_0_1_;
+  chan(int<32>) const_main_0_2_;
+  chan(int<32>) const_main_0_3_;
+  chan(int<32>) const_main_1_1_;
+  chan(int<32>) const_main_0_4_;
+  chan(int<1>) LMEM_main_I0__in_0;
+  chan(int<64>) LMEM_main_I0__in_1;
+  chan(int<32>) LMEM_main_I0__in_2;
+  chan(int<32>) LMEM_main_I0__out;
+  chan(int<32>) main_I5_;
+  chan(int<64>) main_I6_;
+  chan(int<1>) const_main_1_2_;
+  chan(int<1>) main_I9_;
+  chan(int<32>) sig_main_I5__main_I9__L;
+  chan(int<32>) sig_main_I5__main_I9__R;
+  chan(int<64>) main_I14_;
+  chan(int<32>) const_main_0_5_;
+  chan(int<1>) const_main_0_6_;
+  chan(int<32>) main_I17_;
+  chan(int<32>) main_I18_;
+  chan(int<1>) main_I19_;
+  chan(int<32>) sig_main_I17__main_I19__L;
+  chan(int<32>) sig_main_I17__main_I19__R;
+  chan(int<32>) sig_main_I18__main_I19__L;
+  chan(int<32>) sig_main_I18__main_I19__R;
+  chan(int<32>) Merge_main_I4_;
+  chan(int<1>) main_init0;
+  chan(int<32>) Merge_main_I12_;
+  chan(int<1>) main_init1;
+  chan(int<32>) Merge_main_I13_;
+  chan(int<1>) main_init2;
+  chan(int<1>) mainLMEM_main_I0__in_0;
+  chan(int<64>) mainLMEM_main_I0__in_1;
+  chan(int<32>) mainLMEM_main_I0__in_2;
+  chan(int<32>) mainLMEM_main_I0__out;
+  chan(int<1>) const_mainLMEM_main_I0___1_0_;
+  chan(int<1>) loopCondMerge_mainLMEM_main_I0__0;
+  chan(int<1>) loopCondInit_mainLMEM_main_I0__0;
+  chan(int<1>) const_mainLMEM_main_I0___1_1_;
+  chan(int<1>) loopCondMerge_mainLMEM_main_I0__1;
+  chan(int<1>) loopCondInit_mainLMEM_main_I0__1;
+  chan(int<1>) interEnablerMerge_mainLMEM_main_I0__0;
+  chan(int<1>) interStateSplit_mainLMEM_main_I0__0_L;
+  chan(int<1>) interStateSplit_mainLMEM_main_I0__0_R;
+  chan(int<1>) interStateInv_mainLMEM_main_I0__0;
+  chan(int<1>) const_mainLMEM_main_I0___1_2_;
+  chan(int<1>) interStateMerge_mainLMEM_main_I0__0;
+  chan(int<1>) interStateInit_mainLMEM_main_I0__0;
+  chan(int<1>) interInv_mainLMEM_main_I0__0;
+  chan(int<1>) const_mainLMEM_main_I0___1_3_;
+  chan(int<1>) interAnd_mainLMEM_main_I0__0;
+  chan(int<1>) interFinalSplit_mainLMEM_main_I0__0_L;
+  chan(int<1>) interFinalSplit_mainLMEM_main_I0__0_R;
+  chan(int<1>) loopInit_mainLMEM_main_I0__0;
+  chan(int<1>) loopBbSelectMerge_mainLMEM_main_I0__0;
+  chan(int<1>) const_mainLMEM_main_I0___0_0_;
+  chan(int<1>) loopBbSelectSplit_mainLMEM_main_I0__0_L;
+  chan(int<1>) loopBbSelectSplit_mainLMEM_main_I0__0_R;
+  chan(int<1>) loopCondSelectMerge_mainLMEM_main_I0__0;
+  chan(int<1>) loopCondSelectSplit_mainLMEM_main_I0__0_L;
+  chan(int<1>) loopCondSelectSplit_mainLMEM_main_I0__0_R;
+  chan(int<1>) loopOr_mainLMEM_main_I0__0;
+  chan(int<1>) loopXor_mainLMEM_main_I0__0;
+  chan(int<1>) loopInv_mainLMEM_main_I0__0;
+  chan(int<1>) const_mainLMEM_main_I0___1_4_;
+  chan(int<1>) loopInit_mainLMEM_main_I0__1;
+  chan(int<1>) loopBbSelectMerge_mainLMEM_main_I0__1;
+  chan(int<1>) const_mainLMEM_main_I0___0_1_;
+  chan(int<1>) loopBbSelectSplit_mainLMEM_main_I0__1_L;
+  chan(int<1>) loopBbSelectSplit_mainLMEM_main_I0__1_R;
+  chan(int<1>) loopCondSelectMerge_mainLMEM_main_I0__1;
+  chan(int<1>) loopCondSelectSplit_mainLMEM_main_I0__1_L;
+  chan(int<1>) loopCondSelectSplit_mainLMEM_main_I0__1_R;
+  chan(int<1>) loopOr_mainLMEM_main_I0__1;
+  chan(int<1>) loopXor_mainLMEM_main_I0__1;
+  chan(int<1>) loopInv_mainLMEM_main_I0__1;
+  chan(int<1>) const_mainLMEM_main_I0___1_5_;
+  chan(int<1>) interArgMerge_mainLMEM_main_I0__0_0;
+  chan(int<64>) interArgMerge_mainLMEM_main_I0__1_0;
+  chan(int<32>) interArgMerge_mainLMEM_main_I0__2_0;
+  chan(int<32>) interOutSplit_mainLMEM_main_I0__0_L;
+  chan(int<32>) interOutSplit_mainLMEM_main_I0__0_R;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__0;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__0_source;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__0_sub;
+  chan(int<32>) main_I8_;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__1;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__1_source;
+  chan(int<1>) intraEnabler_mainLMEM_main_I0__1_sub;
+  chan(int<32>) main_I16_;
+  chan(int<1>) sink0;
+  chan(int<1>) sink1;
+  chan(int<1>) sink2;
+  chan(int<1>) sink3;
+  chan(int<1>) sink4;
+  chan(int<32>) sink5;
+  chan(int<1>) sink6;
+  chan(int<1>) sink7;
+  chan(int<32>) sink8;
+  chan(int<32>) sink9;
+  /* Handle invocations */
+  mem::LMEM_main_I0_ mem_LMEM_main_I0__inst(mainLMEM_main_I0__in_0, mainLMEM_main_I0__in_1, mainLMEM_main_I0__in_2, mainLMEM_main_I0__out);
+
+  /* Define dataflow script */
+  dataflow {
+    3 -> main_I1_;
+    4 -> main_I2_;
+    0 -> const_main_0_0_;
+    1 -> const_main_1_0_;
+    0 -> const_main_0_1_;
+    0 -> const_main_0_2_;
+    0 -> const_main_0_3_;
+    1 -> const_main_1_1_;
+    0 -> const_main_0_4_;
+    1 -> const_main_1_2_;
+    0 -> const_main_0_5_;
+    0 -> const_main_0_6_;
+    1 -> const_mainLMEM_main_I0___1_0_;
+    1 -> const_mainLMEM_main_I0___1_1_;
+    1 -> const_mainLMEM_main_I0___1_2_;
+    ~interStateSplit_mainLMEM_main_I0__0_L -> interStateInv_mainLMEM_main_I0__0;
+    1 -> const_mainLMEM_main_I0___1_3_;
+    ~interEnablerMerge_mainLMEM_main_I0__0 -> interInv_mainLMEM_main_I0__0;
+    0 -> const_mainLMEM_main_I0___0_0_;
+    1 -> const_mainLMEM_main_I0___1_4_;
+    ~loopXor_mainLMEM_main_I0__0 -> loopInv_mainLMEM_main_I0__0;
+    0 -> const_mainLMEM_main_I0___0_1_;
+    1 -> const_mainLMEM_main_I0___1_5_;
+    ~loopXor_mainLMEM_main_I0__1 -> loopInv_mainLMEM_main_I0__1;
+    1 -> intraEnabler_mainLMEM_main_I0__0_source;
+    intraEnabler_mainLMEM_main_I0__0_source - intraEnabler_mainLMEM_main_I0__0 -> intraEnabler_mainLMEM_main_I0__0_sub;
+    intraEnabler_mainLMEM_main_I0__0_sub -> [6,1] intraEnabler_mainLMEM_main_I0__0;
+    1 -> intraEnabler_mainLMEM_main_I0__1_source;
+    intraEnabler_mainLMEM_main_I0__1_source - intraEnabler_mainLMEM_main_I0__1 -> intraEnabler_mainLMEM_main_I0__1_sub;
+    intraEnabler_mainLMEM_main_I0__1_sub -> [6,1] intraEnabler_mainLMEM_main_I0__1;
+    Merge_main_I4_ + const_main_1_0_ -> main_I5_;
+    Merge_main_I4_ -> main_I6_;
+    int(Merge_main_I4_ = const_main_0_1_) -> main_I9_;
+    interArgMerge_mainLMEM_main_I0__2_0 -> mainLMEM_main_I0__in_2;
+    interStateMerge_mainLMEM_main_I0__0 & interInv_mainLMEM_main_I0__0 -> interAnd_mainLMEM_main_I0__0;
+    loopCondSelectMerge_mainLMEM_main_I0__0 ^ loopBbSelectMerge_mainLMEM_main_I0__0 -> loopXor_mainLMEM_main_I0__0;
+    loopCondSelectMerge_mainLMEM_main_I0__1 ^ loopBbSelectMerge_mainLMEM_main_I0__1 -> loopXor_mainLMEM_main_I0__1;
+    Merge_main_I12_ -> main_I14_;
+    interArgMerge_mainLMEM_main_I0__1_0 -> mainLMEM_main_I0__in_1;
+    interArgMerge_mainLMEM_main_I0__0_0 -> mainLMEM_main_I0__in_0;
+    Merge_main_I13_ + main_I16_ -> main_I17_;
+    Merge_main_I12_ + const_main_1_1_ -> main_I18_;
+    int(Merge_main_I12_ = const_main_0_4_) -> main_I19_;
+    loopCondSelectMerge_mainLMEM_main_I0__0 | loopInit_mainLMEM_main_I0__0 -> loopOr_mainLMEM_main_I0__0;
+    loopCondSelectMerge_mainLMEM_main_I0__1 | loopInit_mainLMEM_main_I0__1 -> loopOr_mainLMEM_main_I0__1;
+    interOutSplit_mainLMEM_main_I0__0_R -> main_I16_;
+    sig_main_I17__main_I19__L -> main_out;
+    interStateMerge_mainLMEM_main_I0__0 -> [1, 0] interStateInit_mainLMEM_main_I0__0;
+    loopBbSelectMerge_mainLMEM_main_I0__0 -> [1, 0] loopInit_mainLMEM_main_I0__0;
+    main_I9_ -> [1, 0] main_init0;
+    main_I19_ -> [1, 0] main_init1;
+    main_I19_ -> [1, 0] main_init2;
+    loopCondMerge_mainLMEM_main_I0__0 -> [1, 0] loopCondInit_mainLMEM_main_I0__0;
+    loopCondMerge_mainLMEM_main_I0__1 -> [1, 0] loopCondInit_mainLMEM_main_I0__1;
+    loopBbSelectMerge_mainLMEM_main_I0__1 -> [1, 0] loopInit_mainLMEM_main_I0__1;
+    {interStateInit_mainLMEM_main_I0__0} loopBbSelectSplit_mainLMEM_main_I0__0_R, loopBbSelectSplit_mainLMEM_main_I0__1_R -> interEnablerMerge_mainLMEM_main_I0__0;
+    {loopCondInit_mainLMEM_main_I0__0} const_mainLMEM_main_I0___1_0_, main_I9_ -> loopCondMerge_mainLMEM_main_I0__0;
+    {loopCondInit_mainLMEM_main_I0__1} const_mainLMEM_main_I0___1_1_, main_I19_ -> loopCondMerge_mainLMEM_main_I0__1;
+    {loopOr_mainLMEM_main_I0__1} const_mainLMEM_main_I0___0_1_, intraEnabler_mainLMEM_main_I0__1 -> loopBbSelectMerge_mainLMEM_main_I0__1;
+    {loopOr_mainLMEM_main_I0__0} const_mainLMEM_main_I0___0_0_, intraEnabler_mainLMEM_main_I0__0 -> loopBbSelectMerge_mainLMEM_main_I0__0;
+    {loopInit_mainLMEM_main_I0__1} loopCondMerge_mainLMEM_main_I0__1, loopCondSelectSplit_mainLMEM_main_I0__1_R -> loopCondSelectMerge_mainLMEM_main_I0__1;
+    {interEnablerMerge_mainLMEM_main_I0__0} interStateInv_mainLMEM_main_I0__0, interStateSplit_mainLMEM_main_I0__0_R -> interStateMerge_mainLMEM_main_I0__0;
+    {loopInit_mainLMEM_main_I0__0} loopCondMerge_mainLMEM_main_I0__0, loopCondSelectSplit_mainLMEM_main_I0__0_R -> loopCondSelectMerge_mainLMEM_main_I0__0;
+    {main_init0} const_main_0_0_, sig_main_I5__main_I9__R -> Merge_main_I4_;
+    {interStateSplit_mainLMEM_main_I0__0_R} const_main_1_2_, const_main_0_6_ -> interArgMerge_mainLMEM_main_I0__0_0;
+    {interStateSplit_mainLMEM_main_I0__0_R} main_I6_, main_I14_ -> interArgMerge_mainLMEM_main_I0__1_0;
+    {interStateSplit_mainLMEM_main_I0__0_R} main_I5_, const_main_0_5_ -> interArgMerge_mainLMEM_main_I0__2_0;
+    {main_init1} const_main_0_2_, sig_main_I18__main_I19__R -> Merge_main_I12_;
+    {main_init2} const_main_0_3_, sig_main_I17__main_I19__R -> Merge_main_I13_;
+    {interAnd_mainLMEM_main_I0__0} interEnablerMerge_mainLMEM_main_I0__0 -> interFinalSplit_mainLMEM_main_I0__0_L, interFinalSplit_mainLMEM_main_I0__0_R;
+    {loopInv_mainLMEM_main_I0__0} loopBbSelectMerge_mainLMEM_main_I0__0 -> loopBbSelectSplit_mainLMEM_main_I0__0_L, loopBbSelectSplit_mainLMEM_main_I0__0_R;
+    {loopBbSelectMerge_mainLMEM_main_I0__0} loopCondSelectMerge_mainLMEM_main_I0__0 -> loopCondSelectSplit_mainLMEM_main_I0__0_L, loopCondSelectSplit_mainLMEM_main_I0__0_R;
+    {loopInv_mainLMEM_main_I0__1} loopBbSelectMerge_mainLMEM_main_I0__1 -> loopBbSelectSplit_mainLMEM_main_I0__1_L, loopBbSelectSplit_mainLMEM_main_I0__1_R;
+    {main_I9_} main_I5_ -> sig_main_I5__main_I9__L, sig_main_I5__main_I9__R;
+    {interEnablerMerge_mainLMEM_main_I0__0} interStateInit_mainLMEM_main_I0__0 -> interStateSplit_mainLMEM_main_I0__0_L, interStateSplit_mainLMEM_main_I0__0_R;
+    {loopBbSelectMerge_mainLMEM_main_I0__1} loopCondSelectMerge_mainLMEM_main_I0__1 -> loopCondSelectSplit_mainLMEM_main_I0__1_L, loopCondSelectSplit_mainLMEM_main_I0__1_R;
+    {main_I19_} main_I17_ -> sig_main_I17__main_I19__L, sig_main_I17__main_I19__R;
+    {main_I19_} main_I18_ -> sig_main_I18__main_I19__L, sig_main_I18__main_I19__R;
+    {interStateSplit_mainLMEM_main_I0__0_R} mainLMEM_main_I0__out -> interOutSplit_mainLMEM_main_I0__0_L, interOutSplit_mainLMEM_main_I0__0_R
+  }
+}
+
+main m;
