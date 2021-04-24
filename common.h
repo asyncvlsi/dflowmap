@@ -31,7 +31,7 @@
 
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
-#define DEBUG_FU true
+#define DEBUG_FU false
 
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
