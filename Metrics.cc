@@ -38,9 +38,9 @@ int *Metrics::getOpMetric(const char *op) {
       return opMetricsIt.second;
     }
   }
-  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-         "We could not find metric info for %s\n", normalizedOp);
   if (DEBUG_VERBOSE) {
+    printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+           "We could not find metric info for %s\n", normalizedOp);
     printOpMetrics();
     printf("\n\n\n\n\n");
   }
@@ -127,20 +127,39 @@ void Metrics::updateAreaStatistics(const char *instance, int area) {
       return;
     }
   }
-  areaStatistics.insert(GenPair(instance, area));
+  char *opName = new char[10240];
+  opName[0] = '\0';
+  strcpy(opName, instance);
+  areaStatistics.insert(GenPair(opName, area));
 }
 
 void Metrics::printAreaStatistics() {
   printf("Area Statistics:\n");
-  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
-  std::multimap<int, const char *>::iterator sortedAreasIt;
-  for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); ++iter) {
-    int area = iter->first;
+//  if (!areaStatistics.empty() && (totalArea == 0)) {
+//    printf("areaStatistics is not empty, but totalArea is 0!\n");
+//    exit(-1);
+//  }
+//  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
+  for (auto &areaStatisticsIt : areaStatistics) {
+    const char *opName = areaStatisticsIt.first;
+    int area = areaStatisticsIt.second;
     double ratio = (double) area / totalArea * 100;
-//    if (ratio > 1) {
-    printf("%40.30s %5d %5.1f\%\n", iter->second, area, ratio);
-//    }
+    printf("%s %d\n", opName, area);
+//    printf("%.2f\n", ratio);
+//    printf("%40.30s %5d %5.1f\n", opName, area, ratio);
   }
+
+//  for (auto iter = areaStatistics.rbegin(); iter != areaStatistics.rend(); iter++) {
+////  for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
+//    int area = iter->second;
+//    double ratio = (double) area / totalArea * 100;
+//    const char *opName = iter->first;
+////    if (ratio > 1) {
+//    printf("%s %d %f\n", opName, area, ratio);
+////      printf("%40.30s %5d %5.1f\n", opName, area, ratio);
+////        }
+//}
+
   printf("\n");
 }
 
