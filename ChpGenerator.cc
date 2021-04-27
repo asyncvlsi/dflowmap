@@ -37,7 +37,9 @@ const char *ChpGenerator::getActIdName(ActId *actId) {
     unsigned outUses = getOpUses(actName);
     if (outUses) {
       unsigned copyUse = getCopyUses(actName);
-      printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
+      if (DEBUG_VERBOSE) {
+        printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
+      }
       if (copyUse <= outUses) {
         sprintf(str, "%scopy.out[%u]", actId->getName(), copyUse);
       } else {
@@ -358,7 +360,9 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
         oriArgList.push_back(oriVarName);
         const char *mappedVarName = getActIdName(actId);
         argList.push_back(mappedVarName);
-        printf("oriVarName: %s, mappedVarName: %s\n", oriVarName, mappedVarName);
+        if (DEBUG_VERBOSE) {
+          printf("oriVarName: %s, mappedVarName: %s\n", oriVarName, mappedVarName);
+        }
         sprintf(calcStr, "%s_%d", oriVarName, numArgs);
         sprintf(curArg, "x%d", numArgs);
       } else {
@@ -585,22 +589,23 @@ void ChpGenerator::printOpUses() {
 }
 
 bool ChpGenerator::isOpUsed(const char *op) {
-  auto opUsesIt = opUses.find(op);
-  if (opUsesIt == opUses.end()) {
-    return false;
-  } else {
-    return true;
+  for (auto &opUsesIt : opUses) {
+    if (strcmp(op, opUsesIt.first) == 0) {
+      return true;
+    }
   }
+  return false;
 }
 
 unsigned ChpGenerator::getOpUses(const char *op) {
-  auto opUsesIt = opUses.find(op);
-  if (opUsesIt == opUses.end()) {
-    printf("We don't know how many times %s is used!\n", op);
-    printOpUses();
-    exit(-1);
+  for (auto &opUsesIt : opUses) {
+    if (strcmp(op, opUsesIt.first) == 0) {
+      return opUsesIt.second;
+    }
   }
-  return opUsesIt->second;
+  printf("We don't know how many times %s is used!\n", op);
+  printOpUses();
+  exit(-1);
 }
 
 void ChpGenerator::collectUniOpUses(Expr *expr, StringVec &recordedOps) {
@@ -812,6 +817,46 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
 }
 
 void ChpGenerator::collectOpUses(Process *p) {
+  ActInstiter inst(p->CurScope());
+  for (inst = inst.begin(); inst != inst.end(); inst++) {
+    ValueIdx *vx = *inst;
+    if (vx->hasConnection()) {
+//    if (!TypeFactory::isParamType(vx->t) && vx->hasConnection()) {
+      act_connection *cx = vx->connection();
+      const char *connectionName = cx->toid()->getName();
+      updateOpUses(connectionName);
+//      printf("connectionName: %s\n", connectionName);
+//      bool isGlobal = cx->isglobal();
+//      bool first = true;
+//      if (cx->isPrimary()) {
+//        ActConniter ci(cx);
+//        if (ci.begin() != ci.end() && (++ci.begin() != ci.end())) {
+//          for (ci = ci.begin(); ci != ci.end(); ci++) {
+//            act_connection *c = *ci;
+//            if (!isGlobal || c->isglobal()) {
+//              if (first) {
+//                first = false;
+//              } else {
+//                const char *connectionRHS = c->toid()->getName();
+//                updateOpUses(connectionRHS);
+//                printf("connectionRHS: %s\n", connectionRHS);
+//              }
+//            }
+//          }
+//        }
+//      } else if (!isGlobal && cx->primary()->isglobal()) {
+//        const char *connectionRHS = cx->primary()->toid()->getName();
+//        updateOpUses(connectionRHS);
+//        printf("connectionRHS: %s\n", connectionRHS);
+//      }
+//      else {
+//        printf("Unspported connection!\n");
+//        p->CurScope()->Print(stdout);
+//        exit(-1);
+//      }
+    }
+  }
+
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
@@ -1041,6 +1086,19 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                                metric, boolRes);
   if (metric != nullptr) {
     metrics->updateAreaStatistics(procName, metric[3]);
+  }
+  /* if the output is a single port what is not connected to any other op, we should
+   * connnect the output port to SINK! */
+  if (numOuts == 1) {
+    const char *outPort = outList[0].c_str();
+    if (!isOpUsed(outPort)) {
+      int bw = getBitwidth(outPort);
+      printSink(resFp, libFp, confFp, outPort, bw);
+//      if (DEBUG_VERBOSE) {
+      printf("%s is not used anywhere!\n", outPort);
+//        printOpUses();
+//      }
+    }
   }
 }
 
@@ -1435,10 +1493,10 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
       handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt);
     }
   }
-  if (mainProc) {
-    const char *outPort = "main_out";
-    int outWidth = getBitwidth(outPort);
-    printSink(resFp, libFp, confFp, outPort, outWidth);
-  }
+//  if (mainProc) {
+//    const char *outPort = "main_out";
+//    int outWidth = getBitwidth(outPort);
+//    printSink(resFp, libFp, confFp, outPort, outWidth);
+//  }
   fprintf(resFp, "}\n\n");
 }

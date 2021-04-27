@@ -123,7 +123,8 @@ void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procNa
     for (i = 0; i < numInputs - 1; i++) {
       fprintf(libFp, "c=%d -> in%d?x [] ", i, i);
     }
-    fprintf(libFp, "c=%d -> in%d?x]; out!x; log(\"send \", x)]\n", i, i);
+    fprintf(libFp, "c=%d -> in%d?x]; log(\"receive x: \", x); ", i, i);
+    fprintf(libFp, "out!x; log(\"send \", x)]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
