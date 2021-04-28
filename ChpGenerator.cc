@@ -1,3 +1,4 @@
+#include <act/lang.h>
 #include "ChpGenerator.h"
 
 void ChpGenerator::printIntVec(IntVec &intVec) {
@@ -808,6 +809,9 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
         fatal_error("Do not support nested dflow_cluster!\n");
         break;
       }
+      case ACT_DFLOW_SINK: {
+        fatal_error("dflow cluster should not connect to SINK!\n");
+      }
       default: {
         fatal_error("Unknown dataflow type %d\n", d->t);
         break;
@@ -817,52 +821,56 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
 }
 
 void ChpGenerator::collectOpUses(Process *p) {
-  ActInstiter inst(p->CurScope());
-  for (inst = inst.begin(); inst != inst.end(); inst++) {
-    ValueIdx *vx = *inst;
-    if (vx->hasConnection()) {
-//    if (!TypeFactory::isParamType(vx->t) && vx->hasConnection()) {
-      act_connection *cx = vx->connection();
-      const char *connectionName = cx->toid()->getName();
-      updateOpUses(connectionName);
-//      printf("connectionName: %s\n", connectionName);
-//      bool isGlobal = cx->isglobal();
-//      bool first = true;
-//      if (cx->isPrimary()) {
-//        ActConniter ci(cx);
-//        if (ci.begin() != ci.end() && (++ci.begin() != ci.end())) {
-//          for (ci = ci.begin(); ci != ci.end(); ci++) {
-//            act_connection *c = *ci;
-//            if (!isGlobal || c->isglobal()) {
-//              if (first) {
-//                first = false;
-//              } else {
-//                const char *connectionRHS = c->toid()->getName();
-//                updateOpUses(connectionRHS);
-//                printf("connectionRHS: %s\n", connectionRHS);
-//              }
-//            }
-//          }
-//        }
-//      } else if (!isGlobal && cx->primary()->isglobal()) {
-//        const char *connectionRHS = cx->primary()->toid()->getName();
-//        updateOpUses(connectionRHS);
-//        printf("connectionRHS: %s\n", connectionRHS);
-//      }
-//      else {
-//        printf("Unspported connection!\n");
-//        p->CurScope()->Print(stdout);
-//        exit(-1);
-//      }
-    }
-  }
-
+//  ActInstiter inst(p->CurScope());
+//  for (inst = inst.begin(); inst != inst.end(); inst++) {
+//    ValueIdx *vx = *inst;
+//    if (vx->hasConnection()) {
+////    if (!TypeFactory::isParamType(vx->t) && vx->hasConnection()) {
+//      act_connection *cx = vx->connection();
+//      const char *connectionName = cx->toid()->getName();
+//      updateOpUses(connectionName);
+////      printf("connectionName: %s\n", connectionName);
+////      bool isGlobal = cx->isglobal();
+////      bool first = true;
+////      if (cx->isPrimary()) {
+////        ActConniter ci(cx);
+////        if (ci.begin() != ci.end() && (++ci.begin() != ci.end())) {
+////          for (ci = ci.begin(); ci != ci.end(); ci++) {
+////            act_connection *c = *ci;
+////            if (!isGlobal || c->isglobal()) {
+////              if (first) {
+////                first = false;
+////              } else {
+////                const char *connectionRHS = c->toid()->getName();
+////                updateOpUses(connectionRHS);
+////                printf("connectionRHS: %s\n", connectionRHS);
+////              }
+////            }
+////          }
+////        }
+////      } else if (!isGlobal && cx->primary()->isglobal()) {
+////        const char *connectionRHS = cx->primary()->toid()->getName();
+////        updateOpUses(connectionRHS);
+////        printf("connectionRHS: %s\n", connectionRHS);
+////      }
+////      else {
+////        printf("Unspported connection!\n");
+////        p->CurScope()->Print(stdout);
+////        exit(-1);
+////      }
+//    }
+//  }
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
        li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     switch (d->t) {
+      case ACT_DFLOW_SINK: {
+        ActId *input = d->u.sink.chan;
+        updateOpUses(input->getName());
+        break;
+      }
       case ACT_DFLOW_FUNC: {
         Expr *expr = d->u.func.lhs;
         StringVec recordedOps;
@@ -1087,19 +1095,19 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   if (metric != nullptr) {
     metrics->updateAreaStatistics(procName, metric[3]);
   }
-  /* if the output is a single port what is not connected to any other op, we should
-   * connnect the output port to SINK! */
-  if (numOuts == 1) {
-    const char *outPort = outList[0].c_str();
-    if (!isOpUsed(outPort)) {
-      int bw = getBitwidth(outPort);
-      printSink(resFp, libFp, confFp, outPort, bw);
-//      if (DEBUG_VERBOSE) {
-      printf("%s is not used anywhere!\n", outPort);
-//        printOpUses();
-//      }
-    }
-  }
+//  /* if the output is a single port what is not connected to any other op, we should
+//   * connnect the output port to SINK! */
+//  if (numOuts == 1) {
+//    const char *outPort = outList[0].c_str();
+//    if (!isOpUsed(outPort)) {
+//      int bw = getBitwidth(outPort);
+//      printSink(resFp, libFp, confFp, outPort, bw);
+////      if (DEBUG_VERBOSE) {
+//      printf("%s is not used anywhere!\n", outPort);
+////        printOpUses();
+////      }
+//    }
+//  }
 }
 
 void
@@ -1379,9 +1387,16 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       dflow_print(stdout, d);
       fatal_error("We should not process dflow_clsuter here!");
     }
+    case ACT_DFLOW_SINK: {
+      ActId *input = d->u.sink.chan;
+      const char *inputName = input->getName();
+      int bw = getBitwidth(inputName);
+      printSink(resFp, libFp, confFp, inputName, bw);
+      printf("%s is not used anywhere!\n", inputName);
+      break;
+    }
     default: {
       fatal_error("Unknown dataflow type %d\n", d->t);
-      break;
     }
   }
 }
@@ -1493,10 +1508,10 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
       handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt);
     }
   }
-//  if (mainProc) {
-//    const char *outPort = "main_out";
-//    int outWidth = getBitwidth(outPort);
-//    printSink(resFp, libFp, confFp, outPort, outWidth);
-//  }
+  if (mainProc) {
+    const char *outPort = "main_out";
+    int outWidth = getBitwidth(outPort);
+    printSink(resFp, libFp, confFp, outPort, outWidth);
+  }
   fprintf(resFp, "}\n\n");
 }
