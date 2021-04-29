@@ -35,7 +35,7 @@ public:
   printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name, unsigned bitwidth);
 
   void printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
-                const char *normalizedOut, unsigned val, unsigned outWidth);
+                const char *normalizedOut, unsigned long val, unsigned outWidth);
 
   void collectBitwidthInfo(Process *p);
 
