@@ -12,7 +12,7 @@ class Metrics {
 public:
   void updateMetrics(const char *op, int *metric);
 
-  void updateCopyStatistics(int bitwidth, int numOutputs);
+  void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
   void printCopyStatistics();
 

@@ -8,6 +8,14 @@ void ChpGenerator::printIntVec(IntVec &intVec) {
   printf("\n");
 }
 
+
+void ChpGenerator::printULongVec(ULongVec &longVec) {
+  for (auto &val : longVec) {
+    printf("%lu ", val);
+  }
+  printf("\n");
+}
+
 int ChpGenerator::searchStringVec(StringVec &strVec, const char *str) {
   auto it = std::find(strVec.begin(), strVec.end(), str);
   if (it != strVec.end()) {
@@ -57,13 +65,13 @@ const char *ChpGenerator::getActIdName(ActId *actId) {
 
 void
 ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name,
-                        int bitwidth) {
+                        unsigned bitwidth) {
   if (name == nullptr) {
     fatal_error("sink name is NULL!\n");
   }
-  fprintf(resFp, "sink<%d> %s_sink(%s);\n", bitwidth, name, name);
+  fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, name, name);
   char *instance = new char[1500];
-  sprintf(instance, "sink<%d>", bitwidth);
+  sprintf(instance, "sink<%u>", bitwidth);
   int *metric = metrics->getOpMetric(instance);
   processGenerator.createSink(libFp, confFp, instance, metric);
   if (metric != nullptr) {
@@ -73,12 +81,12 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
 
 void ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
                             const char *normalizedOut,
-                            unsigned val, int outWidth) {
-  fprintf(resFp, "source<%u,%d> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
+                            unsigned val, unsigned outWidth) {
+  fprintf(resFp, "source<%u,%u> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[1500];
-  sprintf(instance, "source<%u,%d>", val, outWidth);
+  sprintf(instance, "source<%u,%u>", val, outWidth);
   char *opName = new char[1500];
-  sprintf(opName, "source%d", outWidth);
+  sprintf(opName, "source%u", outWidth);
   int *metric = metrics->getOpMetric(opName);
   processGenerator.createSource(libFp, confFp, instance, metric);
   if (metric != nullptr) {
@@ -92,26 +100,33 @@ void ChpGenerator::collectBitwidthInfo(Process *p) {
     ValueIdx *vx = *inst;
     const char *varName = vx->getName();
     int bitwidth = TypeFactory::bitWidth(vx->t);
-    bitwidthMap.insert(std::make_pair(varName, bitwidth));
+    if (bitwidth <= 0) {
+      printf("%s has negative bw %d!\n", varName, bitwidth);
+    } else {
+      bitwidthMap.insert(std::make_pair(varName, bitwidth));
+    }
   }
 }
 
 void ChpGenerator::printBitwidthInfo() {
   printf("bitwidth info:\n");
-  for (auto bitwidthMapIt = bitwidthMap.begin(); bitwidthMapIt != bitwidthMap.end();
-       bitwidthMapIt++) {
-    printf("(%s, %d) ", bitwidthMapIt->first, bitwidthMapIt->second);
+  for (auto &bitwidthMapIt : bitwidthMap) {
+    printf("(%s, %u) ", bitwidthMapIt.first, bitwidthMapIt.second);
   }
   printf("\n");
 }
 
-int ChpGenerator::getActIdBW(ActId *actId, Process *p) {
+unsigned ChpGenerator::getActIdBW(ActId *actId, Process *p) {
   Array **aref = nullptr;
   InstType *instType = p->CurScope()->FullLookup(actId, aref);
-  return TypeFactory::bitWidth(instType);
+  int bw = TypeFactory::bitWidth(instType);
+  if (bw <= 0) {
+    fatal_error("%s has negative bw %d!\n", actId->getName(), bw);
+  }
+  return bw;
 }
 
-int ChpGenerator::getBitwidth(const char *varName) {
+unsigned ChpGenerator::getBitwidth(const char *varName) {
   for (auto &bitwidthMapIt : bitwidthMap) {
     const char *record = bitwidthMapIt.first;
     if (strcmp(record, varName) == 0) {
@@ -139,11 +154,10 @@ const char *
 ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
                          const char *metricSym,
                          char *procName, char *calc, char *def, StringVec &argList,
-                         StringVec
-                         &oriArgList, IntVec &argBWList,
-                         IntVec &resBWList, int &result_suffix, int result_bw,
+                         StringVec &oriArgList, UIntVec &argBWList,
+                         UIntVec &resBWList, int &result_suffix, unsigned result_bw,
                          char *calcStr,
-                         IntVec &boolRes) {
+                         IntVec &boolResSuffixs) {
   Expr *cExpr = expr->u.e.l;
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
@@ -155,18 +169,20 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   char *cCalcStr = new char[1500];
   const char *cStr = printExpr(cExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList, result_suffix, result_bw, cConst, cCalcStr,
-                               boolRes);
-  boolRes.push_back(result_suffix);
+                               boolResSuffixs);
+  boolResSuffixs.push_back(result_suffix);
   bool lConst = false;
   char *lCalcStr = new char[1500];
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
-                               result_suffix, result_bw, lConst, lCalcStr, boolRes);
+                               result_suffix, result_bw, lConst, lCalcStr,
+                               boolResSuffixs);
   bool rConst = false;
   char *rCalcStr = new char[1500];
   const char *rStr = printExpr(rExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
-                               result_suffix, result_bw, rConst, rCalcStr, boolRes);
+                               result_suffix, result_bw, rConst, rCalcStr,
+                               boolResSuffixs);
 
   char *newExpr = new char[100];
   result_suffix++;
@@ -198,12 +214,12 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
     printf("\n");
     printf("arg bw list: ");
     for (auto &bw : argBWList) {
-      printf("%d ", bw);
+      printf("%u ", bw);
     }
     printf("\n");
     printf("res bw list: ");
     for (auto &bw2:resBWList) {
-      printf("%d ", bw2);
+      printf("%u ", bw2);
     }
     printf("\n");
   }
@@ -215,10 +231,9 @@ const char *
 ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
                        const char *metricSym,
                        char *procName, char *calc, char *def, StringVec &argList,
-                       StringVec
-                       &oriArgList, IntVec &argBWList, IntVec &resBWList,
+                       StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
                        int &result_suffix,
-                       int result_bw, char *calcStr, IntVec &boolRes) {
+                       unsigned result_bw, char *calcStr, IntVec &boolResSuffixs) {
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
   if (procName[0] == '\0') {
@@ -228,12 +243,14 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   char *lCalcStr = new char[1500];
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
-                               result_suffix, result_bw, lConst, lCalcStr, boolRes);
+                               result_suffix, result_bw, lConst, lCalcStr,
+                               boolResSuffixs);
   bool rConst = false;
   char *rCalcStr = new char[1500];
   const char *rStr = printExpr(rExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
-                               result_suffix, result_bw, rConst, rCalcStr, boolRes);
+                               result_suffix, result_bw, rConst, rCalcStr,
+                               boolResSuffixs);
   if (lConst && rConst) {
     print_expr(stdout, expr);
     printf(" has both const operands!\n");
@@ -274,12 +291,12 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
     printf("\n");
     printf("arg bw list: ");
     for (auto &bw : argBWList) {
-      printf("%d ", bw);
+      printf("%u ", bw);
     }
     printf("\n");
     printf("res bw list: ");
     for (auto &bw2:resBWList) {
-      printf("%d ", bw2);
+      printf("%u ", bw2);
     }
     printf("\n");
   }
@@ -292,10 +309,10 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
                        const char *metricSym,
                        char *procName, char *calc, char *def, StringVec &argList,
                        StringVec &oriArgList,
-                       IntVec &argBWList,
-                       IntVec &resBWList, int &result_suffix, int result_bw,
+                       UIntVec &argBWList,
+                       UIntVec &resBWList, int &result_suffix, unsigned result_bw,
                        char *calcStr,
-                       IntVec &boolRes) {
+                       IntVec &boolResSuffixs) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   if (procName[0] == '\0') {
@@ -305,7 +322,8 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   char *lCalcStr = new char[1500];
   const char *lStr = printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                                resBWList,
-                               result_suffix, result_bw, lConst, lCalcStr, boolRes);
+                               result_suffix, result_bw, lConst, lCalcStr,
+                               boolResSuffixs);
 //  if (lConst) {
 //    print_expr(stdout, expr);
 //    printf(" has const operands!\n");
@@ -335,17 +353,16 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
 const char *
 ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
                         StringVec &argList,
-                        StringVec &oriArgList, IntVec &argBWList,
-                        IntVec &resBWList, int &result_suffix, int result_bw,
-                        bool &constant,
-                        char *calcStr, IntVec &boolRes) {
+                        StringVec &oriArgList, UIntVec &argBWList,
+                        UIntVec &resBWList, int &result_suffix, unsigned result_bw,
+                        bool &constant, char *calcStr, IntVec &boolResSuffixs) {
   int type = expr->type;
   switch (type) {
     case E_INT: {
       if (procName[0] == '\0') {
         fatal_error("we should NOT process Source here!\n");
       }
-      unsigned int val = expr->u.v;
+      unsigned long val = expr->u.v;
       const char *valStr = strdup(std::to_string(val).c_str());
       sprintf(calcStr, "%s", valStr);
       constant = true;
@@ -370,7 +387,7 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
         sprintf(calcStr, "%s_%d", oriVarName, idx);
         sprintf(curArg, "x%d", idx);
       }
-      int argBW = getBitwidth(oriVarName);
+      unsigned argBW = getBitwidth(oriVarName);
       argBWList.push_back(argBW);
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
@@ -382,145 +399,145 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_OR: {
       return EMIT_BIN(expr, "or", "|", type, "and", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_NOT: {
       return EMIT_UNI(expr, "not", "~", type, "and", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_PLUS: {
       return EMIT_BIN(expr, "add", "+", type, "add", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_MINUS: {
       return EMIT_BIN(expr, "minus", "-", type, "add", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_MULT: {
       return EMIT_BIN(expr, "mul", "*", type, "mul", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_DIV: {
       return EMIT_BIN(expr, "div", "/", type, "div", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_MOD: {
       return EMIT_BIN(expr, "mod", "%", type, "rem", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_LSL: {
       return EMIT_BIN(expr, "lsl", "<<", type, "lshift", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_LSR: {
       return EMIT_BIN(expr, "lsr", ">>", type, "lshift", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_ASR: {
       return EMIT_BIN(expr, "asr", ">>>", type, "lshift", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_UMINUS: {
       return EMIT_UNI(expr, "neg", "-", type, "and", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_XOR: {
       return EMIT_BIN(expr, "xor", "^", type, "and", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_LT: {
       return EMIT_BIN(expr, "lt", "<", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_GT: {
       return EMIT_BIN(expr, "gt", ">", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_LE: {
       return EMIT_BIN(expr, "le", "<=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_GE: {
       return EMIT_BIN(expr, "ge", ">=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_EQ: {
       return EMIT_BIN(expr, "eq", "=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, 1, calcStr, boolRes);
+                      result_suffix, 1, calcStr, boolResSuffixs);
     }
     case E_NE: {
       return EMIT_BIN(expr, "ne", "!=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_COMPLEMENT: {
       return EMIT_UNI(expr, "compl", "~", type, "and", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes);
+                      result_suffix, result_bw, calcStr, boolResSuffixs);
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
       Expr *rExpr = expr->u.e.r;
-      unsigned int bw;
+      unsigned long bw;
       if (rExpr) {
         bw = rExpr->u.v;
       } else {
@@ -528,19 +545,19 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
       }
       return printExpr(lExpr, procName, calc, def, argList, oriArgList, argBWList,
                        resBWList,
-                       result_suffix, bw, constant, calcStr, boolRes);
+                       result_suffix, bw, constant, calcStr, boolResSuffixs);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       int bw = 1;
       return printExpr(lExpr, procName, calc, def, argList, oriArgList,
                        argBWList, resBWList, result_suffix, bw,
-                       constant, calcStr, boolRes);
+                       constant, calcStr, boolResSuffixs);
     }
     case E_QUERY: {
       return EMIT_QUERY(expr, "query", "?", type, "query", procName, calc, def,
                         argList, oriArgList, argBWList, resBWList, result_suffix,
-                        result_bw, calcStr, boolRes);
+                        result_bw, calcStr, boolResSuffixs);
     }
     default: {
       print_expr(stdout, expr);
@@ -928,10 +945,10 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
   for (auto &opUsesIt : opUses) {
     unsigned uses = opUsesIt.second;
     if (uses) {
-      int N = uses + 1;
+      unsigned N = uses + 1;
       const char *opName = opUsesIt.first;
-      int bitwidth = getBitwidth(opName);
-      fprintf(resFp, "copy<%d,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
+      unsigned bitwidth = getBitwidth(opName);
+      fprintf(resFp, "copy<%u,%u> %scopy(%s);\n", bitwidth, N, opName, opName);
       char *instance = new char[1500];
       sprintf(instance, "copy<%d,%u>", bitwidth, N);
       int *metric = metrics->getOpMetric(instance);
@@ -948,12 +965,12 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
 void
 ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              const char *procName, StringVec &argList,
-                             IntVec &argBWList, IntVec &resBWList,
-                             IntVec &outWidthList, const char *def, char *calc,
+                             UIntVec &argBWList, UIntVec &resBWList,
+                             UIntVec &outWidthList, const char *def, char *calc,
                              int result_suffix, StringVec &outSendStr,
                              IntVec &outResSuffixs,
                              StringVec &normalizedOutList, StringVec &outList,
-                             StringVec &initStrs, IntVec &boolRes) {
+                             StringVec &initStrs, IntVec &boolResSuffixs) {
   calc[strlen(calc) - 2] = ';';
   if (DEBUG_CLUSTER) {
     printf("PRINT DFLOW FUNCTION\n");
@@ -965,17 +982,17 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     printf("\n");
     printf("arg bw list:\n");
     for (auto &bw : argBWList) {
-      printf("%d ", bw);
+      printf("%u ", bw);
     }
     printf("\n");
     printf("res bw list:\n");
     for (auto &resBW : resBWList) {
-      printf("%d ", resBW);
+      printf("%u ", resBW);
     }
     printf("\n");
     printf("outWidthList:\n");
     for (auto &outBW : outWidthList) {
-      printf("%d ", outBW);
+      printf("%u ", outBW);
     }
     printf("\n");
     printf("def: %s\n", def);
@@ -1000,8 +1017,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       printf("%s ", initStr.c_str());
     }
     printf("\n");
-    printf("boolRes: ");
-    printIntVec(boolRes);
+    printf("boolResSuffixs: ");
+    printIntVec(boolResSuffixs);
   }
 
   char *instance = new char[10240];
@@ -1010,22 +1027,22 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   int i = 0;
   for (; i < numArgs; i++) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%d,", argBWList[i]);
+    sprintf(subInstance, "%u,", argBWList[i]);
     strcat(instance, subInstance);
   }
   for (auto &outWidth : outWidthList) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%d,", outWidth);
+    sprintf(subInstance, "%u,", outWidth);
     strcat(instance, subInstance);
   }
   int numRes = resBWList.size();
   for (i = 0; i < numRes - 1; i++) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%d,", resBWList[i]);
+    sprintf(subInstance, "%u,", resBWList[i]);
     strcat(instance, subInstance);
   }
   char *subInstance = new char[100];
-  sprintf(subInstance, "%d>", resBWList[i]);
+  sprintf(subInstance, "%u>", resBWList[i]);
   strcat(instance, subInstance);
 
   fprintf(resFp, "%s ", instance);
@@ -1064,7 +1081,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   sprintf(log, "      log(\"send (\", ");
   for (auto &outResSuffix : outResSuffixs) {
     char *subLog = new char[100];
-    sprintf(subLog, "res%d, \",\", ", outResSuffix);
+    sprintf(subLog, "res%u, \",\", ", outResSuffix);
     strcat(log, subLog);
   }
   char *subLog = new char[100];
@@ -1091,7 +1108,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend, initSend,
                                numArgs, numOuts,
                                numRes, instance,
-                               metric, boolRes);
+                               metric, boolResSuffixs);
   if (metric != nullptr) {
     metrics->updateAreaStatistics(procName, metric[3]);
   }
@@ -1115,13 +1132,13 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
                               act_dataflow_element *d,
                               char *procName, char *calc,
                               char *def, StringVec &argList, StringVec &oriArgList,
-                              IntVec &argBWList,
-                              IntVec &resBWList, int &result_suffix,
+                              UIntVec &argBWList,
+                              UIntVec &resBWList, int &result_suffix,
                               StringVec &outSendStr,
                               IntVec &outResSuffixs,
                               StringVec &outList, StringVec &normalizedOutList,
-                              IntVec &outWidthList, StringVec &initStrs,
-                              IntVec &boolRes) {
+                              UIntVec &outWidthList, StringVec &initStrs,
+                              IntVec &boolResSuffixs) {
   if (d->t != ACT_DFLOW_FUNC) {
     dflow_print(stdout, d);
     printf("This is not dflow_func!\n");
@@ -1136,7 +1153,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
   out[0] = '\0';
   rhs->sPrint(out, 10240, NULL, 0);
   const char *normalizedOut = removeDot(out);
-  int outWidth = getActIdBW(rhs, p);
+  unsigned outWidth = getActIdBW(rhs, p);
   if (DEBUG_VERBOSE) {
     printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
     print_expr(stdout, expr);
@@ -1152,7 +1169,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     }
   }
   if (type == E_INT) {
-    unsigned int val = expr->u.v;
+    unsigned long val = expr->u.v;
     printInt(resFp, libFp, confFp, out, normalizedOut, val, outWidth);
     if (initExpr) {
       print_expr(stdout, expr);
@@ -1164,7 +1181,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     char *calcStr = new char[1500];
     calcStr[0] = '\0';
     printExpr(expr, procName, calc, def, argList, oriArgList, argBWList, resBWList,
-              result_suffix, outWidth, constant, calcStr, boolRes);
+              result_suffix, outWidth, constant, calcStr, boolResSuffixs);
     if (constant) {
       print_expr(stdout, expr);
       printf("=> we should not process constant lhs here!\n");
@@ -1186,9 +1203,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       strcat(calc, subCalc);
     }
     if (initExpr) {
-      int initVal = initExpr->u.v;
+      unsigned long initVal = initExpr->u.v;
       char *subProcName = new char[1500];
-      sprintf(subProcName, "_init%d", initVal);
+      sprintf(subProcName, "_init%lu", initVal);
       strcat(procName, subProcName);
     }
     if (DEBUG_CLUSTER) {
@@ -1208,12 +1225,12 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       printf("\n");
       printf("arg bw list:\n");
       for (auto &bw : argBWList) {
-        printf("%d ", bw);
+        printf("%u ", bw);
       }
       printf("\n");
       printf("res bw list:\n");
       for (auto &resBW : resBWList) {
-        printf("%d ", resBW);
+        printf("%u ", resBW);
       }
       printf("\n");
       printf("out bw: %d\n", outWidth);
@@ -1234,8 +1251,8 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     sprintf(outStr, "out%d!res%d", (numOuts - 1), result_suffix);
     char *ase = new char[1500];
     if (initExpr) {
-      int initVal = initExpr->u.v;
-      sprintf(ase, "out%d!%d", (numOuts - 1), initVal);
+      unsigned long initVal = initExpr->u.v;
+      sprintf(ase, "out%d!%lu", (numOuts - 1), initVal);
       initStrs.push_back(ase);
     }
     if (DEBUG_CLUSTER) {
@@ -1257,26 +1274,26 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *calc = new char[20240];
       calc[0] = '\0';
       sprintf(calc, "\n");
-      IntVec boolRes;
+      IntVec boolResSuffixs;
       char *def = new char[10240];
       def[0] = '\0';
       sprintf(def, "\n");
       StringVec argList;
       StringVec oriArgList;
-      IntVec argBWList;
-      IntVec resBWList;
+      UIntVec argBWList;
+      UIntVec resBWList;
       int result_suffix = -1;
       StringVec outSendStr;
       IntVec outResSuffixs;
       StringVec outList;
       StringVec normalizedOutList;
-      IntVec outWidthList;
+      UIntVec outWidthList;
       StringVec initStrs;
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
                       oriArgList,
                       argBWList,
                       resBWList, result_suffix, outSendStr, outResSuffixs, outList,
-                      normalizedOutList, outWidthList, initStrs, boolRes);
+                      normalizedOutList, outWidthList, initStrs, boolResSuffixs);
       if (DEBUG_CLUSTER) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         printf("Process normal dflow:\n");
@@ -1287,22 +1304,20 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         printDFlowFunc(resFp, libFp, confFp, procName, argList, argBWList, resBWList,
                        outWidthList, def, calc,
                        result_suffix, outSendStr, outResSuffixs, normalizedOutList,
-                       outList, initStrs, boolRes);
+                       outList, initStrs, boolResSuffixs);
       }
       break;
     }
     case ACT_DFLOW_SPLIT: {
       ActId *input = d->u.splitmerge.single;
-      const char *inputName = input->getName();
-      int inputSize = strlen(inputName);
-      int bitwidth = getActIdBW(input, p);
+      unsigned bitwidth = getActIdBW(input, p);
       ActId **outputs = d->u.splitmerge.multi;
       int numOutputs = d->u.splitmerge.nmulti;
       char *procName = new char[10240];
       sprintf(procName, "control_split_%d", numOutputs);
       char *splitName = new char[2000];
       ActId *guard = d->u.splitmerge.guard;
-      int guardBW = getActIdBW(guard, p);
+      unsigned guardBW = getActIdBW(guard, p);
       const char *guardName = guard->getName();
       sprintf(splitName, "%s", guardName);
       for (int i = 0; i < numOutputs; i++) {
@@ -1347,9 +1362,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
     case ACT_DFLOW_MERGE: {
       ActId *output = d->u.splitmerge.single;
       const char *outputName = output->getName();
-      int inBW = getActIdBW(output, p);
+      unsigned inBW = getActIdBW(output, p);
       ActId *guard = d->u.splitmerge.guard;
-      int guardBW = getActIdBW(guard, p);
+      unsigned guardBW = getActIdBW(guard, p);
       int numInputs = d->u.splitmerge.nmulti;
       char *procName = new char[10240];
       sprintf(procName, "control_merge_%d", numInputs);
@@ -1390,7 +1405,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
     case ACT_DFLOW_SINK: {
       ActId *input = d->u.sink.chan;
       const char *inputName = input->getName();
-      int bw = getBitwidth(inputName);
+      unsigned bw = getBitwidth(inputName);
       printSink(resFp, libFp, confFp, inputName, bw);
       printf("%s is not used anywhere!\n", inputName);
       break;
@@ -1424,20 +1439,20 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   char *calc = new char[20240];
   calc[0] = '\0';
   sprintf(calc, "\n");
-  IntVec boolRes;
+  IntVec boolResSuffixs;
   char *def = new char[10240];
   def[0] = '\0';
   sprintf(def, "\n");
   StringVec argList;
   StringVec oriArgList;
-  IntVec argBWList;
-  IntVec resBWList;
+  UIntVec argBWList;
+  UIntVec resBWList;
   int result_suffix = -1;
   StringVec outSendStr;
   IntVec outResSuffixs;
   StringVec outList;
   StringVec normalizedOutList;
-  IntVec outWidthList;
+  UIntVec outWidthList;
   StringVec initStrs;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
@@ -1446,7 +1461,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
                       oriArgList,
                       argBWList,
                       resBWList, result_suffix, outSendStr, outResSuffixs, outList,
-                      normalizedOutList, outWidthList, initStrs, boolRes);
+                      normalizedOutList, outWidthList, initStrs, boolResSuffixs);
     } else {
       dflow_print(stdout, d);
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
@@ -1463,7 +1478,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
                    outWidthList, def,
                    calc,
                    result_suffix, outSendStr, outResSuffixs, normalizedOutList, outList,
-                   initStrs, boolRes);
+                   initStrs, boolResSuffixs);
   }
 }
 
@@ -1510,7 +1525,7 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
   }
   if (mainProc) {
     const char *outPort = "main_out";
-    int outWidth = getBitwidth(outPort);
+    unsigned outWidth = getBitwidth(outPort);
     printSink(resFp, libFp, confFp, outPort, outWidth);
   }
   fprintf(resFp, "}\n\n");
