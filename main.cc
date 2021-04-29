@@ -137,7 +137,9 @@ int main(int argc, char **argv) {
   fprintf(confFp, "end\n");
   fclose(resFp);
   fclose(confFp);
-  metrics.dump();
+  if (DEBUG_VERBOSE) {
+    metrics.dump();
+  }
 
   return 0;
 }

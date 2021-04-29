@@ -39,6 +39,8 @@
 typedef std::string String;
 typedef std::vector<String> StringVec;
 typedef std::vector<int> IntVec;
+typedef std::vector<unsigned long> ULongVec;
+typedef std::vector<unsigned int> UIntVec;
 typedef std::vector<const char *> CharPtrVec;
 
 template<class T1, class T2>

@@ -91,7 +91,7 @@ void Metrics::readMetricsFile(const char *metricFilePath) {
 
 Metrics::Metrics() {}
 
-void Metrics::updateCopyStatistics(int bitwidth, int numOutputs) {
+void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   auto copyStatisticsIt = copyStatistics.find(bitwidth);
   if (copyStatisticsIt != copyStatistics.end()) {
     Map<int, int> &record = copyStatisticsIt->second;

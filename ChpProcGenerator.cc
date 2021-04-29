@@ -33,9 +33,11 @@ bool ChpProcGenerator::hasProcess(const char *process) {
   return false;
 }
 
-void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName, const char *calc, const char *def,
-                                   const char *outSend, const char *initSend, int numArgs, int numOuts, int
-                             numRes,
+void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName,
+                                   const char *calc, const char *def,
+                                   const char *outSend, const char *initSend, int numArgs,
+                                   int numOuts, int
+                                   numRes,
                                    const char *instance, int *metric, IntVec &boolRes) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
@@ -108,7 +110,8 @@ void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procNa
   }
 }
 
-void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procName, const char *instance, int *metric, int numInputs) {
+void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procName,
+                                   const char *instance, int *metric, int numInputs) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint W1, W2>\n");
     fprintf(libFp, "defproc %s(chan?(int<W1>)ctrl; ", procName);
@@ -143,7 +146,8 @@ void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procNa
   }
 }
 
-void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procName, const char *instance, int *metric,
+void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procName,
+                                   const char *instance, int *metric,
                                    int numOutputs) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint W1,W2>\n");
@@ -204,7 +208,8 @@ void ChpProcGenerator::createSource(FILE *libFp, FILE *confFp, const char *insta
   }
 }
 
-void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instance, int *metric) {
+void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instance,
+                                  int *metric) {
   if (!hasProcess("init")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp,
@@ -235,7 +240,8 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
   }
 }
 
-void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instance, int *metric) {
+void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instance,
+                                  int *metric) {
   if (!hasProcess("buffer")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -263,7 +269,8 @@ void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instanc
   }
 }
 
-void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instance, int *metric) {
+void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instance,
+                                  int *metric) {
   if (!hasProcess("sink")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp, "defproc sink(chan?(int<W>) in) {\n");
@@ -288,7 +295,8 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
   }
 }
 
-void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instance, int *metric) {
+void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instance,
+                                  int *metric) {
   if (!hasProcess("copy")) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
@@ -296,9 +304,34 @@ void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instanc
 
     fprintf(libFp, "  *[ in?x; log(\"receive \", x); "
                    "(,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
-
-//    fprintf(libFp, "  *[ in?x; (,i:N: out[i]!x); log(\"send \", x) ]\n");
     fprintf(libFp, "  }\n}\n\n");
+//    fprintf(libFp, "template<pint W, N>\n");
+//    fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
+//    fprintf(libFp, "  int<W> x;\n");
+//    fprintf(libFp, "  chp {\n");
+//    fprintf(libFp, "  *[ in?x; log(\"receive \", x); (,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
+//    fprintf(libFp, "  }\n}\n");
+//    fprintf(libFp, "template<pint W, N>\n");
+//    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
+//    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
+//    fprintf(libFp, "   [] else -> ");
+//    fprintf(libFp, "      pint M = N/8;\n");
+//    fprintf(libFp, "      pint F = N - M*8;\n");
+//    fprintf(libFp, "      pint pos = 0;\n");
+//    fprintf(libFp, "      pint x = 0;\n");
+//    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,9> t[F]; ]\n");
+//    fprintf(libFp, "      copy_leaf<W,8> u[F..M-1];\n");
+//    fprintf(libFp, "      copy<W,M> m(in);\n\n");
+//    fprintf(libFp, "      *[ x < M ->\n");
+//    fprintf(libFp, "        [ x < F -> m.out[x] = t[x].in;\n");
+//    fprintf(libFp, "                   t[x].out=out[pos..pos+8];\n");
+//    fprintf(libFp, "                   pos = pos + 9;\n");
+//    fprintf(libFp, "        [] else ->  m.out[x] = u[x].in;\n");
+//    fprintf(libFp, "                   u[x].out = out[pos..pos+7];\n");
+//    fprintf(libFp, "                   pos = pos + 8;\n");
+//    fprintf(libFp, "        ]\n");
+//    fprintf(libFp, "        x = x + 1;\n");
+//    fprintf(libFp, "      ]\n  ]\n}\n");
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
