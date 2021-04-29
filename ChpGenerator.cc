@@ -81,10 +81,10 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
 
 void ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
                             const char *normalizedOut,
-                            unsigned val, unsigned outWidth) {
-  fprintf(resFp, "source<%u,%u> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
+                            unsigned long val, unsigned outWidth) {
+  fprintf(resFp, "source<%lu,%u> %s_inst(%s);\n", val, outWidth, normalizedOut, out);
   char *instance = new char[1500];
-  sprintf(instance, "source<%u,%u>", val, outWidth);
+  sprintf(instance, "source<%lu,%u>", val, outWidth);
   char *opName = new char[1500];
   sprintf(opName, "source%u", outWidth);
   int *metric = metrics->getOpMetric(opName);
