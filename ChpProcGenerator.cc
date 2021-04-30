@@ -301,39 +301,9 @@ void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instanc
 //    fprintf(libFp, "template<pint W, N>\n");
 //    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
 //    fprintf(libFp, "  int<W> x;\n  chp {\n");
-//
 //    fprintf(libFp, "  *[ in?x; log(\"receive \", x); "
 //                   "(,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
 //    fprintf(libFp, "  }\n}\n\n");
-
-    fprintf(libFp, "template<pint W, N>\n");
-    fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-    fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "  *[ in?x; log(\"receive \", x); (,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
-    fprintf(libFp, "  }\n}\n");
-    fprintf(libFp, "template<pint W, N>\n");
-    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
-    fprintf(libFp, "   [] else -> ");
-    fprintf(libFp, "      pint M = N/8;\n");
-    fprintf(libFp, "      pint F = N - M*8;\n");
-    fprintf(libFp, "      pint pos = 0;\n");
-    fprintf(libFp, "      pint x = 0;\n");
-    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,9> t[F]; ]\n");
-    fprintf(libFp, "      [ F < M -> copy_leaf<W,8> u[F..M-1]; ]\n");
-    fprintf(libFp, "      copy<W,M> m(in);\n\n");
-    fprintf(libFp, "      *[ x < M ->\n");
-    fprintf(libFp, "        [ x < F -> m.out[x] = t[x].in;\n");
-    fprintf(libFp, "                   t[x].out=out[pos..pos+8];\n");
-    fprintf(libFp, "                   pos = pos + 9;\n");
-    fprintf(libFp, "        [] else ->  m.out[x] = u[x].in;\n");
-    fprintf(libFp, "                   u[x].out = out[pos..pos+7];\n");
-    fprintf(libFp, "                   pos = pos + 8;\n");
-    fprintf(libFp, "        ]\n");
-    fprintf(libFp, "        x = x + 1;\n");
-    fprintf(libFp, "      ]\n  ]\n}\n");
-
 
 //    fprintf(libFp, "template<pint W, N>\n");
 //    fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
@@ -344,17 +314,48 @@ void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instanc
 //    fprintf(libFp, "template<pint W, N>\n");
 //    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
 //    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
-//    fprintf(libFp, "   [] else ->\n");
+//    fprintf(libFp, "   [] else -> ");
 //    fprintf(libFp, "      pint M = N/8;\n");
 //    fprintf(libFp, "      pint F = N - M*8;\n");
-//    fprintf(libFp, "      copy_leaf<W,8> t[M];\n");
-//    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,F> u;\n");
-//    fprintf(libFp, "                 copy<W,M+1> m(in);\n");
-//    fprintf(libFp, "                 (i:M: m.out[i] = t[i].in;)\n");
-//    fprintf(libFp, "                 m.out[M] = u.in;\n");
-//    fprintf(libFp, "      [] else -> copy<W,M> n(in);\n");
-//    fprintf(libFp, "                 (i:M: m.out[i] = t[i].in;)\n");
+//    fprintf(libFp, "      pint pos = 0;\n");
+//    fprintf(libFp, "      pint x = 0;\n");
+//    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,9> t[F]; ]\n");
+//    fprintf(libFp, "      [ F < M -> copy_leaf<W,8> u[F..M-1]; ]\n");
+//    fprintf(libFp, "      copy<W,M> m(in);\n\n");
+//    fprintf(libFp, "      *[ x < M ->\n");
+//    fprintf(libFp, "        [ x < F -> m.out[x] = t[x].in;\n");
+//    fprintf(libFp, "                   t[x].out=out[pos..pos+8];\n");
+//    fprintf(libFp, "                   pos = pos + 9;\n");
+//    fprintf(libFp, "        [] else ->  m.out[x] = u[x].in;\n");
+//    fprintf(libFp, "                   u[x].out = out[pos..pos+7];\n");
+//    fprintf(libFp, "                   pos = pos + 8;\n");
+//    fprintf(libFp, "        ]\n");
+//    fprintf(libFp, "        x = x + 1;\n");
 //    fprintf(libFp, "      ]\n  ]\n}\n");
+
+
+    fprintf(libFp, "template<pint W, N>\n");
+    fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
+    fprintf(libFp, "  int<W> x;\n");
+    fprintf(libFp, "  chp {\n");
+    fprintf(libFp, "  *[ in?x; log(\"receive \", x); (,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
+    fprintf(libFp, "  }\n}\n");
+    fprintf(libFp, "template<pint W, N>\n");
+    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
+    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
+    fprintf(libFp, "   [] else ->\n");
+    fprintf(libFp, "      pint M = N/8;\n");
+    fprintf(libFp, "      pint F = N - M*8;\n");
+    fprintf(libFp, "      copy_leaf<W,8> t[M];\n");
+    fprintf(libFp, "      (i:M: t[i].out=out[8*i..8*i+7];)\n");
+    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,F> u;\n");
+    fprintf(libFp, "                 copy<W,M+1> m(in);\n");
+    fprintf(libFp, "                 (i:M: m.out[i] = t[i].in;)\n");
+    fprintf(libFp, "                 m.out[M] = u.in;\n");
+    fprintf(libFp, "                 u.out=out[M*8..N-1];\n");
+    fprintf(libFp, "      [] else -> copy<W,M> n(in);\n");
+    fprintf(libFp, "                 (i:M: n.out[i] = t[i].in;)\n");
+    fprintf(libFp, "      ]\n  ]\n}\n");
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
