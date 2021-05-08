@@ -46,6 +46,9 @@ typedef std::vector<const char *> CharPtrVec;
 template<class T1, class T2>
 using Map = std::map<T1, T2>;
 
+template<class T>
+using StringMap = std::map<String, T>;
+
 template<class T1, class T2>
 std::pair<T1, T2> GenPair(T1 a, T2 b) {
   return std::make_pair(a, b);
