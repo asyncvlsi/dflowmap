@@ -14,6 +14,7 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
+#include <act/expropt.h>
 #include "ChpProcGenerator.h"
 #include "Metrics.h"
 #include "common.h"
@@ -53,13 +54,16 @@ public:
              &oriArgList, UIntVec &argBWList,
              UIntVec &resBWList, int &result_suffix, unsigned result_bw,
              char *calcStr,
-             IntVec &boolRes);
+             IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+             StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
            char *procName, char *calc, char *def, StringVec &argList, StringVec
            &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
-           unsigned result_bw, char *calcStr, IntVec &boolRes);
+           unsigned result_bw, char *calcStr, IntVec &boolRes,
+           Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+           StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
@@ -68,13 +72,16 @@ public:
            UIntVec &argBWList,
            UIntVec &resBWList, int &result_suffix, unsigned result_bw,
            char *calcStr,
-           IntVec &boolRes);
+           IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+           StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
             StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
             int &result_suffix, unsigned result_bw, bool &constant,
-            char *calcStr, IntVec &boolRes);
+            char *calcStr, IntVec &boolRes, Map<char *, Expr *> &exprMap,
+            StringMap<unsigned> &inBW,
+            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   unsigned getCopyUses(const char *op);
 
@@ -110,17 +117,23 @@ public:
                  UIntVec &resBWList, UIntVec &outWidthList, const char *def,
                  char *calc, int result_suffix, StringVec &outSendStr,
                  IntVec &outResSuffixs, StringVec &normalizedOutList,
-                 StringVec &outList, StringVec &initStrs, IntVec &boolRes);
+                 StringVec &outList, StringVec &initStrs, IntVec &boolRes,
+                 Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                 StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
+                 Map<Expr *, Expr *> &hiddenExprs);
 
   void
   handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                  act_dataflow_element *d, char *procName, char*calc,
+                  act_dataflow_element *d, char *procName, char *calc,
                   char *def, StringVec &argList, StringVec &oriArgList,
                   UIntVec &argBWList,
                   UIntVec &resBWList, int &result_suffix, StringVec &outSendStr,
                   IntVec &outResSuffixs,
                   StringVec &outList, StringVec &normalizedOutList,
-                  UIntVec &outWidthList, StringVec &initStrs, IntVec &boolRes);
+                  UIntVec &outWidthList, StringVec &initStrs, IntVec &boolRes,
+                  Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                  StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
+                  Map<Expr *, Expr *> &hiddenExprs);
 
   void handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
                                 act_dataflow_element *d, unsigned &sinkCnt);
@@ -146,6 +159,13 @@ private:
 //  unsigned sinkCnt = 0;
   Metrics *metrics;
   ChpProcGenerator processGenerator{};
+
+//  Map<int, Expr *> exprMap;
+  void getExprFromStr(const char *str, Expr *expr);
+
+  Expr *getExprFromName(char *name, Map<char *, Expr *> &exprMap,
+                        bool exitOnMissing);
+
 };
 
 #endif //DFLOWMAP_CHPGENERATOR_H

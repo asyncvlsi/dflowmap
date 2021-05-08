@@ -33,6 +33,6 @@ include $(ACT_HOME)/scripts/Makefile.std
 CXX += -g
 
 $(EXE): $(OBJS) $(ACTPASSDEPEND)
-	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS) -ldl -ledit
+	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS) -ldl -ledit -lexpropt
 
 -include Makefile.deps

@@ -1,8 +1,6 @@
 clear
 mv ~/main.cc ./
-mv ~/lib.cc ./
 mv ~/common.h ./
-mv ~/PreprocessingPass.* ./
 mv ~/Chp* ./
 mv ~/Metrics.* ./
 mv ~/fluid.metrics metrics/
