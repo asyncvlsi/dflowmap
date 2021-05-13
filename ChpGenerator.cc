@@ -225,10 +225,11 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
     printf("\n");
   }
   sprintf(calcStr, "%s", newExpr);
-
   /* create Expr */
-  printf("[PERF] handle query expression for ");
-  print_expr(stdout, expr);
+  if (DEBUG_VERBOSE) {
+    printf("[PERF] handle query expression for ");
+    print_expr(stdout, expr);
+  }
   bool resC = (oriResSuffix == cResSuffix);
   bool resL = (oriResSuffix == lResSuffix);
   bool resR = (oriResSuffix == rResSuffix);
@@ -237,46 +238,26 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   if (!resC) {
     sprintf(newCExprName, "res%d", cResSuffix);
   } else {
-    strcat(newCExprName, cStr);
+    sprintf(newCExprName, "%s", cStr);
   }
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
   if (!resL) {
     sprintf(newLExprName, "res%d", lResSuffix);
   } else {
-    strcat(newLExprName, lStr);
+    sprintf(newLExprName, "%s", lStr);
   }
   char *newRExprName = new char[1000];
   newRExprName[0] = '\0';
   if (!resR) {
     sprintf(newRExprName, "res%d", rResSuffix);
   } else {
-    strcat(newRExprName, rStr);
+    sprintf(newRExprName, "%s", rStr);
   }
   Expr *newCExpr = getExprFromName(newCExprName, exprMap, false);
-//  if (newCExpr == nullptr) {
-//    newCExpr = new Expr;
-//    getExprFromStr(newCExprName, newCExpr);
-//    exprMap.insert(GenPair(newCExprName, newCExpr));
-//  }
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-//  if (newLExpr == nullptr) {
-//    newLExpr = new Expr;
-//    getExprFromStr(newLExprName, newLExpr);
-//    exprMap.insert(GenPair(newLExprName, newLExpr));
-//  }
   Expr *newRExpr = getExprFromName(newRExprName, exprMap, false);
-//  if (newRExpr == nullptr) {
-//    newRExpr = new Expr;
-//    getExprFromStr(newRExprName, newRExpr);
-//    exprMap.insert(GenPair(newRExprName, newRExpr));
-//  }
   Expr *resRHS = getExprFromName(newExpr, exprMap, false);
-//  if (resRHS == nullptr) {
-//    resRHS = new Expr;
-//    getExprFromStr(newExpr, resRHS);
-//    exprMap.insert(GenPair(newExpr, resRHS));
-//  }
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newCExpr;
@@ -284,12 +265,13 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   resExpr->u.e.r->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  printf("resRHS: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-
+  if (DEBUG_VERBOSE) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   return newExpr;
 }
 
@@ -339,14 +321,14 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
-  printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-  print_expr(stdout, expr);
-  printf("\n");
-
   /* create Expr */
-  printf("[PERF] handle bin expression for ");
-  print_expr(stdout, expr);
-
+  if (DEBUG_VERBOSE) {
+    printf("[PERF] handle bin expression for ");
+    print_expr(stdout, expr);
+    printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+    print_expr(stdout, expr);
+    printf("\n");
+  }
   bool resL = (oriResSuffix == lResSuffix);
   bool resR = (oriResSuffix == rResSuffix);
   char *newLExprName = new char[1000];
@@ -354,45 +336,31 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   if (!resL) {
     sprintf(newLExprName, "res%d", lResSuffix);
   } else {
-    strcat(newLExprName, lStr);
+    sprintf(newLExprName, "%s", lStr);
   }
   char *newRExprName = new char[1000];
   newRExprName[0] = '\0';
   if (!resR) {
     sprintf(newRExprName, "res%d", rResSuffix);
   } else {
-    strcat(newRExprName, rStr);
+    sprintf(newRExprName, "%s", rStr);
   }
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-//  if (newLExpr == nullptr) {
-//    newLExpr = new Expr;
-//    getExprFromStr(newLExprName, newLExpr);
-//    exprMap.insert(GenPair(newLExprName, newLExpr));
-//  }
   Expr *newRExpr = getExprFromName(newRExprName, exprMap, false);
-//  if (newRExpr == nullptr) {
-//    newRExpr = new Expr;
-//    getExprFromStr(newRExprName, newRExpr);
-//    exprMap.insert(GenPair(newRExprName, newRExpr));
-//  }
   Expr *resRHS = getExprFromName(newExpr, exprMap, false);
-//  if (resRHS == nullptr) {
-//    resRHS = new Expr;
-//    getExprFromStr(newExpr, resRHS);
-//    exprMap.insert(GenPair(newExpr, resRHS));
-//  }
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
   resExpr->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  printf("resRHS: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-
+  if (DEBUG_VERBOSE) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
   char *rVal = new char[100];
@@ -482,42 +450,33 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
     printf("\ndflowmap generates calc: %s\n", calc);
   }
   sprintf(calcStr, "%s", newExpr);
-
   /* create Expr */
-  printf("[PERF] handle uni expression for ");
-  print_expr(stdout, expr);
-
+  if (DEBUG_VERBOSE) {
+    printf("[PERF] handle uni expression for ");
+    print_expr(stdout, expr);
+  }
   bool resL = (oriResSuffix == lResSuffix);
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
   if (!resL) {
     sprintf(newLExprName, "res%d", lResSuffix);
   } else {
-    strcat(newLExprName, lStr);
+    sprintf(newLExprName, "%s", lStr);
   }
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-//  if (newLExpr == nullptr) {
-//    newLExpr = new Expr;
-//    getExprFromStr(newLExprName, newLExpr);
-//    exprMap.insert(GenPair(newLExprName, newLExpr));
-//  }
   Expr *resRHS = getExprFromName(newExpr, exprMap, false);
-//  if (resRHS == nullptr) {
-//    resRHS = new Expr;
-//    getExprFromStr(newExpr, resRHS);
-//    exprMap.insert(GenPair(newExpr, resRHS));
-//  }
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  printf("resRHS: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-
+  if (DEBUG_VERBOSE) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   return newExpr;
 }
 
@@ -562,6 +521,7 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
       }
       unsigned argBW = getBitwidth(oriVarName);
       argBWList.push_back(argBW);
+      printf("curArg: %s\n", curArg);
       inBW.insert(GenPair(curArg, argBW));
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
@@ -1312,22 +1272,31 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   }
 
   /* Get the perf metric */
-  /* Prepare in_expr_list */
-  if (strcmp(procName, "func_port") != 0) {
+  char *opName = instance + 5;
+  int *metric = metrics->getOpMetric(opName);
+  if (metric == nullptr) {
+#if LOGIC_OPTIMIZER
+    /* Prepare in_expr_list */
     list_t *in_expr_list = list_new();
     iHashtable *in_expr_map = ihash_new(0);
     iHashtable *in_width_map = ihash_new(0);
+    unsigned totalInBW = 0;
+    unsigned lowBWInPorts = 0;
+    unsigned highBWInPorts = 0;
     for (auto &inBWIt : inBW) {
       String inName = inBWIt.first;
       unsigned bw = inBWIt.second;
+      totalInBW += bw;
+      if (bw >= 32) {
+        highBWInPorts++;
+      } else {
+        lowBWInPorts++;
+      }
       char *inChar = new char[10240];
-      strcat(inChar, inName.c_str());
-      printf("in name: %s\n", inChar);
+      sprintf(inChar, "%s", inName.c_str());
+//      strcat(inChar, inName.c_str());
+      printf("inChar: %s\n", inChar);
       Expr *inExpr = getExprFromName(inChar, exprMap, true);
-//    if (inExpr == nullptr) {
-//      printf("We could not find in expr for %s!\n", inChar);
-//      exit(-1);
-//    }
       list_append(in_expr_list, inExpr);
       ihash_bucket_t *b_expr, *b_width;
       b_expr = ihash_add(in_expr_map, (long) inExpr);
@@ -1343,22 +1312,14 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       String hiddenName = hiddenBWIt.first;
       unsigned bw = hiddenBWIt.second;
       char *hiddenChar = new char[1024];
-      strcat(hiddenChar, hiddenName.c_str());
-      printf("hidden name: %s\n", hiddenChar);
+      sprintf(hiddenChar, "%s", hiddenName.c_str());
+      printf("hiddenChar: %s\n", hiddenChar);
       Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true);
-//    if (hiddenRHS == nullptr) {
-//      printf("We could not find hidden expr for %s!\n", hiddenChar);
-//      exit(-1);
-//    }
-
-//    list_append(in_expr_list, hiddenRHS);
       ihash_bucket_t *b_expr2, *b_width2;
       b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
       b_expr2->v = hiddenChar;
       b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
       b_width2->i = (int) bw;
-
-
       Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
       list_append(hidden_expr_list, hiddenExpr);
       ihash_bucket_t *b_expr, *b_width;
@@ -1376,16 +1337,10 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       int resID = outRecord.find(ii)->second;
       char *resChar = new char[1024];
       sprintf(resChar, "res%d", resID);
-      printf("res name: %s\n", resChar);
+      printf("resChar: %s\n", resChar);
       Expr *resExpr = getExprFromName(resChar, exprMap, true);
-//    if (resExpr == nullptr) {
-//      printf("We could not find out expr for %s!\n", resChar);
-//      exit(-1);
-//    }
       list_append(out_expr_list, resExpr);
       ihash_bucket_t *b_expr, *b_width;
-//    ihash_delete(out_expr_map, (long) resExpr);
-//    ihash_delete(out_width_map, (long) resExpr);
       b_expr = ihash_add(out_expr_map, (long) resExpr);
       b_expr->v = outChar;
       b_width = ihash_add(out_width_map, (long) resExpr);
@@ -1395,51 +1350,83 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     sprintf(optimizerOutFile, "%s_out", procName);
 
     auto optimizer = new ExternalExprOpt(genus, bd, optimizerOutFile, false);
-
-    ExprBlockInfo *info;
-    listitem_t *li;
-    printf("in_expr_bundle:\n");
-    for (li = list_first (in_expr_list); li; li = list_next (li)) {
-      long key = (long) list_value(li);
-      char *val = (char *) ihash_lookup(in_expr_map, key)->v;
-      int bw = ihash_lookup(in_width_map, key)->i;
-      printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
-      Expr *e = (Expr *) list_value (li);
-      print_expr(stdout, e);
+    if (DEBUG_OPTIMIZER) {
+      listitem_t *li;
+      printf("in_expr_bundle:\n");
+      for (li = list_first (in_expr_list); li; li = list_next (li)) {
+        long key = (long) list_value(li);
+        char *val = (char *) ihash_lookup(in_expr_map, key)->v;
+        int bw = ihash_lookup(in_width_map, key)->i;
+        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+      }
+      printf("\nout_expr_bundle:\n");
+      for (li = list_first (out_expr_list); li; li = list_next (li)) {
+        long key = (long) list_value(li);
+        char *val = (char *) ihash_lookup(out_expr_map, key)->v;
+        int bw = ihash_lookup(out_width_map, key)->i;
+        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+      }
+      printf("\nhidden expr:\n");
+      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+        long key = (long) list_value(li);
+        char *val = (char *) ihash_lookup(out_expr_map, key)->v;
+        int bw = ihash_lookup(out_width_map, key)->i;
+        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+      }
       printf("\n");
     }
-    printf("\nout_expr_bundle:\n");
-    for (li = list_first (out_expr_list); li; li = list_next (li)) {
-      long key = (long) list_value(li);
-      char *val = (char *) ihash_lookup(out_expr_map, key)->v;
-      int bw = ihash_lookup(out_width_map, key)->i;
-      printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
-      Expr *e = (Expr *) list_value (li);
-      print_expr(stdout, e);
-      printf("\n");
+    printf("Run logic optimizer for %s\n", opName);
+    ExprBlockInfo *info = optimizer->run_external_opt(procName, in_expr_list, in_expr_map,
+                                                      in_width_map,
+                                                      out_expr_list, out_expr_map,
+                                                      out_width_map,
+                                                      hidden_expr_list);
+    printf(
+        "Generated block %s: Area: %e m2, Power: %e W, delay: %e s, max power: %e, min delay: %e, max delay: %e (if 0 => circuit empty, extraction failed or corner not provided)\n",
+        procName, info->area, info->power_typ, info->delay_typ, info->power_max,
+        info->delay_min, info->delay_max);
+    int leakpower = (int) info->power_typ;  //TODO: Leakage power
+    int energy = (int) (info->power_typ * info->delay_typ);  //TODO: Energy
+    int delay = (int) (info->delay_typ / 1e12); //TODO: Delay
+    int area = (int) (info->area / 1e12);  // AREA (um^2)
+    /* adjust perf number */
+    int *latchMetric = metrics->getOpMetric("latch1");
+    if (latchMetric == nullptr) {
+      fatal_error("We could not find metric for latch1!\n");
     }
-    printf("\nhidden expr:\n");
-    for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
-      Expr *e = (Expr *) list_value (li);
-      print_expr(stdout, e);
-      printf("\n");
-      long key = (long) list_value(li);
-      char *val = (char *) ihash_lookup(out_expr_map, key)->v;
-      int bw = ihash_lookup(out_width_map, key)->i;
-      printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+    area = (int) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
+                  + highBWInPorts * 2.86 + delay / 500 * 1.43);
+    leakpower = (int) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
+                       + highBWInPorts * 5.36 + delay / 500 * 1.38);
+    //TODO: check unit! The "energy" should be e-15J!
+    energy = (int) (energy + (totalInBW * latchMetric[1] + lowBWInPorts * 4516
+                    + highBWInPorts * 20190 + delay / 500 * 28544)/1e3);
+    int *twoToOneMetric = metrics->getOpMetric("twoToOne");
+    if (twoToOneMetric == nullptr) {
+      fatal_error("We could not find metric for 2-in-1-out!\n");
     }
-    printf("\n");
-  info = optimizer->run_external_opt(procName, in_expr_list, in_expr_map, in_width_map,
-                                     out_expr_list, out_expr_map, out_width_map,
-                                     hidden_expr_list);
-  printf(
-      "Generated block %s: Area: %e m2, Power: %e W, delay: %e s, max power: %e, min delay: %e, max delay: %e (if 0 => circuit empty, extraction failed or corner not provided)\n",
-      procName, info->area, info->power_typ, info->delay_typ, info->power_max,
-      info->delay_min, info->delay_max);
+    delay = delay + twoToOneMetric[2] + latchMetric[2];
+    metric = new int[4];
+    metric[0] = leakpower;
+    metric[1] = energy;
+    metric[2] = delay;
+    metric[3] = area;
+    char *normalizedOp = new char[10240];
+    normalizedOp[0] = '\0';
+    metrics->getNormalizedOpName(opName, normalizedOp);
+    metrics->updateMetrics(normalizedOp, metric);
+    metrics->writeMetricsFile(normalizedOp, metric);
+#endif
   }
-
-  char *opName = instance + 5;
-  int *metric = metrics->getOpMetric(opName);
   processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend, initSend,
                                numArgs, numOuts,
                                numRes, instance,

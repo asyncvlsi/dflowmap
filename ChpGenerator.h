@@ -14,11 +14,13 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
-#include <act/expropt.h>
 #include "ChpProcGenerator.h"
 #include "Metrics.h"
 #include "common.h"
-//#include "lib.cc"
+
+#if LOGIC_OPTIMIZER
+#include <act/expropt.h>
+#endif
 
 class ChpGenerator : public ActPass {
 public:

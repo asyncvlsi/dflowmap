@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
   /* read in the Metric file */
   char *metricFilePath = new char[1000];
   sprintf(metricFilePath, "metrics/fluid.metrics");
-  Metrics metrics;
-  metrics.readMetricsFile(metricFilePath);
+  auto metrics = new Metrics(metricFilePath);
+  metrics->readMetricsFile();
 
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   }
 
   /* generate chp implementation for each act process */
-  auto chpGenerator = new ChpGenerator(a, "ChpGenerator", &metrics);
+  auto chpGenerator = new ChpGenerator(a, "ChpGenerator", metrics);
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   fclose(resFp);
   fclose(confFp);
   if (DEBUG_VERBOSE) {
-    metrics.dump();
+    metrics->dump();
   }
 
   return 0;

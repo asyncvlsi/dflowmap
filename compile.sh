@@ -3,7 +3,7 @@ mv ~/main.cc ./
 mv ~/common.h ./
 mv ~/Chp* ./
 mv ~/Metrics.* ./
-mv ~/fluid.metrics metrics/
+#mv ~/fluid.metrics metrics/
 make clean
 rm -f result_$1
 rm -f lib_$1

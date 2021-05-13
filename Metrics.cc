@@ -20,27 +20,31 @@ void Metrics::normalizeName(char *src, char toDel, char newChar) {
   }
 }
 
-int *Metrics::getOpMetric(const char *op) {
-  if (DEBUG_VERBOSE) {
-    printf("get op metric for %s\n", op);
-  }
-  if (op == nullptr) {
-    fatal_error("op is NULL\n");
-  }
-  char *normalizedOp = new char[10240];
-  normalizedOp[0] = '\0';
+void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
   strcat(normalizedOp, op);
   normalizeName(normalizedOp, '<', '_');
   normalizeName(normalizedOp, '>', '_');
   normalizeName(normalizedOp, ',', '_');
+}
+
+int *Metrics::getOpMetric(const char *opName) {
+  if (DEBUG_VERBOSE) {
+    printf("get op metric for %s\n", opName);
+  }
+  if (opName == nullptr) {
+    fatal_error("normalizedOp is NULL\n");
+  }
+  char *normalizedOp = new char[10240];
+  normalizedOp[0] = '\0';
+  getNormalizedOpName(opName, normalizedOp);
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, normalizedOp)) {
       return opMetricsIt.second;
     }
   }
+  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+         "We could not find metric info for %s\n", normalizedOp);
   if (DEBUG_VERBOSE) {
-    printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-           "We could not find metric info for %s\n", normalizedOp);
     printOpMetrics();
     printf("\n\n\n\n\n");
   }
@@ -55,7 +59,15 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::readMetricsFile(const char *metricFilePath) {
+void Metrics::writeMetricsFile(char *opName, int metric[4]) {
+  printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
+  std::ofstream metricFp;
+  metricFp.open(metricFilePath, std::ios_base::app);
+  metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  " << metric[2]
+           << "  " << metric[3] << "\n";
+}
+
+void Metrics::readMetricsFile() {
   printf("Read metric file: %s\n", metricFilePath);
   std::ifstream metricFp(metricFilePath);
   std::string line;
@@ -89,7 +101,9 @@ void Metrics::readMetricsFile(const char *metricFilePath) {
   }
 }
 
-Metrics::Metrics() {}
+Metrics::Metrics(char *metricFP) {
+  metricFilePath = metricFP;
+}
 
 void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   auto copyStatisticsIt = copyStatistics.find(bitwidth);
