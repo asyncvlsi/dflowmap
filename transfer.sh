@@ -4,5 +4,5 @@ scp common.h $hpcDst
 #scp PreprocessingPass.* $hpcDst
 scp Chp* $hpcDst
 scp Metrics.* $hpcDst
-scp metrics/fluid.metrics $hpcDst
+#scp metrics/fluid.metrics $hpcDst
 

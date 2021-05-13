@@ -10,6 +10,8 @@
 
 class Metrics {
 public:
+  Metrics(char *metricFP);
+
   void updateMetrics(const char *op, int *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
@@ -22,11 +24,13 @@ public:
 
   void printOpMetrics();
 
+  void getNormalizedOpName(const char *op, char *normalizedOp);
+
   int *getOpMetric(const char *op);
 
-  void readMetricsFile(const char *metricFilePath);
+  void readMetricsFile();
 
-  Metrics();
+  void writeMetricsFile(char *opName, int metric[4]);
 
   void dump();
 
@@ -42,6 +46,8 @@ private:
   Map<const char *, int> areaStatistics;
 
   void normalizeName(char *src, char toDel, char newChar);
+
+  char *metricFilePath;
 };
 
 
