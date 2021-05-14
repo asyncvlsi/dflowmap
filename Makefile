@@ -29,10 +29,15 @@ OBJS=ChpGenerator.o main.o Metrics.o ChpProcGenerator.o
 SRCS=$(OBJS:.o=.cc)
 
 include $(ACT_HOME)/scripts/Makefile.std
+include config.mk
+
+ifdef expropt_INCLUDE
+EXPROPT=-lexpropt
+endif
 
 CXX += -g
 
 $(EXE): $(OBJS) $(ACTPASSDEPEND)
-	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS) -ldl -ledit -lexpropt
+	$(CXX) $(CFLAGS) $(OBJS) -o $(EXE) $(LIBACTPASS) -ldl -ledit $(EXPROPT)
 
 -include Makefile.deps

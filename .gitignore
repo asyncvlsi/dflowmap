@@ -16,3 +16,6 @@ log*
 /*.act
 acts/
 output
+dflowmap.*
+config_pkg.h
+config.mk
