@@ -1480,9 +1480,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
   const char *normalizedOut = removeDot(out);
   unsigned outWidth = getActIdBW(rhs, p);
   if (DEBUG_VERBOSE) {
-    printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
+    printf("%%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
     print_expr(stdout, expr);
-    printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
+    printf("\n%%%%%%%%%%%%%%%%%%%%%%\n");
   }
   Expr *initExpr = d->u.func.init;
   Expr *nbufs = d->u.func.nbufs;

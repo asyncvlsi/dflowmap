@@ -42,7 +42,7 @@ int *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
          "We could not find metric info for %s\n", normalizedOp);
   if (DEBUG_VERBOSE) {
     printOpMetrics();
