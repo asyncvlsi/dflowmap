@@ -28,13 +28,19 @@
 #include <string>
 #include <algorithm>
 #include <map>
+#include "config_pkg.h"
 
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
 #define DEBUG_FU false
 #define DEBUG_OPTIMIZER true
 
+#ifdef FOUND_expropt
+#define LOGIC_OPTIMIZER true
+#else
 #define LOGIC_OPTIMIZER false
+#endif
+
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
 
