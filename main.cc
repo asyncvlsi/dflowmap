@@ -38,7 +38,7 @@
 #include "Metrics.h"
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-m <metrics>] <actfile>\n", name);
   exit(1);
 }
 
@@ -62,45 +62,69 @@ void printCustomNamespace(ActNamespace *ns, FILE *resFp, FILE *libFp) {
 }
 
 int main(int argc, char **argv) {
+  int ch;
+  char *mfile = NULL;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
 
-  /* some usage check */
-  if (argc != 2) {
+  while ((ch = getopt (argc, argv, "m:")) != -1) {
+    switch (ch) {
+    case 'm':
+      if (mfile) {
+	FREE (mfile);
+      }
+      mfile = Strdup (optarg);
+      break;
+      
+    case '?':
+    default:
+      usage (argv[0]);
+      break;
+    }
+  }
+      
+  if (optind != argc - 1) {
     usage(argv[0]);
   }
 
+  char *act_file = argv[optind];
+  
   /* read in the ACT file */
-  Act *a = new Act(argv[1]);
+  Act *a = new Act(act_file);
   a->Expand();
   a->mangle(NULL);
-  fprintf(stdout, "Processing ACT file %s!\n", argv[1]);
+  fprintf(stdout, "Processing ACT file %s!\n", act_file);
   if (DEBUG_VERBOSE) {
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
     printf("\n\n\n");
   }
   /* create output file */
-  char *result_file = new char[8 + strlen(argv[1])];
+  char *result_file = new char[8 + strlen(act_file)];
   strcpy(result_file, "result_");
-  strcat(result_file, argv[1]);
+  strcat(result_file, act_file);
   FILE *resFp = fopen(result_file, "w");
 
-  char *lib_file = new char[5 + strlen(argv[1])];
+  char *lib_file = new char[5 + strlen(act_file)];
   strcpy(lib_file, "lib_");
-  strcat(lib_file, argv[1]);
+  strcat(lib_file, act_file);
   FILE *libFp = fopen(lib_file, "w");
   fprintf(resFp, "import \"%s\";\n\n", lib_file);
 
-  char *conf_file = new char[6 + strlen(argv[1])];
+  char *conf_file = new char[6 + strlen(act_file)];
   strcpy(conf_file, "conf_");
-  strcat(conf_file, argv[1]);
+  strcat(conf_file, act_file);
   FILE *confFp = fopen(conf_file, "w");
   fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
   char *metricFilePath = new char[1000];
-  sprintf(metricFilePath, "metrics/fluid.metrics");
+  if (mfile) {
+    snprintf (metricFilePath, 1000, "%s", mfile);
+  }
+  else {
+    sprintf(metricFilePath, "metrics/fluid.metrics");
+  }
   auto metrics = new Metrics(metricFilePath);
   metrics->readMetricsFile();
 
