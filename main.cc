@@ -41,9 +41,10 @@ int quiet_mode;
 int debug_verbose;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-q] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
   fprintf (stderr, " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf (stderr, " -q : quiet mode\n");
+  fprintf (stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
 
