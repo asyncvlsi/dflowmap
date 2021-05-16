@@ -1,7 +1,7 @@
 #include "Metrics.h"
 
 void Metrics::updateMetrics(const char *op, int *metric) {
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("Update metrics for %s\n", op);
   }
   for (auto &opMetricsIt : opMetrics) {
@@ -28,7 +28,7 @@ void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
 }
 
 int *Metrics::getOpMetric(const char *opName) {
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("get op metric for %s\n", opName);
   }
   if (opName == nullptr) {
@@ -42,9 +42,8 @@ int *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  printf("\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-         "We could not find metric info for %s\n", normalizedOp);
-  if (DEBUG_VERBOSE) {
+  warning ("Missing metric info for `%s'", normalizedOp);
+  if (debug_verbose) {
     printOpMetrics();
     printf("\n\n\n\n\n");
   }
@@ -94,7 +93,7 @@ void Metrics::readMetricsFile() {
       printf("%s has %d metrics!\n", metricFilePath, metricCount);
       exit(-1);
     }
-    if (DEBUG_VERBOSE) {
+    if (debug_verbose) {
       printf("Add metrics for %s\n", instance);
     }
     updateMetrics(instance, metric);

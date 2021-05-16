@@ -37,8 +37,13 @@
 #include "ChpGenerator.h"
 #include "Metrics.h"
 
+int quiet_mode;
+int debug_verbose;
+
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-q] [-m <metrics>] <actfile>\n", name);
+  fprintf (stderr, " -m <metrics> : provide file name for energy/delay/area metrics\n");
+  fprintf (stderr, " -q : quiet mode\n");
   exit(1);
 }
 
@@ -67,8 +72,20 @@ int main(int argc, char **argv) {
   /* initialize ACT library */
   Act::Init(&argc, &argv);
 
-  while ((ch = getopt (argc, argv, "m:")) != -1) {
+  debug_verbose = 1;
+  quiet_mode = 0;
+
+  while ((ch = getopt (argc, argv, "vqm:")) != -1) {
     switch (ch) {
+    case 'v':
+      debug_verbose++;
+      break;
+      
+    case 'q':
+      quiet_mode = 1;
+      debug_verbose = 0;
+      break;
+      
     case 'm':
       if (mfile) {
 	FREE (mfile);
@@ -94,7 +111,7 @@ int main(int argc, char **argv) {
   a->Expand();
   a->mangle(NULL);
   fprintf(stdout, "Processing ACT file %s!\n", act_file);
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
     printf("\n\n\n");
@@ -161,10 +178,9 @@ int main(int argc, char **argv) {
   fprintf(confFp, "end\n");
   fclose(resFp);
   fclose(confFp);
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     metrics->dump();
   }
 
   return 0;
 }
-
