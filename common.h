@@ -30,7 +30,6 @@
 #include <map>
 #include "config_pkg.h"
 
-#define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
 #define DEBUG_FU false
 #define DEBUG_OPTIMIZER true
@@ -74,5 +73,8 @@ std::multimap<B, A> flip_map(const std::map<A, B> &src) {
                  flip_pair<A, B>);
   return dst;
 }
+
+extern int quiet_mode;
+extern int debug_verbose;
 
 #endif //DFLOWMAP_COMMON_H

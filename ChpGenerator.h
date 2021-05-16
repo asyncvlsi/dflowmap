@@ -170,4 +170,6 @@ private:
 
 };
 
+extern int debug_verbose;
+
 #endif //DFLOWMAP_CHPGENERATOR_H
