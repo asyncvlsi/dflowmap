@@ -46,7 +46,7 @@ const char *ChpGenerator::getActIdName(ActId *actId) {
     unsigned outUses = getOpUses(actName);
     if (outUses) {
       unsigned copyUse = getCopyUses(actName);
-      if (DEBUG_VERBOSE) {
+      if (debug_verbose) {
         printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
       }
       if (copyUse <= outUses) {
@@ -205,7 +205,7 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("\n\n\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
     printf("tri expr: ");
     print_expr(stdout, expr);
@@ -228,7 +228,7 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   }
   sprintf(calcStr, "%s", newExpr);
   /* create Expr */
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("[PERF] handle query expression for ");
     print_expr(stdout, expr);
   }
@@ -288,6 +288,13 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   print_expr(stdout, resExpr);
   printf(".\n");
 //  }
+  if (debug_verbose) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   return newExpr;
 }
 
@@ -338,7 +345,7 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   strcat(calc, curCal);
   resBWList.push_back(result_bw);
   /* create Expr */
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("[PERF] handle bin expression for ");
     print_expr(stdout, expr);
     printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
@@ -384,6 +391,13 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   print_expr(stdout, newRExpr);
   printf("\n");
 //  }
+  if (debug_verbose) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
   char *rVal = new char[100];
@@ -391,7 +405,7 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("binary expr: ");
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
@@ -471,14 +485,14 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
   resBWList.push_back(result_bw);
   strcat(calc, curCal);
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("unary expr: ");
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
   }
   sprintf(calcStr, "%s", newExpr);
   /* create Expr */
-  if (DEBUG_VERBOSE) {
+  if (debug_verbose) {
     printf("[PERF] handle uni expression for ");
     print_expr(stdout, expr);
   }
@@ -505,6 +519,13 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   print_expr(stdout, resExpr);
   printf(".\n");
 //  }
+  if (debug_verbose) {
+    printf("resRHS: ");
+    print_expr(stdout, resRHS);
+    printf(", resExpr: ");
+    print_expr(stdout, resExpr);
+    printf(".\n");
+  }
   return newExpr;
 }
 
@@ -538,7 +559,7 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
         oriArgList.push_back(oriVarName);
         const char *mappedVarName = getActIdName(actId);
         argList.push_back(mappedVarName);
-        if (DEBUG_VERBOSE) {
+        if (debug_verbose) {
           printf("oriVarName: %s, mappedVarName: %s\n", oriVarName, mappedVarName);
         }
         sprintf(calcStr, "%s_%d", oriVarName, numArgs);
@@ -1520,10 +1541,10 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
   rhs->sPrint(out, 10240, NULL, 0);
   const char *normalizedOut = removeDot(out);
   unsigned outWidth = getActIdBW(rhs, p);
-  if (DEBUG_VERBOSE) {
-    printf("%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
+  if (debug_verbose) {
+    printf("%%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
     print_expr(stdout, expr);
-    printf("\n%%%%%%%%%%%%%%%%%%%%%\n");
+    printf("\n%%%%%%%%%%%%%%%%%%%%%%\n");
   }
   Expr *initExpr = d->u.func.init;
   Expr *nbufs = d->u.func.nbufs;
