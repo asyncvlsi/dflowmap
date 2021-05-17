@@ -162,11 +162,12 @@ private:
   Metrics *metrics;
   ChpProcGenerator processGenerator{};
 
-//  Map<int, Expr *> exprMap;
-  void getExprFromStr(const char *str, Expr *expr);
+  void genExprFromStr(const char *str, Expr *expr, int exprType);
+
+  void genExprFromInt(int val, Expr *expr);
 
   Expr *getExprFromName(char *name, Map<char *, Expr *> &exprMap,
-                        bool exitOnMissing);
+                        bool exitOnMissing, int exprType);
 
 };
 
