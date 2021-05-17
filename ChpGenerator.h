@@ -164,7 +164,7 @@ private:
 
   void genExprFromStr(const char *str, Expr *expr, int exprType);
 
-  void genExprFromInt(int val, Expr *expr);
+  void genExprFromInt(unsigned long val, Expr *expr);
 
   Expr *getExprFromName(char *name, Map<char *, Expr *> &exprMap,
                         bool exitOnMissing, int exprType);

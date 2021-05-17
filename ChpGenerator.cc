@@ -237,25 +237,25 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   bool resR = (oriResSuffix == rResSuffix);
   char *newCExprName = new char[1000];
   newCExprName[0] = '\0';
-  if (!resC) {
-    sprintf(newCExprName, "res%d", cResSuffix);
-  } else {
+//  if (!resC) {
+//    sprintf(newCExprName, "res%d", cResSuffix);
+//  } else {
     sprintf(newCExprName, "%s", cStr);
-  }
+//  }
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
-  if (!resL) {
-    sprintf(newLExprName, "res%d", lResSuffix);
-  } else {
+//  if (!resL) {
+//    sprintf(newLExprName, "res%d", lResSuffix);
+//  } else {
     sprintf(newLExprName, "%s", lStr);
-  }
+//  }
   char *newRExprName = new char[1000];
   newRExprName[0] = '\0';
-  if (!resR) {
-    sprintf(newRExprName, "res%d", rResSuffix);
-  } else {
+//  if (!resR) {
+//    sprintf(newRExprName, "res%d", rResSuffix);
+//  } else {
     sprintf(newRExprName, "%s", rStr);
-  }
+//  }
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
@@ -264,14 +264,8 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   Expr *newRExpr = getExprFromName(newRExprName, exprMap, false, rType);
   Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
   Expr *resExpr = new Expr;
-
-  printf("Quick test. expr: ");
-  print_expr(stdout, expr);
-  printf("\n");
-
   resExpr->type = expr->type;
   resExpr->u.e.l = newCExpr;
-
   Expr *resRExpr = new Expr;
   resRExpr->type = expr->u.e.r->type;
   resRExpr->u.e.l = newLExpr;
@@ -281,13 +275,6 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
 //  resExpr->u.e.r->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-//  if (DEBUG_OPTIMIZER) {
-  printf("resRHS0: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-//  }
   if (debug_verbose) {
     printf("resRHS: ");
     print_expr(stdout, resRHS);
@@ -356,41 +343,30 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   bool resR = (oriResSuffix == rResSuffix);
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
-  if (!resL) {
-    sprintf(newLExprName, "res%d", lResSuffix);
-  } else {
-    sprintf(newLExprName, "%s", lStr);
-  }
+//  if (!resL) {
+//    sprintf(newLExprName, "res%d", lResSuffix);
+//  } else {
+  sprintf(newLExprName, "%s", lStr);
+//  }
   char *newRExprName = new char[1000];
   newRExprName[0] = '\0';
-  if (!resR) {
-    sprintf(newRExprName, "res%d", rResSuffix);
-  } else {
-    sprintf(newRExprName, "%s", rStr);
-  }
+//  if (!resR) {
+//    sprintf(newRExprName, "res%d", rResSuffix);
+//  } else {
+  sprintf(newRExprName, "%s", rStr);
+//  }
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
   Expr *newRExpr = getExprFromName(newRExprName, exprMap, false, rType);
   Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
+  printf("rType: %d, rExprName: %s\n", rType, newRExprName);
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
   resExpr->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-//  if (DEBUG_OPTIMIZER) {
-  printf("resRHS 1: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-  printf("newLExpr: ");
-  print_expr(stdout, newLExpr);
-  printf(", newRExpr: ");
-  print_expr(stdout, newRExpr);
-  printf("\n");
-//  }
   if (debug_verbose) {
     printf("resRHS: ");
     print_expr(stdout, resRHS);
@@ -443,7 +419,7 @@ Expr *ChpGenerator::getExprFromName(char *name, Map<char *, Expr *> &exprMap,
   }
   Expr *newExpr = new Expr;
   if (exprType == E_INT) {
-    genExprFromInt((int) (*name - '0'), newExpr);
+    genExprFromInt(std::stoul(std::string(name)), newExpr);
   } else {
     genExprFromStr(name, newExpr, exprType);
   }
@@ -499,11 +475,11 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   bool resL = (oriResSuffix == lResSuffix);
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
-  if (!resL) {
-    sprintf(newLExprName, "res%d", lResSuffix);
-  } else {
+//  if (!resL) {
+//    sprintf(newLExprName, "res%d", lResSuffix);
+//  } else {
     sprintf(newLExprName, "%s", lStr);
-  }
+//  }
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
   Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
@@ -512,13 +488,6 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   resExpr->u.e.l = newLExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-//  if (DEBUG_OPTIMIZER) {
-  printf("resRHS2: ");
-  print_expr(stdout, resRHS);
-  printf(", resExpr: ");
-  print_expr(stdout, resExpr);
-  printf(".\n");
-//  }
   if (debug_verbose) {
     printf("resRHS: ");
     print_expr(stdout, resRHS);
@@ -1168,7 +1137,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
   fprintf(resFp, "\n");
 }
 
-void ChpGenerator::genExprFromInt(int val, Expr *expr) {
+void ChpGenerator::genExprFromInt(unsigned long val, Expr *expr) {
   expr->type = E_INT;
   expr->u.v = val;
 }
