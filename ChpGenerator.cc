@@ -162,6 +162,8 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
                          StringMap<unsigned> &hiddenBW,
                          Map<Expr *, Expr *> &hiddenExprs) {
   Expr *cExpr = expr->u.e.l;
+  Expr *tmpExpr = expr->u.e.r;
+  printf("tmpExpr type: %d\n", tmpExpr->type);
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
   if (procName[0] == '\0') {
@@ -254,24 +256,38 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
   } else {
     sprintf(newRExprName, "%s", rStr);
   }
-  Expr *newCExpr = getExprFromName(newCExprName, exprMap, false);
-  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-  Expr *newRExpr = getExprFromName(newRExprName, exprMap, false);
-  Expr *resRHS = getExprFromName(newExpr, exprMap, false);
+  int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
+  int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
+  int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
+  Expr *newCExpr = getExprFromName(newCExprName, exprMap, false, cType);
+  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
+  Expr *newRExpr = getExprFromName(newRExprName, exprMap, false, rType);
+  Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
   Expr *resExpr = new Expr;
+
+  printf("Quick test. expr: ");
+  print_expr(stdout, expr);
+  printf("\n");
+
   resExpr->type = expr->type;
   resExpr->u.e.l = newCExpr;
-  resExpr->u.e.r->u.e.l = newLExpr;
-  resExpr->u.e.r->u.e.r = newRExpr;
+
+  Expr *resRExpr = new Expr;
+  resRExpr->type = expr->u.e.r->type;
+  resRExpr->u.e.l = newLExpr;
+  resRExpr->u.e.r = newRExpr;
+  resExpr->u.e.r = resRExpr;
+//  resExpr->u.e.r->u.e.l = newLExpr;
+//  resExpr->u.e.r->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  if (DEBUG_VERBOSE) {
-    printf("resRHS: ");
-    print_expr(stdout, resRHS);
-    printf(", resExpr: ");
-    print_expr(stdout, resExpr);
-    printf(".\n");
-  }
+//  if (DEBUG_OPTIMIZER) {
+  printf("resRHS0: ");
+  print_expr(stdout, resRHS);
+  printf(", resExpr: ");
+  print_expr(stdout, resExpr);
+  printf(".\n");
+//  }
   return newExpr;
 }
 
@@ -345,22 +361,29 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   } else {
     sprintf(newRExprName, "%s", rStr);
   }
-  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-  Expr *newRExpr = getExprFromName(newRExprName, exprMap, false);
-  Expr *resRHS = getExprFromName(newExpr, exprMap, false);
+  int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
+  int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
+  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
+  Expr *newRExpr = getExprFromName(newRExprName, exprMap, false, rType);
+  Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
   resExpr->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  if (DEBUG_VERBOSE) {
-    printf("resRHS: ");
-    print_expr(stdout, resRHS);
-    printf(", resExpr: ");
-    print_expr(stdout, resExpr);
-    printf(".\n");
-  }
+//  if (DEBUG_OPTIMIZER) {
+  printf("resRHS 1: ");
+  print_expr(stdout, resRHS);
+  printf(", resExpr: ");
+  print_expr(stdout, resExpr);
+  printf(".\n");
+  printf("newLExpr: ");
+  print_expr(stdout, newLExpr);
+  printf(", newRExpr: ");
+  print_expr(stdout, newRExpr);
+  printf("\n");
+//  }
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
   char *rVal = new char[100];
@@ -394,7 +417,7 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
 }
 
 Expr *ChpGenerator::getExprFromName(char *name, Map<char *, Expr *> &exprMap,
-                                    bool exitOnMissing) {
+                                    bool exitOnMissing, int exprType) {
   for (auto &exprMapIt : exprMap) {
     if (strcmp(name, exprMapIt.first) == 0) {
       return exprMapIt.second;
@@ -405,7 +428,11 @@ Expr *ChpGenerator::getExprFromName(char *name, Map<char *, Expr *> &exprMap,
     exit(-1);
   }
   Expr *newExpr = new Expr;
-  getExprFromStr(name, newExpr);
+  if (exprType == E_INT) {
+    genExprFromInt((int) (*name - '0'), newExpr);
+  } else {
+    genExprFromStr(name, newExpr, exprType);
+  }
   exprMap.insert(GenPair(name, newExpr));
   return newExpr;
 }
@@ -463,20 +490,21 @@ ChpGenerator::EMIT_UNI(Expr *expr, const char *sym, const char *op, int type,
   } else {
     sprintf(newLExprName, "%s", lStr);
   }
-  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false);
-  Expr *resRHS = getExprFromName(newExpr, exprMap, false);
+  int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
+  Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
+  Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
-  if (DEBUG_VERBOSE) {
-    printf("resRHS: ");
-    print_expr(stdout, resRHS);
-    printf(", resExpr: ");
-    print_expr(stdout, resExpr);
-    printf(".\n");
-  }
+//  if (DEBUG_OPTIMIZER) {
+  printf("resRHS2: ");
+  print_expr(stdout, resRHS);
+  printf(", resExpr: ");
+  print_expr(stdout, resExpr);
+  printf(".\n");
+//  }
   return newExpr;
 }
 
@@ -521,12 +549,11 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
       }
       unsigned argBW = getBitwidth(oriVarName);
       argBWList.push_back(argBW);
-      printf("curArg: %s\n", curArg);
       inBW.insert(GenPair(curArg, argBW));
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
       }
-      getExprFromName(curArg, exprMap, false);
+      getExprFromName(curArg, exprMap, false, E_VAR);
       return curArg;
     }
     case E_AND: {
@@ -1120,9 +1147,14 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
   fprintf(resFp, "\n");
 }
 
-void ChpGenerator::getExprFromStr(const char *str, Expr *expr) {
+void ChpGenerator::genExprFromInt(int val, Expr *expr) {
+  expr->type = E_INT;
+  expr->u.v = val;
+}
+
+void ChpGenerator::genExprFromStr(const char *str, Expr *expr, int exprType) {
   auto newLActId = new ActId(str);
-  expr->type = E_VAR;
+  expr->type = exprType;
   expr->u.e.l = (Expr *) (newLActId);
 }
 
@@ -1274,7 +1306,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   /* Get the perf metric */
   char *opName = instance + 5;
   int *metric = metrics->getOpMetric(opName);
-  if (metric == nullptr) {
+  if ((metric == nullptr) && (strcmp(procName, "func_port") != 0)) {
 #if LOGIC_OPTIMIZER
     /* Prepare in_expr_list */
     list_t *in_expr_list = list_new();
@@ -1294,9 +1326,10 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       char *inChar = new char[10240];
       sprintf(inChar, "%s", inName.c_str());
-//      strcat(inChar, inName.c_str());
-      printf("inChar: %s\n", inChar);
-      Expr *inExpr = getExprFromName(inChar, exprMap, true);
+      if (DEBUG_OPTIMIZER) {
+        printf("inChar: %s\n", inChar);
+      }
+      Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
       list_append(in_expr_list, inExpr);
       ihash_bucket_t *b_expr, *b_width;
       b_expr = ihash_add(in_expr_map, (long) inExpr);
@@ -1313,8 +1346,10 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       unsigned bw = hiddenBWIt.second;
       char *hiddenChar = new char[1024];
       sprintf(hiddenChar, "%s", hiddenName.c_str());
-      printf("hiddenChar: %s\n", hiddenChar);
-      Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true);
+      if (DEBUG_OPTIMIZER) {
+        printf("hiddenChar: %s\n", hiddenChar);
+      }
+      Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
       ihash_bucket_t *b_expr2, *b_width2;
       b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
       b_expr2->v = hiddenChar;
@@ -1337,8 +1372,10 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       int resID = outRecord.find(ii)->second;
       char *resChar = new char[1024];
       sprintf(resChar, "res%d", resID);
-      printf("resChar: %s\n", resChar);
-      Expr *resExpr = getExprFromName(resChar, exprMap, true);
+      if (DEBUG_OPTIMIZER) {
+        printf("resChar: %s\n", resChar);
+      }
+      Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
       list_append(out_expr_list, resExpr);
       ihash_bucket_t *b_expr, *b_width;
       b_expr = ihash_add(out_expr_map, (long) resExpr);
@@ -1346,10 +1383,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       b_width = ihash_add(out_width_map, (long) resExpr);
       b_width->i = (int) bw;
     }
-    char *optimizerOutFile = new char[10240];
-    sprintf(optimizerOutFile, "%s_out", procName);
-
-    auto optimizer = new ExternalExprOpt(genus, bd, optimizerOutFile, false);
+    auto optimizer = new ExternalExprOpt(genus, bd, false);
     if (DEBUG_OPTIMIZER) {
       listitem_t *li;
       printf("in_expr_bundle:\n");
@@ -1385,19 +1419,27 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       printf("\n");
     }
     printf("Run logic optimizer for %s\n", opName);
-    ExprBlockInfo *info = optimizer->run_external_opt(procName, in_expr_list, in_expr_map,
+    char *optimizerProcName = new char[201];
+    if (strlen(procName) > 200) {
+      strncpy(optimizerProcName, procName, 200);
+    } else {
+      strcpy(optimizerProcName, procName);
+    }
+    ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
+                                                      in_expr_map,
                                                       in_width_map,
                                                       out_expr_list, out_expr_map,
                                                       out_width_map,
                                                       hidden_expr_list);
     printf(
-        "Generated block %s: Area: %e m2, Power: %e W, delay: %e s, max power: %e, min delay: %e, max delay: %e (if 0 => circuit empty, extraction failed or corner not provided)\n",
-        procName, info->area, info->power_typ, info->delay_typ, info->power_max,
-        info->delay_min, info->delay_max);
-    int leakpower = (int) info->power_typ;  //TODO: Leakage power
-    int energy = (int) (info->power_typ * info->delay_typ);  //TODO: Energy
-    int delay = (int) (info->delay_typ / 1e12); //TODO: Delay
-    int area = (int) (info->area / 1e12);  // AREA (um^2)
+        "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
+        "s\n",
+        optimizerProcName, info->area, info->power_typ_dynamic, info->power_typ_static,
+        info->delay_typ);
+    int leakpower = (int) (info->power_typ_static * 1e9);  // Leakage power (nW)
+    int energy = (int) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
+    int delay = (int) (info->delay_typ * 1e12); // Delay (ps)
+    int area = (int) (info->area * 1e12);  // AREA (um^2)
     /* adjust perf number */
     int *latchMetric = metrics->getOpMetric("latch1");
     if (latchMetric == nullptr) {
@@ -1407,9 +1449,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                   + highBWInPorts * 2.86 + delay / 500 * 1.43);
     leakpower = (int) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
                        + highBWInPorts * 5.36 + delay / 500 * 1.38);
-    //TODO: check unit! The "energy" should be e-15J!
-    energy = (int) (energy + (totalInBW * latchMetric[1] + lowBWInPorts * 4516
-                    + highBWInPorts * 20190 + delay / 500 * 28544)/1e3);
+    energy = (int) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
+                    + highBWInPorts * 20.19 + delay / 500 * 28.544);
     int *twoToOneMetric = metrics->getOpMetric("twoToOne");
     if (twoToOneMetric == nullptr) {
       fatal_error("We could not find metric for 2-in-1-out!\n");

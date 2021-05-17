@@ -32,9 +32,9 @@
 #define DEBUG_VERBOSE false
 #define DEBUG_CLUSTER false
 #define DEBUG_FU false
-#define DEBUG_OPTIMIZER true
+#define DEBUG_OPTIMIZER false
 
-#define LOGIC_OPTIMIZER false
+#define LOGIC_OPTIMIZER true
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
 
