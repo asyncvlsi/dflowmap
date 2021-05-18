@@ -1411,9 +1411,9 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     printf("Run logic optimizer for %s\n", opName);
     char *optimizerProcName = new char[201];
     if (strlen(procName) > 200) {
-      strncpy(optimizerProcName, procName, 200);
+      snprintf(optimizerProcName, 200, "%s", procName);
     } else {
-      strcpy(optimizerProcName, procName);
+      sprintf(optimizerProcName, "%s", procName);
     }
     ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
                                                       in_expr_map,
