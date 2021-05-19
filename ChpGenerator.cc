@@ -40,9 +40,10 @@ const char *ChpGenerator::removeDot(const char *src) {
 }
 
 const char *ChpGenerator::getActIdName(ActId *actId) {
-  char *str = new char[100];
+  char *str = new char[10240];
   if (actId) {
-    const char *actName = actId->getName();
+    char *actName = new char[10240];
+    actId->sPrint(actName, 10240);
     unsigned outUses = getOpUses(actName);
     if (outUses) {
       unsigned copyUse = getCopyUses(actName);
@@ -50,12 +51,12 @@ const char *ChpGenerator::getActIdName(ActId *actId) {
         printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
       }
       if (copyUse <= outUses) {
-        sprintf(str, "%scopy.out[%u]", actId->getName(), copyUse);
+        sprintf(str, "%scopy.out[%u]", actName, copyUse);
       } else {
-        sprintf(str, "%s", actId->getName());
+        sprintf(str, "%s", actName);
       }
     } else {
-      sprintf(str, "%s", actId->getName());
+      sprintf(str, "%s", actName);
     }
   } else {
     sprintf(str, "*");
@@ -103,6 +104,7 @@ void ChpGenerator::collectBitwidthInfo(Process *p) {
     if (bitwidth <= 0) {
       printf("%s has negative bw %d!\n", varName, bitwidth);
     } else {
+      printf("update bw for %s\n", varName);
       bitwidthMap.insert(std::make_pair(varName, bitwidth));
     }
   }
@@ -121,7 +123,8 @@ unsigned ChpGenerator::getActIdBW(ActId *actId, Process *p) {
   InstType *instType = p->CurScope()->FullLookup(actId, aref);
   int bw = TypeFactory::bitWidth(instType);
   if (bw <= 0) {
-    fatal_error("%s has negative bw %d!\n", actId->getName(), bw);
+    actId->Print(stdout);
+    fatal_error(" has negative bw %d!\n", bw);
   }
   return bw;
 }
@@ -163,7 +166,6 @@ ChpGenerator::EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type,
                          Map<Expr *, Expr *> &hiddenExprs) {
   Expr *cExpr = expr->u.e.l;
   Expr *tmpExpr = expr->u.e.r;
-  printf("tmpExpr type: %d\n", tmpExpr->type);
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
   if (procName[0] == '\0') {
@@ -360,7 +362,6 @@ ChpGenerator::EMIT_BIN(Expr *expr, const char *sym, const char *op, int type,
   Expr *newLExpr = getExprFromName(newLExprName, exprMap, false, lType);
   Expr *newRExpr = getExprFromName(newRExprName, exprMap, false, rType);
   Expr *resRHS = getExprFromName(newExpr, exprMap, false, E_VAR);
-  printf("rType: %d, rExprName: %s\n", rType, newRExprName);
   Expr *resExpr = new Expr;
   resExpr->type = expr->type;
   resExpr->u.e.l = newLExpr;
@@ -521,8 +522,9 @@ ChpGenerator::printExpr(Expr *expr, char *procName, char *calc, char *def,
     case E_VAR: {
       int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
-      const char *oriVarName = actId->getName();
-      char *curArg = new char[1000];
+      char *oriVarName = new char[10240];
+      actId->sPrint(oriVarName, 10240);
+      char *curArg = new char[10240];
       int idx = searchStringVec(oriArgList, oriVarName);
       if (idx == -1) {
         oriArgList.push_back(oriVarName);
@@ -859,7 +861,8 @@ void ChpGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
     }
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
-      const char *varName = actId->getName();
+      char *varName = new char[10240];
+      actId->sPrint(varName, 10240);
       if (searchStringVec(recordedOps, varName) == -1) {
         updateOpUses(varName);
         recordedOps.push_back(varName);
@@ -927,7 +930,9 @@ void ChpGenerator::recordExprUses(Expr *expr, CharPtrVec &charPtrVec) {
     }
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
-      recordOpUses(actId->getName(), charPtrVec);
+      char *varName = new char[10240];
+      actId->sPrint(varName, 10240);
+      recordOpUses(varName, charPtrVec);
       break;
     }
     case E_BUILTIN_INT: {
@@ -969,14 +974,20 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
       }
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
-        recordOpUses(input->getName(), charPtrVec);
+        char *inName = new char[10240];
+        input->sPrint(inName, 10240);
+        recordOpUses(inName, charPtrVec);
         ActId *guard = d->u.splitmerge.guard;
-        recordOpUses(guard->getName(), charPtrVec);
+        char *guardName = new char[10240];
+        guard->sPrint(guardName, 10240);
+        recordOpUses(guardName, charPtrVec);
         break;
       }
       case ACT_DFLOW_MERGE: {
         ActId *guard = d->u.splitmerge.guard;
-        recordOpUses(guard->getName(), charPtrVec);
+        char *guardName = new char[10240];
+        guard->sPrint(guardName, 10240);
+        recordOpUses(guardName, charPtrVec);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
@@ -985,7 +996,9 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
         ActId **inputs = d->u.splitmerge.multi;
         for (int i = 0; i < numInputs; i++) {
           ActId *in = inputs[i];
-          recordOpUses(in->getName(), charPtrVec);
+          char *inName = new char[10240];
+          in->sPrint(inName, 10240);
+          recordOpUses(inName, charPtrVec);
         }
         break;
       }
@@ -1013,45 +1026,6 @@ void ChpGenerator::collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec
 }
 
 void ChpGenerator::collectOpUses(Process *p) {
-//  ActInstiter inst(p->CurScope());
-//  for (inst = inst.begin(); inst != inst.end(); inst++) {
-//    ValueIdx *vx = *inst;
-//    if (vx->hasConnection()) {
-////    if (!TypeFactory::isParamType(vx->t) && vx->hasConnection()) {
-//      act_connection *cx = vx->connection();
-//      const char *connectionName = cx->toid()->getName();
-//      updateOpUses(connectionName);
-////      printf("connectionName: %s\n", connectionName);
-////      bool isGlobal = cx->isglobal();
-////      bool first = true;
-////      if (cx->isPrimary()) {
-////        ActConniter ci(cx);
-////        if (ci.begin() != ci.end() && (++ci.begin() != ci.end())) {
-////          for (ci = ci.begin(); ci != ci.end(); ci++) {
-////            act_connection *c = *ci;
-////            if (!isGlobal || c->isglobal()) {
-////              if (first) {
-////                first = false;
-////              } else {
-////                const char *connectionRHS = c->toid()->getName();
-////                updateOpUses(connectionRHS);
-////                printf("connectionRHS: %s\n", connectionRHS);
-////              }
-////            }
-////          }
-////        }
-////      } else if (!isGlobal && cx->primary()->isglobal()) {
-////        const char *connectionRHS = cx->primary()->toid()->getName();
-////        updateOpUses(connectionRHS);
-////        printf("connectionRHS: %s\n", connectionRHS);
-////      }
-////      else {
-////        printf("Unspported connection!\n");
-////        p->CurScope()->Print(stdout);
-////        exit(-1);
-////      }
-//    }
-//  }
   listitem_t *li;
   for (li = list_first (p->getlang()->getdflow()->dflow);
        li;
@@ -1060,7 +1034,9 @@ void ChpGenerator::collectOpUses(Process *p) {
     switch (d->t) {
       case ACT_DFLOW_SINK: {
         ActId *input = d->u.sink.chan;
-        updateOpUses(input->getName());
+        char *inputName = new char[10240];
+        input->sPrint(inputName, 10240);
+        updateOpUses(inputName);
         break;
       }
       case ACT_DFLOW_FUNC: {
@@ -1071,14 +1047,20 @@ void ChpGenerator::collectOpUses(Process *p) {
       }
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
-        updateOpUses(input->getName());
+        char *inputName = new char[10240];
+        input->sPrint(inputName, 10240);
+        updateOpUses(inputName);
         ActId *guard = d->u.splitmerge.guard;
-        updateOpUses(guard->getName());
+        char *guardName = new char[10240];
+        guard->sPrint(guardName, 10240);
+        updateOpUses(guardName);
         break;
       }
       case ACT_DFLOW_MERGE: {
         ActId *guard = d->u.splitmerge.guard;
-        updateOpUses(guard->getName());
+        char *guardName = new char[10240];
+        guard->sPrint(guardName, 10240);
+        updateOpUses(guardName);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
@@ -1087,7 +1069,9 @@ void ChpGenerator::collectOpUses(Process *p) {
         ActId **inputs = d->u.splitmerge.multi;
         for (int i = 0; i < numInputs; i++) {
           ActId *in = inputs[i];
-          updateOpUses(in->getName());
+          char *inputName = new char[10240];
+          in->sPrint(inputName, 10240);
+          updateOpUses(inputName);
         }
         break;
       }
@@ -1296,6 +1280,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   /* Get the perf metric */
   char *opName = instance + 5;
   int *metric = metrics->getOpMetric(opName);
+  printf("search metric for %s\n", opName);
   if ((metric == nullptr) && (strcmp(procName, "func_port") != 0)) {
 #if LOGIC_OPTIMIZER
     /* Prepare in_expr_list */
@@ -1465,19 +1450,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   if (metric != nullptr) {
     metrics->updateAreaStatistics(procName, metric[3]);
   }
-//  /* if the output is a single port what is not connected to any other op, we should
-//   * connnect the output port to SINK! */
-//  if (numOuts == 1) {
-//    const char *outPort = outList[0].c_str();
-//    if (!isOpUsed(outPort)) {
-//      int bw = getBitwidth(outPort);
-//      printSink(resFp, libFp, confFp, outPort, bw);
-////      if (DEBUG_VERBOSE) {
-//      printf("%s is not used anywhere!\n", outPort);
-////        printOpUses();
-////      }
-//    }
-//  }
 }
 
 void
@@ -1685,14 +1657,17 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *splitName = new char[2000];
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
-      const char *guardName = guard->getName();
+      char *guardName = new char[10240];
+      guard->sPrint(guardName, 10240);
       sprintf(splitName, "%s", guardName);
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
         if (!out) {
           strcat(splitName, "sink_");
         } else {
-          strcat(splitName, out->getName());
+          char *outName = new char[10240];
+          out->sPrint(outName, 10240);
+          strcat(splitName, outName);
         }
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
@@ -1702,14 +1677,16 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       StringVec sinkVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
-        if ((!out) || (!isOpUsed(out->getName()))) {
+        char *outName = new char[10240];
+        out->sPrint(outName, 10240);
+        if ((!out) || (!isOpUsed(outName))) {
           char *sinkName = new char[2100];
           sprintf(sinkName, "sink%d", sinkCnt);
           sinkCnt++;
           fprintf(resFp, ", %s", sinkName);
           sinkVec.push_back(sinkName);
         } else {
-          fprintf(resFp, ", %s", out->getName());
+          fprintf(resFp, ", %s", outName);
         }
       }
       fprintf(resFp, ");\n");
@@ -1728,7 +1705,8 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
     }
     case ACT_DFLOW_MERGE: {
       ActId *output = d->u.splitmerge.single;
-      const char *outputName = output->getName();
+      char *outputName = new char[10240];
+      output->sPrint(outputName, 10240);
       unsigned inBW = getActIdBW(output, p);
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
@@ -1771,7 +1749,8 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
     }
     case ACT_DFLOW_SINK: {
       ActId *input = d->u.sink.chan;
-      const char *inputName = input->getName();
+      char *inputName = new char[10240];
+      input->sPrint(inputName, 10240);
       unsigned bw = getBitwidth(inputName);
       printSink(resFp, libFp, confFp, inputName, bw);
       printf("%s is not used anywhere!\n", inputName);
