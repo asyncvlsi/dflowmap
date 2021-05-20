@@ -32,7 +32,7 @@ public:
 
   const char *removeDot(const char *src);
 
-  const char *getActIdName(ActId *actId);
+  const char *getActIdOrCopyName(Scope *sc, ActId *actId);
 
   void
   printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name, unsigned bitwidth);
@@ -46,12 +46,13 @@ public:
 
   unsigned getActIdBW(ActId *actId, Process *p);
 
-  unsigned getBitwidth(const char *varName);
+  unsigned getBitwidth(act_connection *actConnection);
 
   void getCurProc(const char *str, char *val);
 
   const char *
-  EMIT_QUERY(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+  EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
+             const char *metricSym,
              char *procName, char *calc, char *def, StringVec &argList, StringVec
              &oriArgList, UIntVec &argBWList,
              UIntVec &resBWList, int &result_suffix, unsigned result_bw,
@@ -60,7 +61,8 @@ public:
              StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
-  EMIT_BIN(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+  EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
+           const char *metricSym,
            char *procName, char *calc, char *def, StringVec &argList, StringVec
            &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
            unsigned result_bw, char *calcStr, IntVec &boolRes,
@@ -68,7 +70,8 @@ public:
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
-  EMIT_UNI(Expr *expr, const char *sym, const char *op, int type, const char *metricSym,
+  EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
+           const char *metricSym,
            char *procName, char *calc, char *def, StringVec &argList,
            StringVec &oriArgList,
            UIntVec &argBWList,
@@ -78,36 +81,41 @@ public:
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
-  printExpr(Expr *expr, char *procName, char *calc, char *def, StringVec &argList,
+  printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char *def,
+            StringVec &argList,
             StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
             int &result_suffix, unsigned result_bw, bool &constant,
             char *calcStr, IntVec &boolRes, Map<char *, Expr *> &exprMap,
             StringMap<unsigned> &inBW,
             StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
-  unsigned getCopyUses(const char *op);
+  unsigned getCopyUses(ActId *actId, Scope *sc);
 
-  void updateOpUses(const char *op);
+  void updateOpUses(ActId *actId, Scope *sc);
 
-  void recordOpUses(const char *op, CharPtrVec &charPtrVec);
+  void recordOpUses(ActId *actId, ActIdVec &actIdVec);
 
   void printOpUses();
 
-  unsigned getOpUses(const char *op);
+  unsigned getOpUses(ActId *actId, Scope *sc);
 
-  void collectUniOpUses(Expr *expr, StringVec &recordedOps);
+  void getActConnectionName(act_connection *actConnection, char *buff, int sz);
 
-  void collectBinOpUses(Expr *expr, StringVec &recordedOps);
+  void getActIdName(Scope *sc, ActId *actId, char *buff, int sz);
 
-  void recordUniOpUses(Expr *expr, CharPtrVec &charPtrVec);
+  void collectUniOpUses(Scope *sc, Expr *expr, StringVec &recordedOps);
 
-  void recordBinOpUses(Expr *expr, CharPtrVec &charPtrVec);
+  void collectBinOpUses(Scope *sc, Expr *expr, StringVec &recordedOps);
 
-  void collectExprUses(Expr *expr, StringVec &recordedOps);
+  void recordUniOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
 
-  void recordExprUses(Expr *expr, CharPtrVec &charPtrVec);
+  void recordBinOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
 
-  void collectDflowClusterUses(list_t *dflow, CharPtrVec &charPtrVec);
+  void collectExprUses(Scope *sc, Expr *expr, StringVec &recordedOps);
+
+  void recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
+
+  void collectDflowClusterUses(Scope *sc, list_t *dflow, ActIdVec &actIdVec);
 
   void collectOpUses(Process *p);
 
@@ -149,15 +157,15 @@ public:
 
   void printULongVec(ULongVec &longVec);
 
-  bool isOpUsed(const char *op);
+  bool isOpUsed(Scope *sc, ActId *actId);
 
 private:
   /* op, its bitwidth */
-  Map<const char *, unsigned> bitwidthMap;
+  Map<act_connection *, unsigned> bitwidthMap;
 /* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
-  Map<const char *, unsigned> opUses;
+  Map<act_connection *, unsigned> opUses;
 /* copy operator, # of times it has already been used */
-  Map<const char *, unsigned> copyUses;
+  Map<act_connection *, unsigned> copyUses;
 //  unsigned sinkCnt = 0;
   Metrics *metrics;
   ChpProcGenerator processGenerator{};
