@@ -72,6 +72,7 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
   if (name == nullptr) {
     fatal_error("sink name is NULL!\n");
   }
+  fprintf(resFp, "chan(int<%d>) %s;\n", bitwidth, name);
   const char *normalizedName = removeDot(name);
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, name);
   char *instance = new char[1500];
@@ -818,6 +819,9 @@ void ChpGenerator::printOpUses() {
 
 bool ChpGenerator::isOpUsed(Scope *sc, ActId *actId) {
   act_connection *actConnection = actId->Canonical(sc);
+//  char *connectionName = new char[10240];
+//  getActConnectionName(actConnection, connectionName, 10240);
+//  printf("unique act connection name: %s\n", connectionName);
   return opUses.find(actConnection) != opUses.end();
 }
 
@@ -1669,17 +1673,27 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       int numOutputs = d->u.splitmerge.nmulti;
       char *procName = new char[10240];
       sprintf(procName, "control_split_%d", numOutputs);
-      char *splitName = new char[2000];
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
+      char *splitName = new char[2000];
+      char *inputName = new char[10240];
+      getActIdName(sc, input, inputName, 10240);
+      const char* normalizedInput = removeDot(inputName);
+      sprintf(splitName, "%s", normalizedInput);
       char *guardName = new char[10240];
       getActIdName(sc, guard, guardName, 10240);
       const char *normalizedGuard = removeDot(guardName);
-      sprintf(splitName, "%s", normalizedGuard);
+      strcat(splitName, normalizedGuard);
+      CharPtrVec sinkVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
         if (!out) {
+//        if (!out || (!isOpUsed(sc, out))) {
           strcat(splitName, "sink_");
+          char *sinkName = new char[2100];
+          sprintf(sinkName, "sink%d", sinkCnt);
+          sinkCnt++;
+          sinkVec.push_back(sinkName);
         } else {
           char *outName = new char[10240];
           getActIdName(sc, out, outName, 10240);
@@ -1687,19 +1701,21 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
           strcat(splitName, normalizedOut);
         }
       }
+      for (auto &sink : sinkVec) {
+        printSink(resFp, libFp, confFp, sink, bitwidth);
+      }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
+      printf("RuiTmp create split %s\n", splitName);
       const char *guardStr = getActIdOrCopyName(sc, guard);
       const char *inputStr = getActIdOrCopyName(sc, input);
       fprintf(resFp, "%s, %s", guardStr, inputStr);
-      StringVec sinkVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
-        if ((out == nullptr) || (!isOpUsed(sc, out))) {
-          char *sinkName = new char[2100];
-          sprintf(sinkName, "sink%d", sinkCnt);
-          sinkCnt++;
+        if (!out) {
+//        if ((out == nullptr) || (!isOpUsed(sc, out))) {
+          const char *sinkName = sinkVec.back();
+          sinkVec.pop_back();
           fprintf(resFp, ", %s", sinkName);
-          sinkVec.push_back(sinkName);
         } else {
           char *outName = new char[10240];
           getActIdName(sc, out, outName, 10240);
@@ -1707,9 +1723,6 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         }
       }
       fprintf(resFp, ");\n");
-      for (auto &sink : sinkVec) {
-        printSink(resFp, libFp, confFp, sink.c_str(), bitwidth);
-      }
       char *instance = new char[1500];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
       int *metric = metrics->getOpMetric(instance);
@@ -1823,6 +1836,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   StringMap<unsigned> hiddenBW;
   Map<int, int> outRecord;
   Map<Expr *, Expr *> hiddenExprs;
+  unsigned elementCnt = 0;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_FUNC) {
@@ -1830,6 +1844,10 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
                       oriArgList, argBWList, resBWList, result_suffix, outSendStr,
                       outResSuffixs, outList, normalizedOutList, outWidthList, initStrs,
                       boolResSuffixs, exprMap, inBW, hiddenBW, outRecord, hiddenExprs);
+      char *subProc = new char[1024];
+      sprintf(subProc, "_p%d", elementCnt);
+      elementCnt++;
+      strcat(procName, subProc);
     } else {
       dflow_print(stdout, d);
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
