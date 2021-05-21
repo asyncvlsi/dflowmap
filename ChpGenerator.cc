@@ -790,8 +790,7 @@ unsigned ChpGenerator::getCopyUses(ActId *actId, Scope *sc) {
   return uses;
 }
 
-void ChpGenerator::updateOpUses(ActId *actId, Scope *sc) {
-  act_connection *actConnection = actId->Canonical(sc);
+void ChpGenerator::updateOpUses(act_connection *actConnection) {
   auto opUsesIt = opUses.find(actConnection);
   if (opUsesIt == opUses.end()) {
     opUses.insert(std::make_pair(actConnection, 0));
@@ -801,9 +800,16 @@ void ChpGenerator::updateOpUses(ActId *actId, Scope *sc) {
   }
 }
 
-void ChpGenerator::recordOpUses(ActId *actId, ActIdVec &actIdVec) {
-  if (std::find(actIdVec.begin(), actIdVec.end(), actId) == actIdVec.end()) {
-    actIdVec.push_back(actId);
+void ChpGenerator::updateOpUses(ActId *actId, Scope *sc) {
+  act_connection *actConnection = actId->Canonical(sc);
+  updateOpUses(actConnection);
+}
+
+void ChpGenerator::recordOpUses(Scope *sc, ActId *actId, ActConnectVec &actConnectVec) {
+  act_connection *actConnection = actId->Canonical(sc);
+  if (std::find(actConnectVec.begin(), actConnectVec.end(), actConnection) ==
+      actConnectVec.end()) {
+    actConnectVec.push_back(actConnection);
   }
 }
 
@@ -850,16 +856,16 @@ void ChpGenerator::collectBinOpUses(Scope *sc, Expr *expr, StringVec &recordedOp
   collectExprUses(sc, rExpr, recordedOps);
 }
 
-void ChpGenerator::recordUniOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
+void ChpGenerator::recordUniOpUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec) {
   Expr *lExpr = expr->u.e.l;
-  recordExprUses(sc, lExpr, actIdVec);
+  recordExprUses(sc, lExpr, actConnectVec);
 }
 
-void ChpGenerator::recordBinOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
+void ChpGenerator::recordBinOpUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec) {
   Expr *lExpr = expr->u.e.l;
-  recordExprUses(sc, lExpr, actIdVec);
+  recordExprUses(sc, lExpr, actConnectVec);
   Expr *rExpr = expr->u.e.r;
-  recordExprUses(sc, rExpr, actIdVec);
+  recordExprUses(sc, rExpr, actConnectVec);
 }
 
 void ChpGenerator::collectExprUses(Scope *sc, Expr *expr, StringVec &recordedOps) {
@@ -931,7 +937,7 @@ void ChpGenerator::collectExprUses(Scope *sc, Expr *expr, StringVec &recordedOps
   }
 }
 
-void ChpGenerator::recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
+void ChpGenerator::recordExprUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec) {
   int type = expr->type;
   switch (type) {
     case E_AND:
@@ -951,13 +957,13 @@ void ChpGenerator::recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
     case E_GE:
     case E_EQ:
     case E_NE: {
-      recordBinOpUses(sc, expr, actIdVec);
+      recordBinOpUses(sc, expr, actConnectVec);
       break;
     }
     case E_NOT:
     case E_UMINUS:
     case E_COMPLEMENT: {
-      recordUniOpUses(sc, expr, actIdVec);
+      recordUniOpUses(sc, expr, actConnectVec);
       break;
     }
     case E_INT: {
@@ -965,26 +971,26 @@ void ChpGenerator::recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
     }
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
-      recordOpUses(actId, actIdVec);
+      recordOpUses(sc, actId, actConnectVec);
       break;
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
-      recordExprUses(sc, lExpr, actIdVec);
+      recordExprUses(sc, lExpr, actConnectVec);
       break;
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
-      recordExprUses(sc, lExpr, actIdVec);
+      recordExprUses(sc, lExpr, actConnectVec);
       break;
     }
     case E_QUERY: {
       Expr *cExpr = expr->u.e.l;
       Expr *lExpr = expr->u.e.r->u.e.l;
       Expr *rExpr = expr->u.e.r->u.e.r;
-      recordExprUses(sc, cExpr, actIdVec);
-      recordExprUses(sc, lExpr, actIdVec);
-      recordExprUses(sc, rExpr, actIdVec);
+      recordExprUses(sc, cExpr, actConnectVec);
+      recordExprUses(sc, lExpr, actConnectVec);
+      recordExprUses(sc, rExpr, actConnectVec);
       break;
     }
     default: {
@@ -995,26 +1001,27 @@ void ChpGenerator::recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec) {
   }
 }
 
-void ChpGenerator::collectDflowClusterUses(Scope *sc, list_t *dflow, ActIdVec &actIdVec) {
+void ChpGenerator::collectDflowClusterUses(Scope *sc, list_t *dflow,
+                                           ActConnectVec &actConnectVec) {
   listitem_t *li;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     switch (d->t) {
       case ACT_DFLOW_FUNC: {
         Expr *expr = d->u.func.lhs;
-        recordExprUses(sc, expr, actIdVec);
+        recordExprUses(sc, expr, actConnectVec);
         break;
       }
       case ACT_DFLOW_SPLIT: {
         ActId *input = d->u.splitmerge.single;
-        recordOpUses(input, actIdVec);
+        recordOpUses(sc, input, actConnectVec);
         ActId *guard = d->u.splitmerge.guard;
-        recordOpUses(guard, actIdVec);
+        recordOpUses(sc, guard, actConnectVec);
         break;
       }
       case ACT_DFLOW_MERGE: {
         ActId *guard = d->u.splitmerge.guard;
-        recordOpUses(guard, actIdVec);
+        recordOpUses(sc, guard, actConnectVec);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
@@ -1023,7 +1030,7 @@ void ChpGenerator::collectDflowClusterUses(Scope *sc, list_t *dflow, ActIdVec &a
         ActId **inputs = d->u.splitmerge.multi;
         for (int i = 0; i < numInputs; i++) {
           ActId *in = inputs[i];
-          recordOpUses(in, actIdVec);
+          recordOpUses(sc, in, actConnectVec);
         }
         break;
       }
@@ -1100,10 +1107,10 @@ void ChpGenerator::collectOpUses(Process *p) {
         break;
       }
       case ACT_DFLOW_CLUSTER: {
-        ActIdVec actIdVec;
-        collectDflowClusterUses(sc, d->u.dflow_cluster, actIdVec);
-        for (auto &actId : actIdVec) {
-          updateOpUses(actId, sc);
+        ActConnectVec actConnectVec;
+        collectDflowClusterUses(sc, d->u.dflow_cluster, actConnectVec);
+        for (auto &actConnect : actConnectVec) {
+          updateOpUses(actConnect);
         }
         break;
       }

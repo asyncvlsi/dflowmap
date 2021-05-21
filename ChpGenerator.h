@@ -93,7 +93,9 @@ public:
 
   void updateOpUses(ActId *actId, Scope *sc);
 
-  void recordOpUses(ActId *actId, ActIdVec &actIdVec);
+  void updateOpUses(act_connection *actConnection);
+
+  void recordOpUses(Scope *sc, ActId *actId, ActConnectVec &actConnectVec);
 
   void printOpUses();
 
@@ -107,15 +109,15 @@ public:
 
   void collectBinOpUses(Scope *sc, Expr *expr, StringVec &recordedOps);
 
-  void recordUniOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
+  void recordUniOpUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec);
 
-  void recordBinOpUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
+  void recordBinOpUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec);
 
   void collectExprUses(Scope *sc, Expr *expr, StringVec &recordedOps);
 
-  void recordExprUses(Scope *sc, Expr *expr, ActIdVec &actIdVec);
+  void recordExprUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec);
 
-  void collectDflowClusterUses(Scope *sc, list_t *dflow, ActIdVec &actIdVec);
+  void collectDflowClusterUses(Scope *sc, list_t *dflow, ActConnectVec &actConnectVec);
 
   void collectOpUses(Process *p);
 
