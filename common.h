@@ -50,6 +50,7 @@ typedef std::vector<unsigned long> ULongVec;
 typedef std::vector<unsigned int> UIntVec;
 typedef std::vector<const char *> CharPtrVec;
 typedef std::vector<ActId *> ActIdVec;
+typedef std::vector<act_connection *> ActConnectVec;
 
 template<class T1, class T2>
 using Map = std::map<T1, T2>;
