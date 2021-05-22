@@ -72,7 +72,6 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
   if (name == nullptr) {
     fatal_error("sink name is NULL!\n");
   }
-  fprintf(resFp, "chan(int<%d>) %s;\n", bitwidth, name);
   const char *normalizedName = removeDot(name);
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, name);
   char *instance = new char[1500];
@@ -1709,6 +1708,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         }
       }
       for (auto &sink : sinkVec) {
+        fprintf(resFp, "chan(int<%d>) %s;\n", bitwidth, sink);
         printSink(resFp, libFp, confFp, sink, bitwidth);
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
