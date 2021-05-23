@@ -1693,8 +1693,8 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       CharPtrVec sinkVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
-        if (!out) {
-//        if (!out || (!isOpUsed(sc, out))) {
+//        if (!out) {
+        if (!out || (!isOpUsed(sc, out))) {
           strcat(splitName, "sink_");
           char *sinkName = new char[2100];
           sprintf(sinkName, "sink%d", sinkCnt);
@@ -1718,8 +1718,8 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       fprintf(resFp, "%s, %s", guardStr, inputStr);
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
-        if (!out) {
-//        if ((out == nullptr) || (!isOpUsed(sc, out))) {
+//        if (!out) {
+        if (!out || (!isOpUsed(sc, out))) {
           const char *sinkName = sinkVec.back();
           sinkVec.pop_back();
           fprintf(resFp, ", %s", sinkName);
