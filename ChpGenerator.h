@@ -14,6 +14,7 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
+#include <math.h>
 #include "ChpProcGenerator.h"
 #include "Metrics.h"
 #include "common.h"
@@ -55,7 +56,7 @@ public:
              const char *metricSym,
              char *procName, char *calc, char *def, StringVec &argList, StringVec
              &oriArgList, UIntVec &argBWList,
-             UIntVec &resBWList, int &result_suffix, unsigned result_bw,
+             UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
              char *calcStr,
              IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
              StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
@@ -65,7 +66,7 @@ public:
            const char *metricSym,
            char *procName, char *calc, char *def, StringVec &argList, StringVec
            &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
-           unsigned result_bw, char *calcStr, IntVec &boolRes,
+           unsigned &result_bw, char *calcStr, IntVec &boolRes,
            Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
@@ -75,7 +76,7 @@ public:
            char *procName, char *calc, char *def, StringVec &argList,
            StringVec &oriArgList,
            UIntVec &argBWList,
-           UIntVec &resBWList, int &result_suffix, unsigned result_bw,
+           UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
            char *calcStr,
            IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
@@ -84,7 +85,7 @@ public:
   printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char *def,
             StringVec &argList,
             StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
-            int &result_suffix, unsigned result_bw, bool &constant,
+            int &result_suffix, unsigned &result_bw, bool &constant,
             char *calcStr, IntVec &boolRes, Map<char *, Expr *> &exprMap,
             StringMap<unsigned> &inBW,
             StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
