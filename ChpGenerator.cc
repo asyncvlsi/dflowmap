@@ -596,6 +596,8 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
     case E_VAR: {
       int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
+      act_connection *actConnection = actId->Canonical(sc);
+      unsigned argBW = getBitwidth(actConnection);
       char *oriVarName = new char[10240];
       getActIdName(sc, actId, oriVarName, 10240);
       char *curArg = new char[10240];
@@ -609,13 +611,11 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
         }
         sprintf(calcStr, "%s_%d", oriVarName, numArgs);
         sprintf(curArg, "x%d", numArgs);
+        argBWList.push_back(argBW);
       } else {
         sprintf(calcStr, "%s_%d", oriVarName, idx);
         sprintf(curArg, "x%d", idx);
       }
-      act_connection *actConnection = actId->Canonical(sc);
-      unsigned argBW = getBitwidth(actConnection);
-      argBWList.push_back(argBW);
       inBW.insert(GenPair(curArg, argBW));
       if (result_bw == 0) {
         result_bw = argBW;
