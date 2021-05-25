@@ -51,6 +51,8 @@ public:
 
   void getCurProc(const char *str, char *val);
 
+  unsigned getExprBW(int type, unsigned lBW, unsigned rBW = 0);
+
   const char *
   EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
              const char *metricSym,

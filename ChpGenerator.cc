@@ -156,6 +156,62 @@ void ChpGenerator::getCurProc(const char *str, char *val) {
   strcpy(val, curProc);
 }
 
+unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
+  unsigned maxBW = lBW;
+  if (rBW > lBW) {
+    maxBW = rBW;
+  }
+  switch (type) {
+    case E_INT: {
+      fatal_error("We shoudld not try to get expr bw for E_INT!\n");
+    }
+    case E_VAR: {
+      fatal_error("We shoudld not try to get expr bw for E_VAR!\n");
+    }
+    case E_AND:
+    case E_OR:
+    case E_XOR: {
+      return maxBW;
+    }
+    case E_NE:
+    case E_EQ:
+    case E_GE:
+    case E_LE:
+    case E_GT:
+    case E_LT: {
+      return 1;
+    }
+    case E_PLUS: {
+      return maxBW + 1;
+    }
+    case E_MINUS: {
+      return maxBW;
+    }
+    case E_MULT: {
+      return lBW + rBW;
+    }
+    case E_MOD:
+    case E_LSR:
+    case E_ASR:
+    case E_DIV: {
+      return maxBW;
+    }
+    case E_LSL: {
+      return lBW + rBW;
+    }
+    case E_NOT:
+    case E_UMINUS:
+    case E_COMPLEMENT:
+    case E_QUERY: {
+      return maxBW;
+    }
+    default: {
+
+    }
+
+  }
+}
+
 const char *
 ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
                          const char *metricSym,
@@ -219,13 +275,13 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     exit(-1);
   }
   if (result_bw == 0) {
-    if (lResBW > rResBW) {
-      result_bw = lResBW;
-    } else {
-      result_bw = rResBW;
+    result_bw = getExprBW(type, lResBW, rResBW);
+    if (result_bw == 0) {
+      print_expr(stdout, expr);
+      printf("result_bw is 0!\n");
+      exit(-1);
     }
   }
-
   resBWList.push_back(result_bw);
 //  if (DEBUG_CLUSTER) {
   printf("query res%d has bw %u\n", result_suffix, result_bw);
@@ -374,10 +430,11 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
     exit(-1);
   }
   if (result_bw == 0) {
-    if (lResBW > rResBW) {
-      result_bw = lResBW;
-    } else {
-      result_bw = rResBW;
+    result_bw = getExprBW(type, lResBW, rResBW);
+    if (result_bw == 0) {
+      print_expr(stdout, expr);
+      printf("result_bw is 0!\n");
+      exit(-1);
     }
   }
   resBWList.push_back(result_bw);
@@ -515,12 +572,12 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
   char *curCal = new char[300];
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
   if (result_bw == 0) {
-    if (lResBW == 0) {
+    result_bw = getExprBW(type, lResBW);
+    if (result_bw == 0) {
       print_expr(stdout, expr);
-      printf(", botn resBW and lResBW are 0!\n");
+      printf("result_bw is 0!\n");
       exit(-1);
     }
-    result_bw = lResBW;
   }
   resBWList.push_back(result_bw);
 //  if (DEBUG_CLUSTER) {
@@ -735,7 +792,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenBW, hiddenExprs);
     }
     case E_LT: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "lt", "<", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -744,7 +800,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenBW, hiddenExprs);
     }
     case E_GT: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "gt", ">", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -753,7 +808,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenBW, hiddenExprs);
     }
     case E_LE: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "le", "<=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -762,7 +816,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenBW, hiddenExprs);
     }
     case E_GE: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "ge", ">=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -771,7 +824,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenBW, hiddenExprs);
     }
     case E_EQ: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "eq", "=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -781,7 +833,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                       hiddenExprs);
     }
     case E_NE: {
-      result_bw = 1;
       return EMIT_BIN(sc, expr, "ne", "!=", type, "icmp", procName, calc, def, argList,
                       oriArgList,
                       argBWList,
@@ -805,10 +856,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
       } else {
         result_bw = 1;
       }
-      printf("RuiTmp process ");
-      print_expr(stdout, expr);
-      printf(", result_bw: %u\n", result_bw);
-
       return printExpr(sc, lExpr, procName, calc, def, argList, oriArgList, argBWList,
                        resBWList,
                        result_suffix, result_bw, constant, calcStr, boolResSuffixs,
@@ -828,7 +875,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                         argList, oriArgList, argBWList, resBWList, result_suffix,
                         result_bw, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW,
                         hiddenExprs);
-
     }
     default: {
       print_expr(stdout, expr);
