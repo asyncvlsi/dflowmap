@@ -111,7 +111,6 @@ void ChpGenerator::collectBitwidthInfo(Process *p) {
     if (bitwidth <= 0) {
       printf("%s has negative bw %d!\n", varName, bitwidth);
     } else {
-      printf("update bw for %s\n", varName);
       bitwidthMap.insert(std::make_pair(c, bitwidth));
     }
   }
@@ -283,10 +282,10 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     }
   }
   resBWList.push_back(result_bw);
-//  if (DEBUG_CLUSTER) {
-  printf("query res%d has bw %u\n", result_suffix, result_bw);
-  printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
-//  }
+  if (DEBUG_CLUSTER) {
+    printf("query res%d has bw %u\n", result_suffix, result_bw);
+    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
+  }
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
   char *rVal = new char[100];
@@ -438,10 +437,10 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
     }
   }
   resBWList.push_back(result_bw);
-//  if (DEBUG_CLUSTER) {
-  printf("bin res%d has bw %u\n", result_suffix, result_bw);
-  printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-//  }
+  if (DEBUG_CLUSTER) {
+    printf("bin res%d has bw %u\n", result_suffix, result_bw);
+    printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+  }
   /* create Expr */
   if (debug_verbose) {
     printf("[PERF] handle bin expression for ");
@@ -580,10 +579,10 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
     }
   }
   resBWList.push_back(result_bw);
-//  if (DEBUG_CLUSTER) {
-  printf("uni res%d has bw %u\n", result_suffix, result_bw);
-  printf("      res%d := %s %s;\n", result_suffix, op, lStr);
-//  }
+  if (DEBUG_CLUSTER) {
+    printf("uni res%d has bw %u\n", result_suffix, result_bw);
+    printf("      res%d := %s %s;\n", result_suffix, op, lStr);
+  }
   strcat(calc, curCal);
   if (debug_verbose) {
     printf("unary expr: ");
@@ -646,7 +645,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
         } else {
           result_bw = (unsigned) (log2(val)) + 1;
         }
-        printf("for val %lu, bw is %u\n", val, result_bw);
       }
       return valStr;
     }
@@ -679,9 +677,9 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
       }
       if (procName[0] == '\0') {
         resBWList.push_back(result_bw);
-//        if (DEBUG_CLUSTER) {
-        printf("var %s has bw %u\n", oriVarName, result_bw);
-//        }
+        if (DEBUG_CLUSTER) {
+          printf("var %s has bw %u\n", oriVarName, result_bw);
+        }
       }
       getExprFromName(curArg, exprMap, false, E_VAR);
       return curArg;
@@ -1299,29 +1297,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                              Map<Expr *, Expr *> &hiddenExprs) {
   calc[strlen(calc) - 2] = ';';
-  printf("PRINT DFLOW FUNCTION\n");
-  printf("procName: %s\n", procName);
-  printf("arg list:\n");
-  for (auto &arg : argList) {
-    printf("%s ", arg.c_str());
-  }
-  printf("\n");
-  printf("arg bw list:\n");
-  for (auto &bw : argBWList) {
-    printf("%u ", bw);
-  }
-  printf("\n");
-  printf("res bw list:\n");
-  for (auto &resBW : resBWList) {
-    printf("%u ", resBW);
-  }
-  printf("\n");
-  printf("outWidthList:\n");
-  for (auto &outWidth : outWidthList) {
-    printf("%u ", outWidth);
-  }
-  printf("\n");
-
   if (DEBUG_CLUSTER) {
     printf("PRINT DFLOW FUNCTION\n");
     printf("procName: %s\n", procName);
@@ -1864,7 +1839,6 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         printSink(resFp, libFp, confFp, sink, bitwidth);
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
-      printf("RuiTmp create split %s\n", splitName);
       const char *guardStr = getActIdOrCopyName(sc, guard);
       const char *inputStr = getActIdOrCopyName(sc, input);
       fprintf(resFp, "%s, %s", guardStr, inputStr);
