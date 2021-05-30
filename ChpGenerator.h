@@ -135,7 +135,7 @@ public:
                  StringVec &outList, StringVec &initStrs, IntVec &boolRes,
                  Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                  StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
-                 Map<Expr *, Expr *> &hiddenExprs);
+                 Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
   void
   handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
@@ -148,7 +148,7 @@ public:
                   UIntVec &outWidthList, StringVec &initStrs, IntVec &boolRes,
                   Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                   StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
-                  Map<Expr *, Expr *> &hiddenExprs);
+                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
   void handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
                                 act_dataflow_element *d, unsigned &sinkCnt);
