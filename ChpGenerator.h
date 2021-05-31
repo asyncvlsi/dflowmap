@@ -132,7 +132,8 @@ public:
                  UIntVec &resBWList, UIntVec &outWidthList, const char *def,
                  char *calc, int result_suffix, StringVec &outSendStr,
                  IntVec &outResSuffixs, StringVec &normalizedOutList,
-                 StringVec &outList, StringVec &initStrs, IntVec &boolRes,
+                 StringVec &outList, Map<unsigned, unsigned long> &initMap,
+                 IntVec &boolRes,
                  Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                  StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
@@ -145,7 +146,8 @@ public:
                   UIntVec &resBWList, int &result_suffix, StringVec &outSendStr,
                   IntVec &outResSuffixs,
                   StringVec &outList, StringVec &normalizedOutList,
-                  UIntVec &outWidthList, StringVec &initStrs, IntVec &boolRes,
+                  UIntVec &outWidthList, Map<unsigned, unsigned long> &initMap,
+                  IntVec &boolRes,
                   Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                   StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                   Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
@@ -163,6 +165,12 @@ public:
   void printULongVec(ULongVec &longVec);
 
   bool isOpUsed(Scope *sc, ActId *actId);
+
+  int *getMetrics(const char *opName, const char *procName,
+                  StringMap<unsigned> &inBW, Map<char *, Expr *> &exprMap,
+                  StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *>
+                  &hiddenExprs, Map<int, int> &outRecord,
+                  UIntVec &outWidthList, UIntVec &buffBWs);
 
 private:
   /* op, its bitwidth */
