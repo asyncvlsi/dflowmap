@@ -215,10 +215,9 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp,
             "defproc init(chan?(int<W>)in; chan!(int<W>) out) {\n");
     fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  bool b;\n");
-    fprintf(libFp, "  chp {\n    b-;\n");
-    fprintf(libFp,
-            "    *[[~b->x:=V;b+ [] b->in?x]; out!x; log(\"send \", x)]\n  }\n}\n\n");
+    fprintf(libFp, "  chp {\n    out!V;\n");
+    fprintf(libFp, "    log(\"send initVal\", V);\n");
+    fprintf(libFp, "    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
