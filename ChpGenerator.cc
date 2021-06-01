@@ -111,6 +111,9 @@ void ChpGenerator::collectBitwidthInfo(Process *p) {
     if (bitwidth <= 0) {
       printf("%s has negative bw %d!\n", varName, bitwidth);
     } else {
+      if (debug_verbose) {
+        printf("Update bitwidthMap for (%s, %d).\n", varName, bitwidth);
+      }
       bitwidthMap.insert(std::make_pair(c, bitwidth));
     }
   }
@@ -128,7 +131,13 @@ void ChpGenerator::printBitwidthInfo() {
 
 unsigned ChpGenerator::getActIdBW(ActId *actId, Process *p) {
   act_connection *c = actId->Canonical(p->CurScope());
-  return getBitwidth(c);
+  unsigned bw = getBitwidth(c);
+  if (debug_verbose) {
+    printf("Fetch BW for actID ");
+    actId->Print(stdout);
+    printf(": %u\n", bw);
+  }
+  return bw;
 }
 
 unsigned ChpGenerator::getBitwidth(act_connection *actConnection) {
@@ -1629,7 +1638,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   }
   char *actualOut = new char[10240];
   const char *oriOut = outList[i].c_str();
-  printf("oriOut: %s\n", oriOut);
   if (initMap.find(i) != initMap.end()) {
     sprintf(actualOut, "%s_new", oriOut);
   } else {
@@ -1957,8 +1965,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     bool constant = false;
     char *calcStr = new char[1500];
     calcStr[0] = '\0';
+    unsigned result_bw = outWidth;
     printExpr(sc, expr, procName, calc, def, argList, oriArgList, argBWList, resBWList,
-              result_suffix, outWidth, constant, calcStr, boolResSuffixs, exprMap,
+              result_suffix, result_bw, constant, calcStr, boolResSuffixs, exprMap,
               inBW, hiddenBW, hiddenExprs);
     if (constant) {
       print_expr(stdout, expr);
@@ -1987,9 +1996,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       char *xName = new char[3];
       sprintf(xName, "x0");
       Expr *xExpr = getExprFromName(xName, exprMap, false, E_VAR);
-      hiddenBW.insert(GenPair(resName, outWidth));
+      hiddenBW.insert(GenPair(resName, result_bw));
       hiddenExprs.insert(GenPair(resRHS, xExpr));
-      buffBWs.push_back(outWidth);
+      buffBWs.push_back(result_bw);
     }
     if (initExpr) {
       unsigned long initVal = initExpr->u.v;
