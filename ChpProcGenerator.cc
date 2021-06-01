@@ -67,9 +67,9 @@ void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procNa
     }
     fprintf(libFp, "%s", def);
     fprintf(libFp, "  chp {\n");
-    if (initSend) {
-      fprintf(libFp, "%s", initSend);
-    }
+//    if (initSend) {
+//      fprintf(libFp, "%s", initSend);
+//    }
     fprintf(libFp, "    *[\n");
 
     if (DEBUG_FU) {
