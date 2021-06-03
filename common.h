@@ -24,15 +24,12 @@
 #ifndef DFLOWMAP_COMMON_H
 #define DFLOWMAP_COMMON_H
 
+#include <act/act_id.h>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <map>
-#include "config_pkg.h"
-
-#define DEBUG_CLUSTER false
-#define DEBUG_FU false
-#define DEBUG_OPTIMIZER false
+#include "config.h"
 
 #ifdef FOUND_expropt
 #define LOGIC_OPTIMIZER true
@@ -49,7 +46,7 @@ typedef std::vector<int> IntVec;
 typedef std::vector<unsigned long> ULongVec;
 typedef std::vector<unsigned int> UIntVec;
 typedef std::vector<const char *> CharPtrVec;
-typedef std::vector<ActId *> ActIdVec;
+//typedef std::vector<ActId *> ActIdVec;
 typedef std::vector<act_connection *> ActConnectVec;
 
 template<class T1, class T2>

@@ -166,12 +166,6 @@ public:
 
   bool isOpUsed(Scope *sc, ActId *actId);
 
-  int *getMetrics(const char *opName, const char *procName,
-                  StringMap<unsigned> &inBW, Map<char *, Expr *> &exprMap,
-                  StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *>
-                  &hiddenExprs, Map<int, int> &outRecord,
-                  UIntVec &outWidthList, UIntVec &buffBWs);
-
 private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
