@@ -12,7 +12,7 @@ public:
 
   void
   createFULib(FILE *libFp, FILE *confFp, const char *procName, const char *calc,
-              const char *def, const char *outSend, const char *initSend, int numArgs,
+              const char *def, const char *outSend, int numArgs,
               int numOuts, int numRes, const char *instance, int *metric,
               IntVec &boolRes);
 

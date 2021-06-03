@@ -1299,6 +1299,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
         normalizedOp[0] = '\0';
         metrics->getNormalizedOpName(instance, normalizedOp);
         metrics->updateMetrics(normalizedOp, metric);
+        metrics->writeMetricsFile(normalizedOp, metric);
       }
       processGenerator.createCopy(libFp, confFp, instance, metric);
       metrics->updateCopyStatistics(bitwidth, N);
@@ -1482,26 +1483,9 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-  char *initSend = nullptr;
   int numInitElems = initMap.size();
   if (DEBUG_CLUSTER) {
     printf("numInitElems: %d\n", numInitElems);
-  }
-  if (numInitElems > 0) {
-    initSend = new char[10240];
-    sprintf(initSend, "    ");
-    unsigned initIdx = 0;
-    unsigned maxIdx = numInitElems - 1;
-    for (auto &initMapIt : initMap) {
-      char *subInitSend = new char[1500];
-      if (initIdx < maxIdx) {
-        sprintf(subInitSend, "out%u!%lu, ", initMapIt.first, initMapIt.second);
-      } else {
-        sprintf(subInitSend, "out%u!%lu;\n", initMapIt.first, initMapIt.second);
-      }
-      strcat(initSend, subInitSend);
-      initIdx++;
-    }
   }
   /* Get the perf metric */
   char *opName = instance + 5;
@@ -1700,7 +1684,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                   numOuts);
     }
     for (auto &buffBW : buffBWs) {
-      printf("RuiTmp handle buff bw %u\n", buffBW);
       char *regName = new char[10];
       sprintf(regName, "reg%u", buffBW);
       int *regMetric = metrics->getOpMetric(regName);
@@ -1722,7 +1705,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     metrics->writeMetricsFile(normalizedOp, metric);
 #endif
   }
-  processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend, initSend,
+  processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend,
                                numArgs, numOuts,
                                numRes, instance,
                                metric, boolResSuffixs);
@@ -2055,7 +2038,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       getActIdName(sc, input, inputName, 10240);
       unsigned bw = getBitwidth(input->Canonical(sc));
       printSink(resFp, libFp, confFp, inputName, bw);
-      printf("%s is not used anywhere!\n", inputName);
+      if (debug_verbose) {
+        printf("%s is not used anywhere!\n", inputName);
+      }
       break;
     }
     default: {
