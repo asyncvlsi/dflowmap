@@ -35,7 +35,7 @@ bool ChpProcGenerator::hasProcess(const char *process) {
 
 void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName,
                                    const char *calc, const char *def,
-                                   const char *outSend, const char *initSend, int numArgs,
+                                   const char *outSend, int numArgs,
                                    int numOuts, int
                                    numRes,
                                    const char *instance, int *metric, IntVec &boolRes) {
@@ -71,41 +71,37 @@ void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procNa
 //      fprintf(libFp, "%s", initSend);
 //    }
     fprintf(libFp, "    *[\n");
-
-    if (DEBUG_FU) {
-      for (i = 0; i < numArgs - 1; i++) {
-        fprintf(libFp, "      arg%d?x%d;  log(\"receive (\", x%d, \")\");\n", i, i, i);
-      }
-      fprintf(libFp, "      arg%d?x%d;  log(\"receive (\", x%d, \")\");\n", i, i, i);
-    } else {
-      for (i = 0; i < numArgs - 1; i++) {
-        fprintf(libFp, "arg%d?x%d, ", i, i);
-      }
-      fprintf(libFp, "arg%d?x%d;\n", i, i);
-      fprintf(libFp, "      log(\"receive (\", ");
-      for (i = 0; i < numArgs - 1; i++) {
-        fprintf(libFp, "x%d, \",\", ", i);
-      }
-      fprintf(libFp, "x%d, \")\");\n", i);
+    for (i = 0; i < numArgs - 1; i++) {
+      fprintf(libFp, "arg%d?x%d, ", i, i);
     }
+    fprintf(libFp, "arg%d?x%d;\n", i, i);
+    fprintf(libFp, "      log(\"receive (\", ");
+    for (i = 0; i < numArgs - 1; i++) {
+      fprintf(libFp, "x%d, \",\", ", i);
+    }
+    fprintf(libFp, "x%d, \")\");\n", i);
+
     fprintf(libFp, "%s", calc);
     fprintf(libFp, "%s", outSend);
     fprintf(libFp, "\n    ]\n  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
-    fprintf(confFp, "begin %s\n", instance);
-    if (metric != nullptr) {
-      for (int i = 0; i < numOuts; i++) {
-        fprintf(confFp, "  begin out%d\n", i);
-        fprintf(confFp, "    int D %d\n", metric[2]);
-        fprintf(confFp, "    int E %d\n", (metric[1] / numOuts));
-        fprintf(confFp, "  end\n");
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
       }
+      return;
     }
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "begin %s\n", instance);
+    for (int i = 0; i < numOuts; i++) {
+      fprintf(confFp, "  begin out%d\n", i);
+      fprintf(confFp, "    int D %d\n", metric[2]);
+      fprintf(confFp, "    int E %d\n", (metric[1] / numOuts));
+      fprintf(confFp, "  end\n");
     }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -131,17 +127,20 @@ void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procNa
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin out\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -159,7 +158,7 @@ void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procNa
     fprintf(libFp, "chan!(int<W2>) out%d) {\n", i);
     fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "    *[in?x, ctrl?c; log(\"receive \", c, \", \", x);[");
+    fprintf(libFp, R"(    *[in?x, ctrl?c; log("receive ", c, ", ", x);[)");
 
     for (i = 0; i < numOutputs - 1; i++) {
       fprintf(libFp, "c=%d -> out%d!x [] ", i, i);
@@ -168,17 +167,22 @@ void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procNa
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
-    fprintf(confFp, "begin %s\n", instance);
-    if (metric != nullptr) {
-      for (int i = 0; i < numOutputs; i++) {
-        fprintf(confFp, "  begin out%d\n", i);
-        fprintf(confFp, "    int D %d\n", metric[2]);
-        fprintf(confFp, "    int E %d\n", metric[1]);
-        fprintf(confFp, "  end\n");
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
       }
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
+      return;
     }
+    fprintf(confFp, "begin %s\n", instance);
+    for (int i = 0; i < numOutputs; i++) {
+      fprintf(confFp, "  begin out%d\n", i);
+      fprintf(confFp, "    int D %d\n", metric[2]);
+      fprintf(confFp, "    int E %d\n", metric[1]);
+      fprintf(confFp, "  end\n");
+    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -193,17 +197,20 @@ void ChpProcGenerator::createSource(FILE *libFp, FILE *confFp, const char *insta
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -220,21 +227,24 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp, "    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin in\n");
     fprintf(confFp, "    int D 0\n");
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -249,21 +259,24 @@ void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp, "  chp {\n    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin in\n");
     fprintf(confFp, "    int D 0\n");
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -279,17 +292,20 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp, "  }\n}\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -297,42 +313,6 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
 void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instance,
                                   int *metric) {
   if (!hasProcess("copy")) {
-//    fprintf(libFp, "template<pint W, N>\n");
-//    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-//    fprintf(libFp, "  int<W> x;\n  chp {\n");
-//    fprintf(libFp, "  *[ in?x; log(\"receive \", x); "
-//                   "(,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
-//    fprintf(libFp, "  }\n}\n\n");
-
-//    fprintf(libFp, "template<pint W, N>\n");
-//    fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-//    fprintf(libFp, "  int<W> x;\n");
-//    fprintf(libFp, "  chp {\n");
-//    fprintf(libFp, "  *[ in?x; log(\"receive \", x); (,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
-//    fprintf(libFp, "  }\n}\n");
-//    fprintf(libFp, "template<pint W, N>\n");
-//    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-//    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
-//    fprintf(libFp, "   [] else -> ");
-//    fprintf(libFp, "      pint M = N/8;\n");
-//    fprintf(libFp, "      pint F = N - M*8;\n");
-//    fprintf(libFp, "      pint pos = 0;\n");
-//    fprintf(libFp, "      pint x = 0;\n");
-//    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,9> t[F]; ]\n");
-//    fprintf(libFp, "      [ F < M -> copy_leaf<W,8> u[F..M-1]; ]\n");
-//    fprintf(libFp, "      copy<W,M> m(in);\n\n");
-//    fprintf(libFp, "      *[ x < M ->\n");
-//    fprintf(libFp, "        [ x < F -> m.out[x] = t[x].in;\n");
-//    fprintf(libFp, "                   t[x].out=out[pos..pos+8];\n");
-//    fprintf(libFp, "                   pos = pos + 9;\n");
-//    fprintf(libFp, "        [] else ->  m.out[x] = u[x].in;\n");
-//    fprintf(libFp, "                   u[x].out = out[pos..pos+7];\n");
-//    fprintf(libFp, "                   pos = pos + 8;\n");
-//    fprintf(libFp, "        ]\n");
-//    fprintf(libFp, "        x = x + 1;\n");
-//    fprintf(libFp, "      ]\n  ]\n}\n");
-
-
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
     fprintf(libFp, "  int<W> x;\n");
@@ -357,21 +337,24 @@ void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp, "      ]\n  ]\n}\n");
   }
   if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin in\n");
     fprintf(confFp, "    int D 0\n");
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
-    }
+    fprintf(confFp, "    int D %d\n", metric[2]);
+    fprintf(confFp, "    int E %d\n", metric[1]);
     fprintf(confFp, "  end\n");
-    if (metric != nullptr) {
-      fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-      fprintf(confFp, "  int area %d\n", metric[3]);
-    }
+    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
+    fprintf(confFp, "  int area %d\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }

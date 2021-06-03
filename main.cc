@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
       chpGenerator->handleProcess(resFp, libFp, confFp, p);
     }
   }
-  fprintf(resFp, "main m;\n");
+  fprintf(resFp, "main_test test;\n");
   fprintf(confFp, "end\n");
   fclose(resFp);
   fclose(confFp);

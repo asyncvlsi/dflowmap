@@ -39,6 +39,7 @@
 
 #define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
+class act_connection;
 
 typedef std::string String;
 typedef std::vector<String> StringVec;
@@ -46,7 +47,6 @@ typedef std::vector<int> IntVec;
 typedef std::vector<unsigned long> ULongVec;
 typedef std::vector<unsigned int> UIntVec;
 typedef std::vector<const char *> CharPtrVec;
-//typedef std::vector<ActId *> ActIdVec;
 typedef std::vector<act_connection *> ActConnectVec;
 
 template<class T1, class T2>
