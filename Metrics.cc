@@ -1,9 +1,9 @@
 #include "Metrics.h"
 
 void Metrics::updateMetrics(const char *op, int *metric) {
-  if (debug_verbose) {
+//  if (debug_verbose) {
     printf("Update metrics for %s\n", op);
-  }
+//  }
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
       fatal_error("We already have metric info for %s", op);

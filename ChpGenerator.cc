@@ -1,6 +1,6 @@
 #include <act/lang.h>
-//#include <act/value.h>
 #include "ChpGenerator.h"
+#include "helper.cc"
 
 void ChpGenerator::printIntVec(IntVec &intVec) {
   for (auto &val : intVec) {
@@ -214,9 +214,8 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
       return maxBW;
     }
     default: {
-
+      fatal_error("Try to get expr bw for unknown type %d\n", type);
     }
-
   }
 }
 
@@ -1270,8 +1269,37 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       const char *normalizedName = removeDot(opName);
       fprintf(resFp, "copy<%u,%u> %scopy(%s);\n", bitwidth, N, normalizedName, opName);
       char *instance = new char[1500];
-      sprintf(instance, "copy<%d,%u>", bitwidth, N);
+      sprintf(instance, "copy<%u,%u>", bitwidth, N);
       int *metric = metrics->getOpMetric(instance);
+      if (!metric) {
+        char *equivInstance = new char[1500];
+        int equivN = ceil_log2(N) - 1;
+        if (equivN < 1) {
+          equivN = 1;
+        }
+        if (DEBUG_OPTIMIZER) {
+          printf("We are handling copy_%u_%u, and we are using mapping it to %d "
+                 "copy_%u_2\n", bitwidth, N, equivN, bitwidth);
+        }
+        sprintf(equivInstance, "copy<%u,2>", bitwidth);
+        int *equivMetric = metrics->getOpMetric(equivInstance);
+        if (!equivMetric) {
+          fatal_error("Missing metrics for copy %s\n", equivInstance);
+        }
+        if (equivN == 1) {
+          metric = equivMetric;
+        } else {
+          metric = new int[4];
+          metric[0] = equivN * equivMetric[0];
+          metric[1] = equivN * equivMetric[1];
+          metric[2] = equivN * equivMetric[2];
+          metric[3] = equivN * equivMetric[3];
+        }
+        char *normalizedOp = new char[10240];
+        normalizedOp[0] = '\0';
+        metrics->getNormalizedOpName(instance, normalizedOp);
+        metrics->updateMetrics(normalizedOp, metric);
+      }
       processGenerator.createCopy(libFp, confFp, instance, metric);
       metrics->updateCopyStatistics(bitwidth, N);
       if (metric != nullptr) {
@@ -1291,221 +1319,6 @@ void ChpGenerator::genExprFromStr(const char *str, Expr *expr, int exprType) {
   auto newLActId = new ActId(str);
   expr->type = exprType;
   expr->u.e.l = (Expr *) (newLActId);
-}
-
-int *ChpGenerator::getMetrics(const char *opName, const char *procName,
-                              StringMap<unsigned> &inBW, Map<char *, Expr *> &exprMap,
-                              StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *>
-                              &hiddenExprs, Map<int, int> &outRecord,
-                              UIntVec &outWidthList, UIntVec &buffBWs) {
-  int *metric = metrics->getOpMetric(opName);
-  printf("search metric for %s\n", opName);
-  if ((metric == nullptr) && (strcmp(procName, "func_port") != 0)) {
-#if LOGIC_OPTIMIZER
-    printf("222\n");
-    /* Prepare in_expr_list */
-    list_t *in_expr_list = list_new();
-    iHashtable *in_expr_map = ihash_new(0);
-    iHashtable *in_width_map = ihash_new(0);
-    unsigned totalInBW = 0;
-    unsigned lowBWInPorts = 0;
-    unsigned highBWInPorts = 0;
-    for (auto &inBWIt : inBW) {
-      String inName = inBWIt.first;
-      unsigned bw = inBWIt.second;
-      totalInBW += bw;
-      if (bw >= 32) {
-        highBWInPorts++;
-      } else {
-        lowBWInPorts++;
-      }
-      char *inChar = new char[10240];
-      sprintf(inChar, "%s", inName.c_str());
-      if (DEBUG_OPTIMIZER) {
-        printf("inChar: %s\n", inChar);
-      }
-      Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
-      list_append(in_expr_list, inExpr);
-      ihash_bucket_t *b_expr, *b_width;
-      b_expr = ihash_add(in_expr_map, (long) inExpr);
-      b_expr->v = inChar;
-      b_width = ihash_add(in_width_map, (long) inExpr);
-      b_width->i = (int) bw;
-    }
-    /* Prepare hidden_expr_list */
-    list_t *hidden_expr_list = list_new();
-    list_t *hidden_expr_name_list = list_new();
-//    iHashtable *out_expr_map = ihash_new(0);
-    iHashtable *out_width_map = ihash_new(0);
-    for (auto &hiddenBWIt : hiddenBW) {
-      String hiddenName = hiddenBWIt.first;
-      unsigned bw = hiddenBWIt.second;
-      char *hiddenChar = new char[1024];
-      sprintf(hiddenChar, "%s", hiddenName.c_str());
-      if (DEBUG_OPTIMIZER) {
-        printf("hiddenChar: %s\n", hiddenChar);
-      }
-      Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
-      ihash_bucket_t *b_expr2, *b_width2;
-      b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
-      b_expr2->v = hiddenChar;
-      b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
-      b_width2->i = (int) bw;
-      Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
-      list_append(hidden_expr_list, hiddenExpr);
-
-      list_append(hidden_expr_name_list, hiddenChar);
-
-      ihash_bucket_t *b_width;
-//      b_expr = ihash_add(out_expr_map, (long) hiddenExpr);
-//      b_expr->v = hiddenChar;
-      b_width = ihash_add(out_width_map, (long) hiddenExpr);
-      b_width->i = (int) bw;
-    }
-    /* Prepare out_expr_list */
-    list_t *out_expr_list = list_new();
-    list_t *out_expr_name_list = list_new();
-    IntVec processedResIDs;
-    int numOuts = outRecord.size();
-    for (int ii = 0; ii < numOuts; ii++) {
-      int resID = outRecord.find(ii)->second;
-      char *resChar = new char[1024];
-      sprintf(resChar, "res%d", resID);
-      if (DEBUG_OPTIMIZER) {
-        printf("resChar: %s\n", resChar);
-      }
-      Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
-      list_append(out_expr_list, resExpr);
-
-//      b_expr = ihash_add(out_expr_map, (long) resExpr);
-      char *outChar = new char[1024];
-      sprintf(outChar, "out%d", ii);
-//      b_expr->v = outChar;
-      list_append(out_expr_name_list, outChar);
-      if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
-          != processedResIDs.end()) {
-        continue;
-      }
-      ihash_bucket_t *b_width;
-      b_width = ihash_add(out_width_map, (long) resExpr);
-      unsigned bw = outWidthList[ii];
-      b_width->i = (int) bw;
-      processedResIDs.push_back(resID);
-    }
-    auto optimizer = new ExternalExprOpt(genus, bd, false);
-    if (DEBUG_OPTIMIZER) {
-      listitem_t *li;
-      printf("in_expr_bundle:\n");
-      for (li = list_first (in_expr_list); li; li = list_next (li)) {
-        long key = (long) list_value(li);
-        char *val = (char *) ihash_lookup(in_expr_map, key)->v;
-        int bw = ihash_lookup(in_width_map, key)->i;
-        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-      }
-      printf("\nout_expr_bundle:\n");
-      for (li = list_first (out_expr_list); li; li = list_next (li)) {
-        long key = (long) list_value(li);
-        int bw = ihash_lookup(out_width_map, key)->i;
-        printf("key: %ld, bw: %d\n", key, bw);
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-      }
-      for (li = list_first (out_expr_name_list); li; li = list_next (li)) {
-        char *outName = (char *) list_value(li);
-        printf("outName: %s\n", outName);
-      }
-      printf("\nhidden expr:\n");
-      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-        long key = (long) list_value(li);
-        int bw = ihash_lookup(out_width_map, key)->i;
-        printf("key: %ld, bw: %d\n", key, bw);
-      }
-      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
-        char *hiddenName = (char *) list_value (li);
-        printf("hiddenName: %s\n", hiddenName);
-      }
-      printf("\n");
-    }
-    printf("Run logic optimizer for %s\n", opName);
-    char *optimizerProcName = new char[201];
-    if (strlen(procName) > 200) {
-      snprintf(optimizerProcName, 200, "%s", procName);
-    } else {
-      sprintf(optimizerProcName, "%s", procName);
-    }
-    ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
-                                                      in_expr_map,
-                                                      in_width_map,
-                                                      out_expr_list, out_expr_name_list,
-                                                      out_width_map,
-                                                      hidden_expr_list,
-                                                      hidden_expr_name_list);
-    printf(
-        "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
-        "s\n",
-        optimizerProcName, info->area, info->power_typ_dynamic, info->power_typ_static,
-        info->delay_typ);
-    int leakpower = (int) (info->power_typ_static * 1e9);  // Leakage power (nW)
-    int energy = (int) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
-    int delay = (int) (info->delay_typ * 1e12); // Delay (ps)
-    int area = (int) (info->area * 1e12);  // AREA (um^2)
-    /* adjust perf number by adding latch, etc. */
-    int *latchMetric = metrics->getOpMetric("latch1");
-    if (latchMetric == nullptr) {
-      fatal_error("We could not find metric for latch1!\n");
-    }
-    area = (int) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
-                  + highBWInPorts * 2.86 + delay / 500 * 1.43);
-    leakpower = (int) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
-                       + highBWInPorts * 5.36 + delay / 500 * 1.38);
-    energy = (int) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
-                    + highBWInPorts * 20.19 + delay / 500 * 28.544);
-    int *twoToOneMetric = metrics->getOpMetric("twoToOne");
-    if (twoToOneMetric == nullptr) {
-      fatal_error("We could not find metric for 2-in-1-out!\n");
-    }
-    delay = delay + twoToOneMetric[2] + latchMetric[2];
-    /* adjust perf number in case there are BUFFs (i.e., "register" in Verilog) */
-    if (DEBUG_OPTIMIZER) {
-      printf("buffBWs: ");
-      for (auto &buffBW : buffBWs) {
-        printf("%u ", buffBW);
-      }
-      printf("\n");
-    }
-    for (auto &buffBW : buffBWs) {
-      char *regName = new char[10];
-      sprintf(regName, "reg%u", buffBW);
-      int *regMetric = metrics->getOpMetric(regName);
-      if (regMetric == nullptr) {
-        fatal_error("We could not find metric for %s!\n", regName);
-      }
-      leakpower += regMetric[0];
-      energy += regMetric[1];
-      delay += regMetric[2];
-      area += regMetric[3];
-    }
-    /* get the final metric */
-    metric = new int[4];
-    metric[0] = leakpower;
-    metric[1] = energy;
-    metric[2] = delay;
-    metric[3] = area;
-    char *normalizedOp = new char[10240];
-    normalizedOp[0] = '\0';
-    metrics->getNormalizedOpName(opName, normalizedOp);
-    metrics->updateMetrics(normalizedOp, metric);
-    metrics->writeMetricsFile(normalizedOp, metric);
-#endif
-  }
-  printf("333\n");
 }
 
 void
@@ -1692,11 +1505,15 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   }
   /* Get the perf metric */
   char *opName = instance + 5;
-  printf("start to search metric for %s\n", procName);
+  if (debug_verbose) {
+    printf("start to search metric for %s\n", opName);
+  }
   int *metric = metrics->getOpMetric(opName);
-  printf("search metric for %s\n", opName);
-  if ((metric == nullptr) && (strcmp(procName, "func_port") != 0)) {
+  if (!metric) {
 #if LOGIC_OPTIMIZER
+    if (debug_verbose) {
+      printf("Will run logic optimizer for %s\n", opName);
+    }
     /* Prepare in_expr_list */
     list_t *in_expr_list = list_new();
     iHashtable *in_expr_map = ihash_new(0);
@@ -1827,13 +1644,16 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       printf("\n");
     }
-    printf("Run logic optimizer for %s\n", opName);
+    char *normalizedOp = new char[10240];
+    normalizedOp[0] = '\0';
+    metrics->getNormalizedOpName(opName, normalizedOp);
     char *optimizerProcName = new char[201];
-    if (strlen(procName) > 200) {
-      snprintf(optimizerProcName, 200, "%s", procName);
+    if (strlen(normalizedOp) > 200) {
+      snprintf(optimizerProcName, 200, "%s", normalizedOp);
     } else {
-      sprintf(optimizerProcName, "%s", procName);
+      sprintf(optimizerProcName, "%s", normalizedOp);
     }
+    printf("Run logic optimizer for %s\n", optimizerProcName);
     ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
                                                       in_expr_map,
                                                       in_width_map,
@@ -1874,7 +1694,13 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       printf("\n");
     }
+    unsigned numBuffs = buffBWs.size();
+    if (numBuffs > numOuts) {
+      fatal_error("%s has more buffs (%u) than outputs(%u)!\n", normalizedOp, numBuffs,
+                  numOuts);
+    }
     for (auto &buffBW : buffBWs) {
+      printf("RuiTmp handle buff bw %u\n", buffBW);
       char *regName = new char[10];
       sprintf(regName, "reg%u", buffBW);
       int *regMetric = metrics->getOpMetric(regName);
@@ -1892,9 +1718,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     metric[1] = energy;
     metric[2] = delay;
     metric[3] = area;
-    char *normalizedOp = new char[10240];
-    normalizedOp[0] = '\0';
-    metrics->getNormalizedOpName(opName, normalizedOp);
     metrics->updateMetrics(normalizedOp, metric);
     metrics->writeMetricsFile(normalizedOp, metric);
 #endif
@@ -1988,8 +1811,6 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       char *subCalc = new char[1500];
       sprintf(subCalc, "res0 := x0;\n");
       strcat(calc, subCalc);
-      printf("aha!\n");
-
       char *resName = new char[5];
       sprintf(resName, "res0");
       Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
@@ -1998,13 +1819,13 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       Expr *xExpr = getExprFromName(xName, exprMap, false, E_VAR);
       hiddenBW.insert(GenPair(resName, result_bw));
       hiddenExprs.insert(GenPair(resRHS, xExpr));
-      buffBWs.push_back(result_bw);
     }
     if (initExpr) {
       unsigned long initVal = initExpr->u.v;
       char *subProcName = new char[1500];
       sprintf(subProcName, "_init%lu", initVal);
       strcat(procName, subProcName);
+      buffBWs.push_back(result_bw);
     }
     if (DEBUG_CLUSTER) {
       printf("___________________________________\n\n\n\n\n\nFor dataflow element: ");

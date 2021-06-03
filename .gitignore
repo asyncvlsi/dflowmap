@@ -20,3 +20,4 @@ output
 dflowmap.*
 config_pkg.h
 config.mk
+metrics/
