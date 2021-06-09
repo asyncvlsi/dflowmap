@@ -138,12 +138,13 @@ int main(int argc, char **argv) {
   /* read in the Metric file */
   char *metricFilePath = new char[1000];
   if (mfile) {
-    snprintf (metricFilePath, 1000, "%s", mfile);
-  }
-  else {
+    snprintf(metricFilePath, 1000, "%s", mfile);
+  } else {
     sprintf(metricFilePath, "metrics/fluid.metrics");
   }
-  auto metrics = new Metrics(metricFilePath);
+  char *statisticsFilePath = new char[1000];
+  sprintf(statisticsFilePath, "statistics");
+  auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
   /* declare custom namespace */
@@ -179,9 +180,7 @@ int main(int argc, char **argv) {
   fprintf(confFp, "end\n");
   fclose(resFp);
   fclose(confFp);
-  if (debug_verbose) {
-    metrics->dump();
-  }
+  metrics->dump();
 
   return 0;
 }

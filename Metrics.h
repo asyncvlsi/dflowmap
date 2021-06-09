@@ -10,23 +10,23 @@
 
 class Metrics {
 public:
-  Metrics(char *metricFP);
+  Metrics(const char *metricFP, const char *statisticsFP);
 
   void updateMetrics(const char *op, int *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void printCopyStatistics();
-
   void updateAreaStatistics(const char *instance, int area);
-
-  void printAreaStatistics();
 
   void printOpMetrics();
 
   void getNormalizedOpName(const char *op, char *normalizedOp);
 
+  void normalizeName(char *src, char toDel, char newChar);
+
   int *getOpMetric(const char *op);
+
+  int getInstanceCnt(const char *instance);
 
   void readMetricsFile();
 
@@ -41,14 +41,23 @@ private:
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<int, Map<int, int>> copyStatistics;
 
-  int totalArea;
-  /* procName, area of all of the instances of the process */
+  int totalArea = 0;
+
+  /* instanceName, area of all of the instances of the process */
   Map<const char *, int> areaStatistics;
 
-  void normalizeName(char *src, char toDel, char newChar);
+  /* instanceName, # of instances */
+  Map<const char *, int> instanceCnt;
 
-  char *metricFilePath;
+  const char *metricFilePath;
+
+  const char *statisticsFilePath;
+
+  void printAreaStatistics(FILE *statisticsFP);
+
+  void printCopyStatistics(FILE *statisticsFP);
+
+  void printStatistics();
 };
-
 
 #endif //DFLOWMAP_METRICS_H

@@ -100,8 +100,9 @@ void Metrics::readMetricsFile() {
   }
 }
 
-Metrics::Metrics(char *metricFP) {
+Metrics::Metrics(const char *metricFP, const char *statisticsFP) {
   metricFilePath = metricFP;
+  statisticsFilePath = statisticsFP;
 }
 
 void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
@@ -120,64 +121,85 @@ void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   }
 }
 
-void Metrics::printCopyStatistics() {
-  printf("COPY STATISTICS:\n");
+void Metrics::printStatistics() {
+  printf("Print statistics to file: %s\n", statisticsFilePath);
+  FILE *statisticsFP = fopen(statisticsFilePath, "w");
+  if (!statisticsFP) {
+    fatal_error("Could not create statistics file %s\n", statisticsFilePath);
+  }
+  printCopyStatistics(statisticsFP);
+  printAreaStatistics(statisticsFP);
+  fclose(statisticsFP);
+}
+
+void Metrics::printCopyStatistics(FILE *statisticsFP) {
+  fprintf(statisticsFP, "%s\n", "COPY STATISTICS:");
   for (auto &copyStatisticsIt : copyStatistics) {
-    printf("%d-bit COPY:\n", copyStatisticsIt.first);
+    fprintf(statisticsFP, "%d-bit COPY:\n", copyStatisticsIt.first);
     Map<int, int> &record = copyStatisticsIt.second;
     for (auto &recordIt : record) {
-      printf("  %d outputs: %d\n", recordIt.first, recordIt.second);
+      fprintf(statisticsFP, "  %d outputs: %d\n", recordIt.first, recordIt.second);
     }
   }
-  printf("\n");
+  fprintf(statisticsFP, "\n");
 }
 
 void Metrics::updateAreaStatistics(const char *instance, int area) {
   totalArea += area;
+  bool exist = false;
   for (auto &areaStatisticsIt : areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
       areaStatisticsIt.second += area;
-      return;
+      exist = true;
     }
   }
-  char *opName = new char[10240];
-  opName[0] = '\0';
-  strcpy(opName, instance);
-  areaStatistics.insert(GenPair(opName, area));
+  if (exist) {
+    for (auto &instanceCntIt : instanceCnt) {
+      if (!strcmp(instanceCntIt.first, instance)) {
+        instanceCntIt.second += 1;
+        return;
+      }
+    }
+    fatal_error("We could find %s in areaStatistics, but not in instanceCnt!\n",
+                instance);
+  } else {
+    areaStatistics.insert(GenPair(instance, area));
+    instanceCnt.insert(GenPair(instance, 1));
+  }
 }
 
-void Metrics::printAreaStatistics() {
-  printf("Area Statistics:\n");
-//  if (!areaStatistics.empty() && (totalArea == 0)) {
-//    printf("areaStatistics is not empty, but totalArea is 0!\n");
-//    exit(-1);
-//  }
-//  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
-  for (auto &areaStatisticsIt : areaStatistics) {
-    const char *opName = areaStatisticsIt.first;
-    int area = areaStatisticsIt.second;
-    double ratio = (double) area / totalArea * 100;
-    printf("%s %d\n", opName, area);
-//    printf("%.2f\n", ratio);
-//    printf("%40.30s %5d %5.1f\n", opName, area, ratio);
+int Metrics::getInstanceCnt(const char *instance) {
+  for (auto &instanceCntIt : instanceCnt) {
+    if (!strcmp(instanceCntIt.first, instance)) {
+      return instanceCntIt.second;
+    }
   }
+  fatal_error("We could not find %s in instanceCnt!\n", instance);
+}
 
-//  for (auto iter = areaStatistics.rbegin(); iter != areaStatistics.rend(); iter++) {
-////  for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
-//    int area = iter->second;
-//    double ratio = (double) area / totalArea * 100;
-//    const char *opName = iter->first;
-////    if (ratio > 1) {
-//    printf("%s %d %f\n", opName, area, ratio);
-////      printf("%40.30s %5d %5.1f\n", opName, area, ratio);
-////        }
-//}
-
-  printf("\n");
+void Metrics::printAreaStatistics(FILE *statisticsFP) {
+  fprintf(statisticsFP, "Area Statistics:\n");
+  fprintf(statisticsFP, "totalArea: %d\n", totalArea);
+  if (!areaStatistics.empty() && (totalArea == 0)) {
+    printf("areaStatistics is not empty, but totalArea is 0!\n");
+    exit(-1);
+  }
+  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
+  for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
+    int area = iter->first;
+    double ratio = (double) area / totalArea * 100;
+    const char *instance = iter->second;
+    if (ratio > 0.1) {
+      int cnt = getInstanceCnt(instance);
+      fprintf(statisticsFP, "%80.50s %5d %5.1f %5d\n", instance, area, ratio, cnt);
+    }
+  }
+  fprintf(statisticsFP, "\n");
 }
 
 void Metrics::dump() {
-  printOpMetrics();
-  printCopyStatistics();
-  printAreaStatistics();
+  if (debug_verbose) {
+    printOpMetrics();
+  }
+  printStatistics();
 }
