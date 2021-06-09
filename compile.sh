@@ -1,6 +1,7 @@
 clear
 mv ~/main.cc ./
 mv ~/common.h ./
+mv ~/helper.cc ./
 mv ~/Chp* ./
 mv ~/Metrics.* ./
 mv ~/fluid.metrics metrics/
@@ -15,4 +16,4 @@ cp result_$1 ~
 cp lib_$1 ~
 cp conf_$1 ~
 cp $1 ~
-
+cp statistics $1_statistics

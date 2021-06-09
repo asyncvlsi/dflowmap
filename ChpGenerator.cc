@@ -1631,12 +1631,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     char *normalizedOp = new char[10240];
     normalizedOp[0] = '\0';
     metrics->getNormalizedOpName(opName, normalizedOp);
-    char *optimizerProcName = new char[201];
-    if (strlen(normalizedOp) > 200) {
-      snprintf(optimizerProcName, 200, "%s", normalizedOp);
-    } else {
-      sprintf(optimizerProcName, "%s", normalizedOp);
-    }
+    char *optimizerProcName = new char[1000];
+    sprintf(optimizerProcName, "op");
     printf("Run logic optimizer for %s\n", optimizerProcName);
     ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
                                                       in_expr_map,
@@ -1710,7 +1706,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                                numRes, instance,
                                metric, boolResSuffixs);
   if (metric != nullptr) {
-    metrics->updateAreaStatistics(procName, metric[3]);
+    metrics->updateAreaStatistics(opName, metric[3]);
   }
 }
 
