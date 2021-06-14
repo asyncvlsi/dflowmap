@@ -1561,7 +1561,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     list_t *out_expr_list = list_new();
     list_t *out_expr_name_list = list_new();
     IntVec processedResIDs;
-    int numOuts = outRecord.size();
+//    int numOuts = outRecord.size();
     for (int ii = 0; ii < numOuts; ii++) {
       int resID = outRecord.find(ii)->second;
       char *resChar = new char[1024];
@@ -1621,10 +1621,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
         long key = (long) list_value(li);
         int bw = ihash_lookup(out_width_map, key)->i;
         printf("key: %ld, bw: %d\n", key, bw);
-      }
-      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
-        char *hiddenName = (char *) list_value (li);
-        printf("hiddenName: %s\n", hiddenName);
       }
       printf("\n");
     }
@@ -1873,7 +1869,6 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *procName = new char[10240];
       procName[0] = '\0';
       char *calc = new char[20240];
-      calc[0] = '\0';
       sprintf(calc, "\n");
       IntVec boolResSuffixs;
       char *def = new char[10240];
@@ -1907,7 +1902,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         dflow_print(stdout, d);
         printf("\n");
       }
-      if (strlen(procName)) {
+      if (strlen(calc) > 1) {
         printDFlowFunc(resFp, libFp, confFp, procName, argList, argBWList, resBWList,
                        outWidthList, def, calc,
                        result_suffix, outSendStr, outResSuffixs, normalizedOutList,
@@ -2092,6 +2087,11 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   UIntVec buffBWs;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
+    if (DEBUG_CLUSTER) {
+      printf("processing dflow_cluster element ");
+      dflow_print(stdout, d);
+      printf("\n");
+    }
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
                       oriArgList, argBWList, resBWList, result_suffix, outSendStr,
@@ -2113,7 +2113,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
     print_dflow(stdout, dflow);
     printf("\n");
   }
-  if (strlen(procName)) {
+  if (strlen(calc) > 1) {
     printDFlowFunc(resFp, libFp, confFp, procName, argList, argBWList, resBWList,
                    outWidthList, def,
                    calc,
@@ -2155,9 +2155,6 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_CLUSTER) {
       list_t *dflow_cluster = d->u.dflow_cluster;
-      if (DEBUG_CLUSTER) {
-        print_dflow(stdout, dflow_cluster);
-      }
       handleDFlowCluster(resFp, libFp, confFp, p, dflow_cluster);
     } else {
       handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt);

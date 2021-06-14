@@ -21,3 +21,4 @@ dflowmap.*
 config_pkg.h
 config.mk
 metrics/
+*_statistics
