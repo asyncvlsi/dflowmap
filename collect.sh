@@ -3,7 +3,7 @@ scp $LOC/lib_$1 ./
 scp $LOC/result_$1 ./
 scp $LOC/conf_$1 ./
 scp $LOC/$1 ./
-scp $LOC/output ./
+#scp $LOC/output ./
 scp $LOC/$1_statistics ./
 #cp lib_$1 lib_2_$1
 #cp result_$1 result_2_$1
