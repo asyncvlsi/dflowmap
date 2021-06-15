@@ -37,7 +37,6 @@
 #define LOGIC_OPTIMIZER false
 #endif
 
-#define MAX_EXPR_TYPE_NUM 100
 #define MAX_PROCESSES 500
 class act_connection;
 

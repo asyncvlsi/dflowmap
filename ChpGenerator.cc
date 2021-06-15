@@ -1272,34 +1272,36 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       sprintf(instance, "copy<%u,%u>", bitwidth, N);
       int *metric = metrics->getOpMetric(instance);
       if (!metric) {
-        char *equivInstance = new char[1500];
-        int equivN = ceil_log2(N) - 1;
-        if (equivN < 1) {
-          equivN = 1;
+        if (LOGIC_OPTIMIZER) {
+          char *equivInstance = new char[1500];
+          int equivN = ceil_log2(N) - 1;
+          if (equivN < 1) {
+            equivN = 1;
+          }
+          if (DEBUG_OPTIMIZER) {
+            printf("We are handling copy_%u_%u, and we are using mapping it to %d "
+                   "copy_%u_2\n", bitwidth, N, equivN, bitwidth);
+          }
+          sprintf(equivInstance, "copy<%u,2>", bitwidth);
+          int *equivMetric = metrics->getOpMetric(equivInstance);
+          if (!equivMetric) {
+            fatal_error("Missing metrics for copy %s\n", equivInstance);
+          }
+          if (equivN == 1) {
+            metric = equivMetric;
+          } else {
+            metric = new int[4];
+            metric[0] = equivN * equivMetric[0];
+            metric[1] = equivN * equivMetric[1];
+            metric[2] = equivN * equivMetric[2];
+            metric[3] = equivN * equivMetric[3];
+          }
+          char *normalizedOp = new char[10240];
+          normalizedOp[0] = '\0';
+          metrics->getNormalizedOpName(instance, normalizedOp);
+          metrics->updateMetrics(normalizedOp, metric);
+          metrics->writeMetricsFile(normalizedOp, metric);
         }
-        if (DEBUG_OPTIMIZER) {
-          printf("We are handling copy_%u_%u, and we are using mapping it to %d "
-                 "copy_%u_2\n", bitwidth, N, equivN, bitwidth);
-        }
-        sprintf(equivInstance, "copy<%u,2>", bitwidth);
-        int *equivMetric = metrics->getOpMetric(equivInstance);
-        if (!equivMetric) {
-          fatal_error("Missing metrics for copy %s\n", equivInstance);
-        }
-        if (equivN == 1) {
-          metric = equivMetric;
-        } else {
-          metric = new int[4];
-          metric[0] = equivN * equivMetric[0];
-          metric[1] = equivN * equivMetric[1];
-          metric[2] = equivN * equivMetric[2];
-          metric[3] = equivN * equivMetric[3];
-        }
-        char *normalizedOp = new char[10240];
-        normalizedOp[0] = '\0';
-        metrics->getNormalizedOpName(instance, normalizedOp);
-        metrics->updateMetrics(normalizedOp, metric);
-        metrics->writeMetricsFile(normalizedOp, metric);
       }
       processGenerator.createCopy(libFp, confFp, instance, metric);
       metrics->updateCopyStatistics(bitwidth, N);
@@ -1421,7 +1423,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     char *initInstance = new char[10];
     sprintf(initInstance, "init%u", outBW);
     int *initMetric = metrics->getOpMetric(initInstance);
-    if (!initMetric) {
+    if (!initMetric && LOGIC_OPTIMIZER) {
       fatal_error("We could not find metrics for %s!\n", initInstance);
     }
     processGenerator.createInit(libFp, confFp, initInstance, initMetric);
