@@ -21,7 +21,7 @@
 EXE=dflowmap.$(EXT)
 
 TARGETS=$(EXE)
-TARGETINCS=ChpGenerator.h Metrics.h ChpProcGenerator.h
+#TARGETINCS=ChpGenerator.h Metrics.h ChpProcGenerator.h
 #TARGETINCSUBDIR=act
 
 OBJS=ChpGenerator.o main.o Metrics.o ChpProcGenerator.o
@@ -32,7 +32,11 @@ include $(ACT_HOME)/scripts/Makefile.std
 include config.mk
 
 ifdef expropt_INCLUDE
+ifdef exproptcommercial_INCLUDE
+EXPROPT=-lexpropt -lexproptcommercial
+else
 EXPROPT=-lexpropt
+endif
 endif
 
 CXX += -g
