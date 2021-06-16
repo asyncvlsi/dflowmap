@@ -34,7 +34,8 @@ int *Metrics::getOpMetric(const char *opName) {
   if (opName == nullptr) {
     fatal_error("normalizedOp is NULL\n");
   }
-  char *normalizedOp = new char[10240];
+  unsigned opLen = strlen(opName);
+  char *normalizedOp = new char[opLen + 1];
   normalizedOp[0] = '\0';
   getNormalizedOpName(opName, normalizedOp);
   for (auto &opMetricsIt : opMetrics) {
@@ -72,7 +73,7 @@ void Metrics::readMetricsFile() {
   std::string line;
   while (std::getline(metricFp, line)) {
     std::istringstream iss(line);
-    char *instance = new char[10240];
+    char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;
     int *metric = new int[4];
     bool emptyLine = true;

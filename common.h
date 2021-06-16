@@ -36,7 +36,10 @@
 #else
 #define LOGIC_OPTIMIZER false
 #endif
-
+#define MAX_PROC_NAME_LEN 102400
+#define MAX_INSTANCE_LEN 204800
+#define MAX_CLUSTER_PROC_NAME_LEN 102400
+#define MAX_CALC_LEN 1048576
 #define MAX_PROCESSES 500
 class act_connection;
 

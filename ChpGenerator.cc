@@ -1387,7 +1387,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     printf("boolResSuffixs: ");
     printIntVec(boolResSuffixs);
   }
-  char *instance = new char[10240];
+  char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<", procName);
   int numArgs = argList.size();
   int i = 0;
@@ -1420,7 +1420,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     unsigned outBW = outWidthList[outID];
     fprintf(resFp, "chan(int<%u>) %s;\n", outBW, newOut);
     unsigned long initVal = initMapIt.second;
-    char *initInstance = new char[10];
+    char *initInstance = new char[100];
     sprintf(initInstance, "init%u", outBW);
     int *initMetric = metrics->getOpMetric(initInstance);
     if (!initMetric && LOGIC_OPTIMIZER) {
@@ -1868,9 +1868,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
   Scope *sc = p->CurScope();
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
-      char *procName = new char[10240];
+      char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
-      char *calc = new char[20240];
+      char *calc = new char[MAX_CALC_LEN];
       sprintf(calc, "\n");
       IntVec boolResSuffixs;
       char *def = new char[10240];
@@ -1918,7 +1918,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       unsigned bitwidth = getActIdBW(input, p);
       ActId **outputs = d->u.splitmerge.multi;
       int numOutputs = d->u.splitmerge.nmulti;
-      char *procName = new char[10240];
+      char *procName = new char[MAX_PROC_NAME_LEN];
       sprintf(procName, "control_split_%d", numOutputs);
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
@@ -1970,7 +1970,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         }
       }
       fprintf(resFp, ");\n");
-      char *instance = new char[1500];
+      char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
       int *metric = metrics->getOpMetric(instance);
       processGenerator.createSplit(libFp, confFp, procName, instance, metric,
@@ -1989,7 +1989,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
       int numInputs = d->u.splitmerge.nmulti;
-      char *procName = new char[10240];
+      char *procName = new char[MAX_PROC_NAME_LEN];
       sprintf(procName, "control_merge_%d", numInputs);
 
       fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, normalizedOutput);
@@ -2004,7 +2004,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       }
       fprintf(resFp, "%s);\n", outputName);
 
-      char *instance = new char[1500];
+      char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
       int *metric = metrics->getOpMetric(instance);
       processGenerator.createMerge(libFp, confFp, procName, instance, metric, numInputs);
@@ -2060,9 +2060,9 @@ void
 ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
                                  list_t *dflow) {
   listitem_t *li;
-  char *procName = new char[10240];
+  char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
   procName[0] = '\0';
-  char *calc = new char[20240];
+  char *calc = new char[MAX_CALC_LEN];
   calc[0] = '\0';
   sprintf(calc, "\n");
   IntVec boolResSuffixs;
