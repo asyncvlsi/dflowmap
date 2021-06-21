@@ -1626,7 +1626,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       printf("\n");
     }
-    char *normalizedOp = new char[10240];
+    char *normalizedOp = new char[MAX_INSTANCE_LEN];
     normalizedOp[0] = '\0';
     metrics->getNormalizedOpName(opName, normalizedOp);
     char *optimizerProcName = new char[1000];
