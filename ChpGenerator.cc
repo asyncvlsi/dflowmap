@@ -1551,14 +1551,12 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       b_width2->i = (int) bw;
       Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
       list_append(hidden_expr_list, hiddenExpr);
-
       list_append(hidden_expr_name_list, hiddenChar);
-
-      ihash_bucket_t *b_width;
-//      b_expr = ihash_add(out_expr_map, (long) hiddenExpr);
-//      b_expr->v = hiddenChar;
-      b_width = ihash_add(out_width_map, (long) hiddenExpr);
-      b_width->i = (int) bw;
+      ihash_bucket_t *b_width = ihash_lookup(out_width_map, (long) hiddenExpr);
+      if (!b_width) {
+        b_width = ihash_add(out_width_map, (long) hiddenExpr);
+        b_width->i = (int) bw;
+      }
     }
     /* Prepare out_expr_list */
     list_t *out_expr_list = list_new();
@@ -1790,7 +1788,6 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       strcat(calc, subCalc);
       char *resName = new char[5];
       sprintf(resName, "res%d", result_suffix);
-      printf("RuiTmp resName: %s\n", resName);
       Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
       Expr *xExpr = getExprFromName(exprStr, exprMap, false, E_VAR);
       hiddenBW.insert(GenPair(resName, result_bw));
