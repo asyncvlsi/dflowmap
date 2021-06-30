@@ -60,7 +60,8 @@ public:
              &oriArgList, UIntVec &argBWList,
              UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
              char *calcStr,
-             IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+             IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned>
+                 &inBW,
              StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
@@ -69,7 +70,7 @@ public:
            char *procName, char *calc, char *def, StringVec &argList, StringVec
            &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
            unsigned &result_bw, char *calcStr, IntVec &boolRes,
-           Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+           Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
@@ -80,7 +81,7 @@ public:
            UIntVec &argBWList,
            UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
            char *calcStr,
-           IntVec &boolRes, Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+           IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
@@ -88,7 +89,7 @@ public:
             StringVec &argList,
             StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
             int &result_suffix, unsigned &result_bw, bool &constant,
-            char *calcStr, IntVec &boolRes, Map<char *, Expr *> &exprMap,
+            char *calcStr, IntVec &boolRes, Map<const char *, Expr *> &exprMap,
             StringMap<unsigned> &inBW,
             StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
 
@@ -134,7 +135,7 @@ public:
                  IntVec &outResSuffixs, StringVec &normalizedOutList,
                  StringVec &outList, Map<unsigned, unsigned long> &initMap,
                  IntVec &boolRes,
-                 Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                 Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                  StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
@@ -148,7 +149,7 @@ public:
                   StringVec &outList, StringVec &normalizedOutList,
                   UIntVec &outWidthList, Map<unsigned, unsigned long> &initMap,
                   IntVec &boolRes,
-                  Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                  Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                   StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                   Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
@@ -181,7 +182,7 @@ private:
 
   void genExprFromInt(unsigned long val, Expr *expr);
 
-  Expr *getExprFromName(char *name, Map<char *, Expr *> &exprMap,
+  Expr *getExprFromName(const char *name, Map<const char *, Expr *> &exprMap,
                         bool exitOnMissing, int exprType);
 
 };
