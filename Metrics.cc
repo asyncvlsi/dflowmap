@@ -43,7 +43,7 @@ int *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  warning ("Missing metric info for `%s'", normalizedOp);
+  warning ("Missing metric info for (`%s`,`%s')", opName, normalizedOp);
   if (debug_verbose) {
     printOpMetrics();
     printf("\n\n\n\n\n");

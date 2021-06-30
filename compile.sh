@@ -1,4 +1,5 @@
 clear
+./configure
 mv ~/main.cc ./
 mv ~/common.h ./
 mv ~/helper.cc ./

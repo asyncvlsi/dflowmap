@@ -226,7 +226,7 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                          StringVec &oriArgList, UIntVec &argBWList,
                          UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
                          char *calcStr,
-                         IntVec &boolResSuffixs, Map<char *, Expr *> &exprMap,
+                         IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                          StringMap<unsigned> &inBW,
                          StringMap<unsigned> &hiddenBW,
                          Map<Expr *, Expr *> &hiddenExprs) {
@@ -388,7 +388,7 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
                        StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
                        int &result_suffix,
                        unsigned &result_bw, char *calcStr, IntVec &boolResSuffixs,
-                       Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                       Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs) {
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
@@ -523,7 +523,7 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
   return newExpr;
 }
 
-Expr *ChpGenerator::getExprFromName(char *name, Map<char *, Expr *> &exprMap,
+Expr *ChpGenerator::getExprFromName(const char *name, Map<const char *, Expr *> &exprMap,
                                     bool exitOnMissing, int exprType) {
   for (auto &exprMapIt : exprMap) {
     if (strcmp(name, exprMapIt.first) == 0) {
@@ -552,7 +552,7 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
                        UIntVec &argBWList,
                        UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
                        char *calcStr,
-                       IntVec &boolResSuffixs, Map<char *, Expr *> &exprMap,
+                       IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs) {
   /* collect bitwidth info */
@@ -635,7 +635,7 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                         StringVec &oriArgList, UIntVec &argBWList,
                         UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
                         bool &constant, char *calcStr, IntVec &boolResSuffixs,
-                        Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                        Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
                         StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs) {
   int type = expr->type;
   switch (type) {
@@ -683,12 +683,12 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
       if (result_bw == 0) {
         result_bw = argBW;
       }
-      if (procName[0] == '\0') {
-        resBWList.push_back(result_bw);
-        if (DEBUG_CLUSTER) {
-          printf("var %s has bw %u\n", oriVarName, result_bw);
-        }
-      }
+//      if (procName[0] == '\0') {
+//        resBWList.push_back(result_bw);
+//        if (DEBUG_CLUSTER) {
+//          printf("var %s has bw %u\n", oriVarName, result_bw);
+//        }
+//      }
       getExprFromName(curArg, exprMap, false, E_VAR);
       return curArg;
     }
@@ -1334,7 +1334,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              StringVec &normalizedOutList, StringVec &outList,
                              Map<unsigned, unsigned long> &initMap,
                              IntVec &boolResSuffixs,
-                             Map<char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
+                             Map<const char *, Expr *> &exprMap,
+                             StringMap<unsigned> &inBW,
                              StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
                              Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs) {
   calc[strlen(calc) - 2] = ';';
@@ -1720,7 +1721,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
                               StringVec &outList, StringVec &normalizedOutList,
                               UIntVec &outWidthList,
                               Map<unsigned, unsigned long> &initMap,
-                              IntVec &boolResSuffixs, Map<char *, Expr *> &exprMap,
+                              IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                               StringMap<unsigned> &inBW, StringMap<unsigned> &hiddenBW,
                               Map<int, int> &outRecord,
                               Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs) {
@@ -1752,6 +1753,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       printf("The init value is not E_INT type!\n");
       exit(-1);
     }
+//    strcat(procName, "init_");
   }
   if (type == E_INT) {
     unsigned long val = expr->u.v;
@@ -1766,34 +1768,31 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     char *calcStr = new char[1500];
     calcStr[0] = '\0';
     unsigned result_bw = outWidth;
-    printExpr(sc, expr, procName, calc, def, argList, oriArgList, argBWList, resBWList,
-              result_suffix, result_bw, constant, calcStr, boolResSuffixs, exprMap,
-              inBW, hiddenBW, hiddenExprs);
+    const char *exprStr = printExpr(sc, expr, procName, calc, def, argList, oriArgList,
+                                    argBWList, resBWList,
+                                    result_suffix, result_bw, constant, calcStr,
+                                    boolResSuffixs, exprMap,
+                                    inBW, hiddenBW, hiddenExprs);
     if (constant) {
       print_expr(stdout, expr);
       printf("=> we should not process constant lhs here!\n");
       exit(-1);
     }
     int numArgs = argList.size();
-    if (procName[0] == '\0') {
-      sprintf(procName, "func_port");
-      if ((numArgs != 1) || (result_suffix != -1) || (calc[0] != '\n')) {
-        printf("We are processing expression ");
-        print_expr(stdout, expr);
-        printf(", the procName is empty, "
-               "but the argList or result_suffix or calc is abnormal!\n");
-        exit(-1);
+    if (expr->type == E_VAR) {
+      if (procName[0] == '\0') {
+        sprintf(procName, "func_port");
       }
       result_suffix++;
+      resBWList.push_back(result_bw);
       char *subCalc = new char[1500];
-      sprintf(subCalc, "res0 := x0;\n");
+      sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprStr);
       strcat(calc, subCalc);
       char *resName = new char[5];
-      sprintf(resName, "res0");
+      sprintf(resName, "res%d", result_suffix);
+      printf("RuiTmp resName: %s\n", resName);
       Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
-      char *xName = new char[3];
-      sprintf(xName, "x0");
-      Expr *xExpr = getExprFromName(xName, exprMap, false, E_VAR);
+      Expr *xExpr = getExprFromName(exprStr, exprMap, false, E_VAR);
       hiddenBW.insert(GenPair(resName, result_bw));
       hiddenExprs.insert(GenPair(resRHS, xExpr));
     }
@@ -1870,6 +1869,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
     case ACT_DFLOW_FUNC: {
       char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
+//      sprintf(procName, "func_");
       char *calc = new char[MAX_CALC_LEN];
       sprintf(calc, "\n");
       IntVec boolResSuffixs;
@@ -1887,7 +1887,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       StringVec normalizedOutList;
       UIntVec outWidthList;
       Map<unsigned, unsigned long> initMap;
-      Map<char *, Expr *> exprMap;
+      Map<const char *, Expr *> exprMap;
       StringMap<unsigned> inBW;
       StringMap<unsigned> hiddenBW;
       Map<int, int> outRecord;
@@ -2062,6 +2062,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   listitem_t *li;
   char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
   procName[0] = '\0';
+//  sprintf(procName, "func_");
   char *calc = new char[MAX_CALC_LEN];
   calc[0] = '\0';
   sprintf(calc, "\n");
@@ -2080,7 +2081,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   StringVec normalizedOutList;
   UIntVec outWidthList;
   Map<unsigned, unsigned long> initMap;
-  Map<char *, Expr *> exprMap;
+  Map<const char *, Expr *> exprMap;
   StringMap<unsigned> inBW;
   StringMap<unsigned> hiddenBW;
   Map<int, int> outRecord;

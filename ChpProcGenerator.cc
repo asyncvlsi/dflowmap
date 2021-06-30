@@ -70,7 +70,7 @@ void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procNa
 //    if (initSend) {
 //      fprintf(libFp, "%s", initSend);
 //    }
-    fprintf(libFp, "    *[\n");
+    fprintf(libFp, "    *[\n      ");
     for (i = 0; i < numArgs - 1; i++) {
       fprintf(libFp, "arg%d?x%d, ", i, i);
     }
@@ -223,7 +223,7 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
             "defproc init(chan?(int<W>)in; chan!(int<W>) out) {\n");
     fprintf(libFp, "  int<W> x;\n");
     fprintf(libFp, "  chp {\n    out!V;\n");
-    fprintf(libFp, "    log(\"send initVal\", V);\n");
+    fprintf(libFp, "    log(\"send initVal \", V);\n");
     fprintf(libFp, "    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
@@ -288,7 +288,11 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(libFp, "defproc sink(chan?(int<W>) in) {\n");
     fprintf(libFp, "  int<W> t;");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "  *[in?t; log (\"got \", t)]\n");
+    if (debug_verbose) {
+      fprintf(libFp, "  *[in?t; log (\"got \", t)]\n");
+    } else {
+      fprintf(libFp, "  *[in?t]\n");
+    }
     fprintf(libFp, "  }\n}\n");
   }
   if (!hasInstance(instance)) {
