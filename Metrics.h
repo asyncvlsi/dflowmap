@@ -1,12 +1,13 @@
 #ifndef DFLOWMAP_METRICS_H
 #define DFLOWMAP_METRICS_H
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <act/act.h>
 #include "common.h"
+#include "Constant.h"
 
 class Metrics {
 public:
@@ -16,13 +17,13 @@ public:
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateAreaStatistics(const char *instance, int area);
+  void updateStatistics(const char *instance, const char* instanceName,  int area, double leakPower);
 
   void printOpMetrics();
 
-  void getNormalizedOpName(const char *op, char *normalizedOp);
+  static void getNormalizedOpName(const char *op, char *normalizedOp);
 
-  void normalizeName(char *src, char toDel, char newChar);
+  static void normalizeName(char *src, char toDel, char newChar);
 
   int *getOpMetric(const char *op);
 
@@ -41,10 +42,31 @@ private:
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<int, Map<int, int>> copyStatistics;
 
-  int totalArea = 0;
+  long totalArea = 0;
 
-  /* instanceName, area of all of the instances of the process */
+  /* instanceName, area (um^2) of all of the instances of the process */
   Map<const char *, int> areaStatistics;
+
+  double totalLeakPowewr = 0;
+
+  /* instanceName, LeakPower (nW) of all of the instances of the process */
+  Map<const char *, double> leakpowerStatistics;
+
+  long mergeArea = 0;
+
+  long splitArea = 0;
+
+  long actnCpArea = 0;
+
+  long actnDpArea = 0;
+
+  double mergeLeakPower = 0;
+
+  double splitLeakPower = 0;
+
+  double actnCpLeakPower = 0;
+
+  double actnDpLeakPower = 0;
 
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
@@ -53,11 +75,15 @@ private:
 
   const char *statisticsFilePath;
 
+  void printLeakpowerStatistics(FILE *statisticsFP);
+
   void printAreaStatistics(FILE *statisticsFP);
 
   void printCopyStatistics(FILE *statisticsFP);
 
   void printStatistics();
+
+  void deepAnalysis();
 };
 
 #endif //DFLOWMAP_METRICS_H

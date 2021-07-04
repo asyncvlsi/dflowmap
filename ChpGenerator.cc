@@ -79,7 +79,8 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
   int *metric = metrics->getOpMetric(instance);
   processGenerator.createSink(libFp, confFp, instance, metric);
   if (metric != nullptr) {
-    metrics->updateAreaStatistics(instance, metric[3]);
+    metrics->updateStatistics(instance, normalizedName, metric[3], metric[0]);
+
   }
 }
 
@@ -94,7 +95,7 @@ void ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *
   int *metric = metrics->getOpMetric(opName);
   processGenerator.createSource(libFp, confFp, instance, metric);
   if (metric != nullptr) {
-    metrics->updateAreaStatistics(instance, metric[3]);
+    metrics->updateStatistics(instance, normalizedOut, metric[3], metric[0]);
   }
 }
 
@@ -1306,7 +1307,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       processGenerator.createCopy(libFp, confFp, instance, metric);
       metrics->updateCopyStatistics(bitwidth, N);
       if (metric != nullptr) {
-        metrics->updateAreaStatistics(instance, metric[3]);
+        metrics->updateStatistics(instance, normalizedName, metric[3], metric[0]);
       }
     }
   }
@@ -1428,6 +1429,9 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       fatal_error("We could not find metrics for %s!\n", initInstance);
     }
     processGenerator.createInit(libFp, confFp, initInstance, initMetric);
+    if (initMetric != nullptr) {
+      metrics->updateStatistics(initInstance, oriOut, initMetric[3], initMetric[0]);
+    }
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
             oriOut, newOut, oriOut);
   }
@@ -1703,7 +1707,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                                numRes, instance,
                                metric, boolResSuffixs);
   if (metric != nullptr) {
-    metrics->updateAreaStatistics(opName, metric[3]);
+    metrics->updateStatistics(opName, oriOut, metric[3], metric[0]);
   }
 }
 
@@ -1916,7 +1920,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       ActId **outputs = d->u.splitmerge.multi;
       int numOutputs = d->u.splitmerge.nmulti;
       char *procName = new char[MAX_PROC_NAME_LEN];
-      sprintf(procName, "control_split_%d", numOutputs);
+      sprintf(procName, "%s_%d", Constant::SPLIT_PREFIX, numOutputs);
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
       char *splitName = new char[2000];
@@ -1973,7 +1977,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       processGenerator.createSplit(libFp, confFp, procName, instance, metric,
                                    numOutputs);
       if (metric != nullptr) {
-        metrics->updateAreaStatistics(instance, metric[3]);
+        metrics->updateStatistics(instance, splitName, metric[3], metric[0]);
       }
       break;
     }
@@ -1987,8 +1991,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       unsigned guardBW = getActIdBW(guard, p);
       int numInputs = d->u.splitmerge.nmulti;
       char *procName = new char[MAX_PROC_NAME_LEN];
-      sprintf(procName, "control_merge_%d", numInputs);
-
+      sprintf(procName, "%s_%d", Constant::MERGE_PREFIX, numInputs);
       fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, normalizedOutput);
       const char *guardStr = getActIdOrCopyName(sc, guard);
       fprintf(resFp, "%s, ", guardStr);
@@ -2006,7 +2009,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       int *metric = metrics->getOpMetric(instance);
       processGenerator.createMerge(libFp, confFp, procName, instance, metric, numInputs);
       if (metric != nullptr) {
-        metrics->updateAreaStatistics(instance, metric[3]);
+        metrics->updateStatistics(instance, normalizedOutput, metric[3], metric[0]);
       }
       break;
     }

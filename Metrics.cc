@@ -128,8 +128,25 @@ void Metrics::printStatistics() {
   if (!statisticsFP) {
     fatal_error("Could not create statistics file %s\n", statisticsFilePath);
   }
-  printCopyStatistics(statisticsFP);
+//  printCopyStatistics(statisticsFP);
+  fprintf(statisticsFP, "Merge area: %ld, ratio: %5.1f\n",
+          mergeArea, ((double) 100 * mergeArea / totalArea));
+  fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
+          splitArea, ((double) 100 * splitArea / totalArea));
+  fprintf(statisticsFP, "ACTN CP area: %ld, ratio: %5.1f\n",
+          actnCpArea, ((double) 100 * actnCpArea / totalArea));
+  fprintf(statisticsFP, "ACTN DP area: %ld, ratio: %5.1f\n",
+          actnDpArea, ((double) 100 * actnDpArea / totalArea));
+  fprintf(statisticsFP, "Merge LeakPower: %5.1f, ratio: %5.1f\n",
+          mergeLeakPower, ((double) 100 * mergeLeakPower / totalLeakPowewr));
+  fprintf(statisticsFP, "Split LeakPower: %5.1f, ratio: %5.1f\n",
+          splitLeakPower, ((double) 100 * splitLeakPower / totalLeakPowewr));
+  fprintf(statisticsFP, "ACTN CP LeakPower: %5.1f, ratio: %5.1f\n",
+          actnCpLeakPower, ((double) 100 * actnCpLeakPower / totalLeakPowewr));
+  fprintf(statisticsFP, "ACTN DP LeakPower: %5.1f, ratio: %5.1f\n",
+          actnDpLeakPower, ((double) 100 * actnDpLeakPower / totalLeakPowewr));
   printAreaStatistics(statisticsFP);
+  printLeakpowerStatistics(statisticsFP);
   fclose(statisticsFP);
 }
 
@@ -145,8 +162,38 @@ void Metrics::printCopyStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "\n");
 }
 
-void Metrics::updateAreaStatistics(const char *instance, int area) {
+bool isMerge(const char *instance) {
+  return strstr(instance, Constant::MERGE_PREFIX) != nullptr;
+}
+
+bool isSplit(const char *instance) {
+  return strstr(instance, Constant::SPLIT_PREFIX) != nullptr;
+}
+
+bool isActnCp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
+}
+
+bool isActnDp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
+}
+
+void Metrics::updateStatistics(const char *instance, const char *instanceName, int area, double leakPower) {
   totalArea += area;
+  totalLeakPowewr += leakPower;
+  if (isMerge(instance)) {
+    mergeArea += area;
+    mergeLeakPower += leakPower;
+  } else if (isSplit(instance)) {
+    splitArea += area;
+    splitLeakPower += leakPower;
+  } else if (isActnCp(instanceName)) {
+    actnCpArea += area;
+    actnCpLeakPower += leakPower;
+  } else if (isActnDp(instanceName)) {
+    actnDpArea += area;
+    actnDpLeakPower += leakPower;
+  }
   bool exist = false;
   for (auto &areaStatisticsIt : areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
@@ -155,6 +202,18 @@ void Metrics::updateAreaStatistics(const char *instance, int area) {
     }
   }
   if (exist) {
+    bool foundLP = false;
+    for (auto &leakpowerStatisticsIt : leakpowerStatistics) {
+      if (!strcmp(leakpowerStatisticsIt.first, instance)) {
+        leakpowerStatisticsIt.second += leakPower;
+        foundLP = true;
+        break;
+      }
+    }
+    if (!foundLP) {
+      fatal_error("We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
+                  instance);
+    }
     for (auto &instanceCntIt : instanceCnt) {
       if (!strcmp(instanceCntIt.first, instance)) {
         instanceCntIt.second += 1;
@@ -165,6 +224,7 @@ void Metrics::updateAreaStatistics(const char *instance, int area) {
                 instance);
   } else {
     areaStatistics.insert(GenPair(instance, area));
+    leakpowerStatistics.insert(GenPair(instance, leakPower));
     instanceCnt.insert(GenPair(instance, 1));
   }
 }
@@ -176,11 +236,32 @@ int Metrics::getInstanceCnt(const char *instance) {
     }
   }
   fatal_error("We could not find %s in instanceCnt!\n", instance);
+  return -1;
+}
+
+void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
+  fprintf(statisticsFP, "Leak Power Statistics:\n");
+  fprintf(statisticsFP, "totalLeakPower: %5.1f\n", totalLeakPowewr);
+  if (!leakpowerStatistics.empty() && (totalLeakPowewr == 0)) {
+    printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
+    exit(-1);
+  }
+  std::multimap<double, const char *> sortedLeakpowers = flip_map(leakpowerStatistics);
+  for (auto iter = sortedLeakpowers.rbegin(); iter != sortedLeakpowers.rend(); iter++) {
+    double leakPower = iter->first;
+    double ratio = (double) leakPower / totalLeakPowewr * 100;
+    const char *instance = iter->second;
+    if (ratio > 0.1) {
+      int cnt = getInstanceCnt(instance);
+      fprintf(statisticsFP, "%80.50s %5.1f %5.1f %5d\n", instance, leakPower, ratio, cnt);
+    }
+  }
+  fprintf(statisticsFP, "\n");
 }
 
 void Metrics::printAreaStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "Area Statistics:\n");
-  fprintf(statisticsFP, "totalArea: %d\n", totalArea);
+  fprintf(statisticsFP, "totalArea: %ld\n", totalArea);
   if (!areaStatistics.empty() && (totalArea == 0)) {
     printf("areaStatistics is not empty, but totalArea is 0!\n");
     exit(-1);
