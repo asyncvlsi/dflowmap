@@ -33,6 +33,17 @@ bool ChpProcGenerator::hasProcess(const char *process) {
   return false;
 }
 
+void ChpProcGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
+  fprintf(confFp, "begin %s\n", procName);
+  fprintf(confFp, "  begin DO\n");
+  fprintf(confFp, "    int D 0\n");
+  fprintf(confFp, "    int E 0\n");
+  fprintf(confFp, "  end\n");
+  fprintf(confFp, "  real leakage 0\n");
+  fprintf(confFp, "  int area 0\n");
+  fprintf(confFp, "end\n");
+}
+
 void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName,
                                    const char *calc, const char *def,
                                    const char *outSend, int numArgs,
