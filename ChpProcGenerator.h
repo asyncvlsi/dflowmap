@@ -10,6 +10,8 @@ class ChpProcGenerator {
 public:
   void initialize();
 
+  void genMemConfiguration(FILE *confFp, const char *procName);
+
   void
   createFULib(FILE *libFp, FILE *confFp, const char *procName, const char *calc,
               const char *def, const char *outSend, int numArgs,

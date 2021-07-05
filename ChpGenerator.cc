@@ -1436,10 +1436,19 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
             oriOut, newOut, oriOut);
   }
   fprintf(resFp, "%s ", instance);
+  if (debug_verbose) {
+    printf("[fu]: ");
+  }
   for (auto &normalizedOut : normalizedOutList) {
     fprintf(resFp, "%s_", normalizedOut.c_str());
+    if (debug_verbose) {
+      printf("%s_", normalizedOut.c_str());
+    }
   }
   fprintf(resFp, "inst(");
+  if (debug_verbose) {
+    printf("inst\n");
+  }
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
@@ -1954,6 +1963,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         printSink(resFp, libFp, confFp, sink, bitwidth);
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
+      if (debug_verbose) {
+        printf("[split]: %s\n", splitName);
+      }
       const char *guardStr = getActIdOrCopyName(sc, guard);
       const char *inputStr = getActIdOrCopyName(sc, input);
       fprintf(resFp, "%s, %s", guardStr, inputStr);
@@ -1993,6 +2005,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *procName = new char[MAX_PROC_NAME_LEN];
       sprintf(procName, "%s_%d", Constant::MERGE_PREFIX, numInputs);
       fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, normalizedOutput);
+      if (debug_verbose) {
+        printf("[merge]: %s_inst\n", normalizedOutput);
+      }
       const char *guardStr = getActIdOrCopyName(sc, guard);
       fprintf(resFp, "%s, ", guardStr);
 
@@ -2130,6 +2145,10 @@ ChpGenerator::ChpGenerator(Act *a, const char *name, Metrics *metrics)
     : ActPass(a, name) {
   processGenerator.initialize();
   this->metrics = metrics;
+}
+
+void ChpGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
+  processGenerator.genMemConfiguration(confFp, procName);
 }
 
 void

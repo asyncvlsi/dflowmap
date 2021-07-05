@@ -21,19 +21,15 @@
  *
  **************************************************************************
  */
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 #include <act/act.h>
 #include <act/passes.h>
-#include <sstream>
 #include <iostream>
-#include <fstream>
 #include <act/lang.h>
 #include <act/types.h>
-#include <act/expr.h>
 #include <algorithm>
-#include "common.h"
 #include "ChpGenerator.h"
 #include "Metrics.h"
 
@@ -48,11 +44,13 @@ static void usage(char *name) {
   exit(1);
 }
 
-void printCustomNamespace(ActNamespace *ns, FILE *resFp, FILE *libFp) {
+void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
+                          FILE *resFp, FILE *libFp, FILE *confFp) {
   const char *nsName = ns->getName();
   fprintf(resFp, "namespace %s {\n", nsName);
   fprintf(libFp, "namespace %s {\n", nsName);
   ActTypeiter it(ns);
+  bool isMEM = strcmp(nsName, "mem") == 0;
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
@@ -61,6 +59,18 @@ void printCustomNamespace(ActNamespace *ns, FILE *resFp, FILE *libFp) {
       p->PrintHeader(resFp, "defproc");
       fprintf(resFp, ";\n");
       p->Print(libFp);
+      if (isMEM) {
+        const char* memProcName = p->getName();
+        chpGenerator->genMemConfiguration(confFp, memProcName);
+        if (debug_verbose) {
+          unsigned len = strlen(memProcName);
+          char *memName = new char[len - 1];
+          strncpy(memName, memProcName, len - 2);
+          memName[len - 2] = '\0';
+          printf("memName: %s\n", memName);
+          printf("[mem]: mem_%s_inst\n", memName);
+        }
+      }
     }
   }
   fprintf(resFp, "}\n\n");
@@ -69,7 +79,7 @@ void printCustomNamespace(ActNamespace *ns, FILE *resFp, FILE *libFp) {
 
 int main(int argc, char **argv) {
   int ch;
-  char *mfile = NULL;
+  char *mfile = nullptr;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
 
@@ -110,7 +120,7 @@ int main(int argc, char **argv) {
   /* read in the ACT file */
   Act *a = new Act(act_file);
   a->Expand();
-  a->mangle(NULL);
+  a->mangle(nullptr);
   fprintf(stdout, "Processing ACT file %s!\n", act_file);
   if (debug_verbose) {
     printf("------------------ACT FILE--------------------\n");
@@ -147,12 +157,13 @@ int main(int argc, char **argv) {
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
+  auto chpGenerator = new ChpGenerator(a, "ChpGenerator", metrics);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
     ActNamespace *n = *i;
     if (!n->isExported()) {
-      printCustomNamespace(n, resFp, libFp);
+      printCustomNamespace(chpGenerator, n, resFp, libFp, confFp);
     }
   }
 
@@ -168,7 +179,6 @@ int main(int argc, char **argv) {
   }
 
   /* generate chp implementation for each act process */
-  auto chpGenerator = new ChpGenerator(a, "ChpGenerator", metrics);
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);

@@ -167,6 +167,8 @@ public:
 
   bool isOpUsed(Scope *sc, ActId *actId);
 
+  void genMemConfiguration(FILE *confFp, const char *procName);
+
 private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
