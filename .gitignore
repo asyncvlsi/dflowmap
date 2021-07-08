@@ -22,3 +22,9 @@ config_pkg.h
 config.mk
 metrics/
 *_statistics
+*_merge
+*_split
+*_mem
+*_energy
+*_fu
+*-bu

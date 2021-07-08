@@ -187,6 +187,15 @@ private:
   Expr *getExprFromName(const char *name, Map<const char *, Expr *> &exprMap,
                         bool exitOnMissing, int exprType);
 
+  static bool isActnCp(const char *instance);
+
+  static bool isActnDp(const char *instance);
+
+  void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
+
+  void updateACTN(long area, long leakPower, bool actnCp, bool actnDp);
+
+  void updateStatistics(const long *metric, const char *instance, bool actnCp, bool actnDp);
 };
 
 extern int debug_verbose;
