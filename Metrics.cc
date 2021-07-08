@@ -1,6 +1,6 @@
 #include "Metrics.h"
 
-void Metrics::updateMetrics(const char *op, int *metric) {
+void Metrics::updateMetrics(const char *op, long *metric) {
   if (debug_verbose) {
     printf("Update metrics for %s\n", op);
   }
@@ -27,7 +27,7 @@ void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
   normalizeName(normalizedOp, ',', '_');
 }
 
-int *Metrics::getOpMetric(const char *opName) {
+long *Metrics::getOpMetric(const char *opName) {
   if (debug_verbose) {
     printf("get op metric for %s\n", opName);
   }
@@ -59,7 +59,7 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::writeMetricsFile(char *opName, int metric[4]) {
+void Metrics::writeMetricsFile(char *opName, long metric[4]) {
   printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
   std::ofstream metricFp;
   metricFp.open(metricFilePath, std::ios_base::app);
@@ -75,7 +75,7 @@ void Metrics::readMetricsFile() {
     std::istringstream iss(line);
     char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;
-    int *metric = new int[4];
+    long *metric = new long[4];
     bool emptyLine = true;
     do {
       std::string numStr;
@@ -83,7 +83,8 @@ void Metrics::readMetricsFile() {
       if (!numStr.empty()) {
         emptyLine = false;
         if (metricCount >= 0) {
-          metric[metricCount] = std::atoi(numStr.c_str());
+          char *residual;
+          metric[metricCount] = std::strtol(numStr.c_str(), &residual, 10);
         } else {
           sprintf(instance, "%s", numStr.c_str());
         }
@@ -128,7 +129,7 @@ void Metrics::printStatistics() {
   if (!statisticsFP) {
     fatal_error("Could not create statistics file %s\n", statisticsFilePath);
   }
-//  printCopyStatistics(statisticsFP);
+  fprintf(statisticsFP, "totalArea: %d, totalLeakPowewr: %d\n", totalArea, totalLeakPowewr);
   fprintf(statisticsFP, "Merge area: %ld, ratio: %5.1f\n",
           mergeArea, ((double) 100 * mergeArea / totalArea));
   fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
@@ -137,13 +138,13 @@ void Metrics::printStatistics() {
           actnCpArea, ((double) 100 * actnCpArea / totalArea));
   fprintf(statisticsFP, "ACTN DP area: %ld, ratio: %5.1f\n",
           actnDpArea, ((double) 100 * actnDpArea / totalArea));
-  fprintf(statisticsFP, "Merge LeakPower: %5.1f, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Merge LeakPower: %ld, ratio: %5.1f\n",
           mergeLeakPower, ((double) 100 * mergeLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "Split LeakPower: %5.1f, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Split LeakPower: %ld, ratio: %5.1f\n",
           splitLeakPower, ((double) 100 * splitLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "ACTN CP LeakPower: %5.1f, ratio: %5.1f\n",
+  fprintf(statisticsFP, "ACTN CP LeakPower: %ld, ratio: %5.1f\n",
           actnCpLeakPower, ((double) 100 * actnCpLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "ACTN DP LeakPower: %5.1f, ratio: %5.1f\n",
+  fprintf(statisticsFP, "ACTN DP LeakPower: %ld, ratio: %5.1f\n",
           actnDpLeakPower, ((double) 100 * actnDpLeakPower / totalLeakPowewr));
   printAreaStatistics(statisticsFP);
   printLeakpowerStatistics(statisticsFP);
@@ -162,38 +163,29 @@ void Metrics::printCopyStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "\n");
 }
 
-bool isMerge(const char *instance) {
-  return strstr(instance, Constant::MERGE_PREFIX) != nullptr;
+void Metrics::updateACTNCpMetrics(long area, long leakPower) {
+  actnCpArea += area;
+  actnCpLeakPower += leakPower;
 }
 
-bool isSplit(const char *instance) {
-  return strstr(instance, Constant::SPLIT_PREFIX) != nullptr;
+void Metrics::updateACTNDpMetrics(long area, long leakPower) {
+  actnDpArea += area;
+  actnDpLeakPower += leakPower;
 }
 
-bool isActnCp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
+void Metrics::updateMergeMetrics(long area, long leakPower) {
+  mergeArea += area;
+  mergeLeakPower += leakPower;
 }
 
-bool isActnDp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
+void Metrics::updateSplitMetrics(long area, long leakPower) {
+  splitArea += area;
+  splitLeakPower += leakPower;
 }
 
-void Metrics::updateStatistics(const char *instance, const char *instanceName, int area, double leakPower) {
+void Metrics::updateStatistics(const char *instance, long area, long leakPower) {
   totalArea += area;
   totalLeakPowewr += leakPower;
-  if (isMerge(instance)) {
-    mergeArea += area;
-    mergeLeakPower += leakPower;
-  } else if (isSplit(instance)) {
-    splitArea += area;
-    splitLeakPower += leakPower;
-  } else if (isActnCp(instanceName)) {
-    actnCpArea += area;
-    actnCpLeakPower += leakPower;
-  } else if (isActnDp(instanceName)) {
-    actnDpArea += area;
-    actnDpLeakPower += leakPower;
-  }
   bool exist = false;
   for (auto &areaStatisticsIt : areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
@@ -246,7 +238,7 @@ void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
     printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
     exit(-1);
   }
-  std::multimap<double, const char *> sortedLeakpowers = flip_map(leakpowerStatistics);
+  std::multimap<long, const char *> sortedLeakpowers = flip_map(leakpowerStatistics);
   for (auto iter = sortedLeakpowers.rbegin(); iter != sortedLeakpowers.rend(); iter++) {
     double leakPower = iter->first;
     double ratio = (double) leakPower / totalLeakPowewr * 100;
@@ -266,7 +258,7 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     printf("areaStatistics is not empty, but totalArea is 0!\n");
     exit(-1);
   }
-  std::multimap<int, const char *> sortedAreas = flip_map(areaStatistics);
+  std::multimap<long, const char *> sortedAreas = flip_map(areaStatistics);
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
     int area = iter->first;
     double ratio = (double) area / totalArea * 100;

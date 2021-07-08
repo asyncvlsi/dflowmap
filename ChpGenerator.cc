@@ -76,10 +76,10 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, name);
   char *instance = new char[1500];
   sprintf(instance, "sink<%u>", bitwidth);
-  int *metric = metrics->getOpMetric(instance);
+  long *metric = metrics->getOpMetric(instance);
   processGenerator.createSink(libFp, confFp, instance, metric);
   if (metric != nullptr) {
-    metrics->updateStatistics(instance, normalizedName, metric[3], metric[0]);
+    metrics->updateStatistics(instance, metric[3], metric[0]);
 
   }
 }
@@ -92,10 +92,10 @@ void ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *
   sprintf(instance, "source<%lu,%u>", val, outWidth);
   char *opName = new char[1500];
   sprintf(opName, "source%u", outWidth);
-  int *metric = metrics->getOpMetric(opName);
+  long *metric = metrics->getOpMetric(opName);
   processGenerator.createSource(libFp, confFp, instance, metric);
   if (metric != nullptr) {
-    metrics->updateStatistics(instance, normalizedOut, metric[3], metric[0]);
+    metrics->updateStatistics(instance, metric[3], metric[0]);
   }
 }
 
@@ -1271,7 +1271,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       fprintf(resFp, "copy<%u,%u> %scopy(%s);\n", bitwidth, N, normalizedName, opName);
       char *instance = new char[1500];
       sprintf(instance, "copy<%u,%u>", bitwidth, N);
-      int *metric = metrics->getOpMetric(instance);
+      long *metric = metrics->getOpMetric(instance);
       if (!metric) {
         if (LOGIC_OPTIMIZER) {
           char *equivInstance = new char[1500];
@@ -1284,14 +1284,14 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
                    "copy_%u_2\n", bitwidth, N, equivN, bitwidth);
           }
           sprintf(equivInstance, "copy<%u,2>", bitwidth);
-          int *equivMetric = metrics->getOpMetric(equivInstance);
+          long *equivMetric = metrics->getOpMetric(equivInstance);
           if (!equivMetric) {
             fatal_error("Missing metrics for copy %s\n", equivInstance);
           }
           if (equivN == 1) {
             metric = equivMetric;
           } else {
-            metric = new int[4];
+            metric = new long[4];
             metric[0] = equivN * equivMetric[0];
             metric[1] = equivN * equivMetric[1];
             metric[2] = equivN * equivMetric[2];
@@ -1307,11 +1307,21 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       processGenerator.createCopy(libFp, confFp, instance, metric);
       metrics->updateCopyStatistics(bitwidth, N);
       if (metric != nullptr) {
-        metrics->updateStatistics(instance, normalizedName, metric[3], metric[0]);
+        bool actnCp = false;
+        bool actnDp = false;
+        checkACTN(normalizedName, actnCp, actnDp);
+        updateStatistics(metric, instance, actnCp, actnDp);
       }
     }
   }
   fprintf(resFp, "\n");
+}
+
+void ChpGenerator::updateStatistics(const long *metric, const char* instance, bool actnCp, bool actnDp) {
+  long area = metric[3];
+  long leakPower = metric[0];
+  metrics->updateStatistics(instance, area, leakPower);
+  updateACTN(area, leakPower, actnCp, actnDp);
 }
 
 void ChpGenerator::genExprFromInt(unsigned long val, Expr *expr) {
@@ -1424,13 +1434,16 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     unsigned long initVal = initMapIt.second;
     char *initInstance = new char[100];
     sprintf(initInstance, "init%u", outBW);
-    int *initMetric = metrics->getOpMetric(initInstance);
+    long *initMetric = metrics->getOpMetric(initInstance);
     if (!initMetric && LOGIC_OPTIMIZER) {
       fatal_error("We could not find metrics for %s!\n", initInstance);
     }
     processGenerator.createInit(libFp, confFp, initInstance, initMetric);
     if (initMetric != nullptr) {
-      metrics->updateStatistics(initInstance, oriOut, initMetric[3], initMetric[0]);
+      bool actnCp = false;
+      bool actnDp = false;
+      checkACTN(oriOut, actnCp, actnDp);
+      updateStatistics(initMetric, initInstance, actnCp, actnDp);
     }
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
             oriOut, newOut, oriOut);
@@ -1508,7 +1521,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   if (debug_verbose) {
     printf("start to search metric for %s\n", opName);
   }
-  int *metric = metrics->getOpMetric(opName);
+  long *metric = metrics->getOpMetric(opName);
   if (!metric) {
 #if LOGIC_OPTIMIZER
     if (debug_verbose) {
@@ -1656,22 +1669,22 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
         "s\n",
         optimizerProcName, info->area, info->power_typ_dynamic, info->power_typ_static,
         info->delay_typ);
-    int leakpower = (int) (info->power_typ_static * 1e9);  // Leakage power (nW)
-    int energy = (int) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
-    int delay = (int) (info->delay_typ * 1e12); // Delay (ps)
-    int area = (int) (info->area * 1e12);  // AREA (um^2)
+    long leakpower = (long) (info->power_typ_static * 1e9);  // Leakage power (nW)
+    long energy = (long) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
+    long delay = (long) (info->delay_typ * 1e12); // Delay (ps)
+    long area = (long) (info->area * 1e12);  // AREA (um^2)
     /* adjust perf number by adding latch, etc. */
-    int *latchMetric = metrics->getOpMetric("latch1");
+    long *latchMetric = metrics->getOpMetric("latch1");
     if (latchMetric == nullptr) {
       fatal_error("We could not find metric for latch1!\n");
     }
-    area = (int) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
-                  + highBWInPorts * 2.86 + delay / 500 * 1.43);
-    leakpower = (int) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
-                       + highBWInPorts * 5.36 + delay / 500 * 1.38);
-    energy = (int) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
-                    + highBWInPorts * 20.19 + delay / 500 * 28.544);
-    int *twoToOneMetric = metrics->getOpMetric("twoToOne");
+    area = (long) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
+                   + highBWInPorts * 2.86 + delay / 500 * 1.43);
+    leakpower = (long) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
+                        + highBWInPorts * 5.36 + delay / 500 * 1.38);
+    energy = (long) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
+                     + highBWInPorts * 20.19 + delay / 500 * 28.544);
+    long *twoToOneMetric = metrics->getOpMetric("twoToOne");
     if (twoToOneMetric == nullptr) {
       fatal_error("We could not find metric for 2-in-1-out!\n");
     }
@@ -1692,7 +1705,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     for (auto &buffBW : buffBWs) {
       char *regName = new char[10];
       sprintf(regName, "reg%u", buffBW);
-      int *regMetric = metrics->getOpMetric(regName);
+      long *regMetric = metrics->getOpMetric(regName);
       if (regMetric == nullptr) {
         fatal_error("We could not find metric for %s!\n", regName);
       }
@@ -1702,7 +1715,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       area += regMetric[3];
     }
     /* get the final metric */
-    metric = new int[4];
+    metric = new long[4];
     metric[0] = leakpower;
     metric[1] = energy;
     metric[2] = delay;
@@ -1716,7 +1729,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                                numRes, instance,
                                metric, boolResSuffixs);
   if (metric != nullptr) {
-    metrics->updateStatistics(opName, oriOut, metric[3], metric[0]);
+    metrics->updateStatistics(opName, metric[3], metric[0]);
   }
 }
 
@@ -1871,6 +1884,35 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
   }
 }
 
+bool ChpGenerator::isActnCp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
+}
+
+bool ChpGenerator::isActnDp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
+}
+
+void ChpGenerator::checkACTN(const char *channel, bool &actnCp, bool &actnDp) {
+  if (isActnCp(channel)) {
+    actnCp = true;
+  }
+  if (isActnDp(channel)) {
+    actnDp = true;
+  }
+  if (actnCp && actnDp) {
+    printf("%s is both actnCp and actnDp!\n", channel);
+    exit(-1);
+  }
+}
+
+void ChpGenerator::updateACTN(long area, long leakPower, bool actnCp, bool actnDp) {
+  if (actnCp) {
+    metrics->updateACTNCpMetrics(area, leakPower);
+  } else if (actnDp) {
+    metrics->updateACTNDpMetrics(area, leakPower);
+  }
+}
+
 void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
                                             Process *p, act_dataflow_element *d,
                                             unsigned &sinkCnt) {
@@ -1935,17 +1977,18 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *splitName = new char[2000];
       char *inputName = new char[10240];
       getActIdName(sc, input, inputName, 10240);
-      const char* normalizedInput = removeDot(inputName);
+      const char *normalizedInput = removeDot(inputName);
       sprintf(splitName, "%s", normalizedInput);
       char *guardName = new char[10240];
       getActIdName(sc, guard, guardName, 10240);
       const char *normalizedGuard = removeDot(guardName);
       strcat(splitName, normalizedGuard);
       CharPtrVec sinkVec;
+      bool actnCp = false;
+      bool actnDp = false;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
         if (!out) {
-//        if (!out || (!isOpUsed(sc, out))) {
           strcat(splitName, "sink_");
           char *sinkName = new char[2100];
           sprintf(sinkName, "sink%d", sinkCnt);
@@ -1956,6 +1999,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
           getActIdName(sc, out, outName, 10240);
           const char *normalizedOut = removeDot(outName);
           strcat(splitName, normalizedOut);
+          checkACTN(normalizedOut, actnCp, actnDp);
         }
       }
       for (auto &sink : sinkVec) {
@@ -1972,7 +2016,6 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
         if (!out) {
-//        if (!out || (!isOpUsed(sc, out))) {
           const char *sinkName = sinkVec.back();
           sinkVec.pop_back();
           fprintf(resFp, ", %s", sinkName);
@@ -1985,11 +2028,14 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       fprintf(resFp, ");\n");
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
-      int *metric = metrics->getOpMetric(instance);
+      long *metric = metrics->getOpMetric(instance);
       processGenerator.createSplit(libFp, confFp, procName, instance, metric,
                                    numOutputs);
       if (metric != nullptr) {
-        metrics->updateStatistics(instance, splitName, metric[3], metric[0]);
+        updateStatistics(metric, instance, actnCp, actnDp);
+        long area = metric[3];
+        long leakPower = metric[0];
+        metrics->updateSplitMetrics(area, leakPower);
       }
       break;
     }
@@ -1998,6 +2044,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       char *outputName = new char[10240];
       getActIdName(sc, output, outputName, 10240);
       const char *normalizedOutput = removeDot(outputName);
+      bool actnCp = false;
+      bool actnDp = false;
+      checkACTN(normalizedOutput, actnCp, actnDp);
       unsigned inBW = getActIdBW(output, p);
       ActId *guard = d->u.splitmerge.guard;
       unsigned guardBW = getActIdBW(guard, p);
@@ -2021,10 +2070,13 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
 
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
-      int *metric = metrics->getOpMetric(instance);
+      long *metric = metrics->getOpMetric(instance);
       processGenerator.createMerge(libFp, confFp, procName, instance, metric, numInputs);
       if (metric != nullptr) {
-        metrics->updateStatistics(instance, normalizedOutput, metric[3], metric[0]);
+        updateStatistics(metric, instance, actnCp, actnDp);
+        long area = metric[3];
+        long leakPower = metric[0];
+        metrics->updateMergeMetrics(area, leakPower);
       }
       break;
     }

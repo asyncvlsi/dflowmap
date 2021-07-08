@@ -13,11 +13,11 @@ class Metrics {
 public:
   Metrics(const char *metricFP, const char *statisticsFP);
 
-  void updateMetrics(const char *op, int *metric);
+  void updateMetrics(const char *op, long *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateStatistics(const char *instance, const char* instanceName,  int area, double leakPower);
+  void updateStatistics(const char *instance, long area, long leakPower);
 
   void printOpMetrics();
 
@@ -25,19 +25,27 @@ public:
 
   static void normalizeName(char *src, char toDel, char newChar);
 
-  int *getOpMetric(const char *op);
+  long *getOpMetric(const char *op);
 
   int getInstanceCnt(const char *instance);
 
   void readMetricsFile();
 
-  void writeMetricsFile(char *opName, int metric[4]);
+  void writeMetricsFile(char *opName, long metric[4]);
+
+  void updateMergeMetrics(long area, long leakPower);
+
+  void updateSplitMetrics(long area, long leakPower);
+
+  void updateACTNCpMetrics(long area, long leakPower);
+
+  void updateACTNDpMetrics(long area, long leakPower);
 
   void dump();
 
 private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
-  Map<const char *, int *> opMetrics;
+  Map<const char *, long *> opMetrics;
 
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<int, Map<int, int>> copyStatistics;
@@ -45,12 +53,12 @@ private:
   long totalArea = 0;
 
   /* instanceName, area (um^2) of all of the instances of the process */
-  Map<const char *, int> areaStatistics;
+  Map<const char *, long> areaStatistics;
 
-  double totalLeakPowewr = 0;
+  long totalLeakPowewr = 0;
 
   /* instanceName, LeakPower (nW) of all of the instances of the process */
-  Map<const char *, double> leakpowerStatistics;
+  Map<const char *, long> leakpowerStatistics;
 
   long mergeArea = 0;
 
@@ -60,13 +68,13 @@ private:
 
   long actnDpArea = 0;
 
-  double mergeLeakPower = 0;
+  long mergeLeakPower = 0;
 
-  double splitLeakPower = 0;
+  long splitLeakPower = 0;
 
-  double actnCpLeakPower = 0;
+  long actnCpLeakPower = 0;
 
-  double actnDpLeakPower = 0;
+  long actnDpLeakPower = 0;
 
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
@@ -82,8 +90,6 @@ private:
   void printCopyStatistics(FILE *statisticsFP);
 
   void printStatistics();
-
-  void deepAnalysis();
 };
 
 #endif //DFLOWMAP_METRICS_H

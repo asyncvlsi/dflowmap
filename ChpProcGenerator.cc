@@ -34,7 +34,7 @@ bool ChpProcGenerator::hasProcess(const char *process) {
 }
 
 void ChpProcGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
-  fprintf(confFp, "begin %s\n", procName);
+  fprintf(confFp, "begin mem::%s\n", procName);
   fprintf(confFp, "  begin DO\n");
   fprintf(confFp, "    int D 0\n");
   fprintf(confFp, "    int E 0\n");
@@ -45,11 +45,9 @@ void ChpProcGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
 }
 
 void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName,
-                                   const char *calc, const char *def,
-                                   const char *outSend, int numArgs,
-                                   int numOuts, int
-                                   numRes,
-                                   const char *instance, int *metric, IntVec &boolRes) {
+                                   const char *calc, const char *def, const char *outSend,
+                                   int numArgs, int numOuts, int numRes,
+                                   const char *instance, long *metric, IntVec &boolRes) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
     int i = 0;
@@ -107,18 +105,18 @@ void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procNa
     fprintf(confFp, "begin %s\n", instance);
     for (int i = 0; i < numOuts; i++) {
       fprintf(confFp, "  begin out%d\n", i);
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", (metric[1] / numOuts));
+      fprintf(confFp, "    int D %ld\n", metric[2]);
+      fprintf(confFp, "    int E %ld\n", (metric[1] / numOuts));
       fprintf(confFp, "  end\n");
     }
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
 
 void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procName,
-                                   const char *instance, int *metric, int numInputs) {
+                                   const char *instance, long *metric, int numInputs) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint W1, W2>\n");
     fprintf(libFp, "defproc %s(chan?(int<W1>)ctrl; ", procName);
@@ -147,17 +145,17 @@ void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procNa
     }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
 
 void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procName,
-                                   const char *instance, int *metric,
+                                   const char *instance, long *metric,
                                    int numOutputs) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint W1,W2>\n");
@@ -199,7 +197,7 @@ void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procNa
 }
 
 void ChpProcGenerator::createSource(FILE *libFp, FILE *confFp, const char *instance,
-                                    int *metric) {
+                                    long *metric) {
   if (!hasProcess("source")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp, "defproc source(chan!(int<W>)x) {\n");
@@ -227,7 +225,7 @@ void ChpProcGenerator::createSource(FILE *libFp, FILE *confFp, const char *insta
 }
 
 void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instance,
-                                  int *metric) {
+                                  long *metric) {
   if (!hasProcess("init")) {
     fprintf(libFp, "template<pint V, W>\n");
     fprintf(libFp,
@@ -261,7 +259,7 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
 }
 
 void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instance,
-                                  int *metric) {
+                                  long *metric) {
   if (!hasProcess("buffer")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp,
@@ -293,7 +291,7 @@ void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instanc
 }
 
 void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instance,
-                                  int *metric) {
+                                  long *metric) {
   if (!hasProcess("sink")) {
     fprintf(libFp, "template<pint W>\n");
     fprintf(libFp, "defproc sink(chan?(int<W>) in) {\n");
@@ -326,7 +324,7 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
 }
 
 void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instance,
-                                  int *metric) {
+                                  long *metric) {
   if (!hasProcess("copy")) {
     fprintf(libFp, "template<pint W, N>\n");
     fprintf(libFp, "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
