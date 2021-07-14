@@ -1807,7 +1807,6 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       print_expr(stdout, expr);
       printf(", its type: %d\n", expr->type);
     }
-    bool onlyVarExpr = true;
     const char *exprStr = printExpr(sc, expr, procName, calc, def, argList, oriArgList,
                                     argBWList, resBWList,
                                     result_suffix, result_bw, constant, calcStr,
@@ -1818,8 +1817,15 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       printf("=> we should not process constant lhs here!\n");
       exit(-1);
     }
-    int numArgs = argList.size();
-    if (expr->type == E_VAR) {
+    /* check if the expression only has E_VAR. Note that it could be built-in int/bool, e.g., int(varName, bw). In
+     * this case, it still only has E_VAR expression. */
+    bool onlyVarExpr = false;
+    if (type == E_VAR) {
+      onlyVarExpr = true;
+    } else if ((type == E_BUILTIN_INT) || (type == E_BUILTIN_BOOL)) {
+      onlyVarExpr = (expr->u.e.l->type == E_VAR);
+    }
+    if (onlyVarExpr) {
       if (debug_verbose) {
         printf("The expression ");
         print_expr(stdout, expr);
