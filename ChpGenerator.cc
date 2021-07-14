@@ -216,6 +216,7 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
     }
     default: {
       fatal_error("Try to get expr bw for unknown type %d\n", type);
+      return -1;
     }
   }
 }
@@ -1310,6 +1311,11 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
         bool actnCp = false;
         bool actnDp = false;
         checkACTN(normalizedName, actnCp, actnDp);
+        if (actnCp) {
+          printf("[actnCp]: %scopy\n", normalizedName);
+        } else if (actnDp) {
+          printf("[actnDp]: %scopy\n", normalizedName);
+        }
         updateStatistics(metric, instance, actnCp, actnDp);
       }
     }
@@ -1443,6 +1449,11 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       bool actnCp = false;
       bool actnDp = false;
       checkACTN(oriOut, actnCp, actnDp);
+      if (actnCp) {
+        printf("[actnCp]: %s_init\n", oriOut);
+      } else if (actnDp) {
+        printf("[actnDp]: %s_init\n", oriOut);
+      }
       updateStatistics(initMetric, initInstance, actnCp, actnDp);
     }
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
@@ -1777,7 +1788,6 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       printf("The init value is not E_INT type!\n");
       exit(-1);
     }
-//    strcat(procName, "init_");
   }
   if (type == E_INT) {
     unsigned long val = expr->u.v;
@@ -1792,6 +1802,12 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     char *calcStr = new char[1500];
     calcStr[0] = '\0';
     unsigned result_bw = outWidth;
+    if (debug_verbose) {
+      printf("Start to print expression ");
+      print_expr(stdout, expr);
+      printf(", its type: %d\n", expr->type);
+    }
+    bool onlyVarExpr = true;
     const char *exprStr = printExpr(sc, expr, procName, calc, def, argList, oriArgList,
                                     argBWList, resBWList,
                                     result_suffix, result_bw, constant, calcStr,
@@ -1804,6 +1820,11 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     }
     int numArgs = argList.size();
     if (expr->type == E_VAR) {
+      if (debug_verbose) {
+        printf("The expression ");
+        print_expr(stdout, expr);
+        printf(" is E_VAR!\n");
+      }
       if (procName[0] == '\0') {
         sprintf(procName, "func_port");
       }
@@ -1819,6 +1840,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       hiddenBW.insert(GenPair(resName, result_bw));
       hiddenExprs.insert(GenPair(resRHS, xExpr));
     }
+
     if (initExpr) {
       unsigned long initVal = initExpr->u.v;
       char *subProcName = new char[1500];
@@ -1871,7 +1893,6 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     sprintf(outName, "out%d", outID);
     sprintf(outStr, "out%d!res%d", outID, result_suffix);
     outRecord.insert(GenPair(outID, result_suffix));
-    char *ase = new char[1500];
     if (initExpr) {
       unsigned long initVal = initExpr->u.v;
       initMap.insert(GenPair((numOuts - 1), initVal));
@@ -2007,6 +2028,11 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         printSink(resFp, libFp, confFp, sink, bitwidth);
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
+      if (actnCp) {
+        printf("[actnCp]: %s\n", splitName);
+      } else if (actnDp) {
+        printf("[actnDp]: %s\n", splitName);
+      }
       if (debug_verbose) {
         printf("[split]: %s\n", splitName);
       }
@@ -2056,6 +2082,11 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, normalizedOutput);
       if (debug_verbose) {
         printf("[merge]: %s_inst\n", normalizedOutput);
+        if (actnCp) {
+          printf("[actnCp]: %s_inst\n", normalizedOutput);
+        } else if (actnDp) {
+          printf("[actnDp]: %s_inst\n", normalizedOutput);
+        }
       }
       const char *guardStr = getActIdOrCopyName(sc, guard);
       fprintf(resFp, "%s, ", guardStr);
