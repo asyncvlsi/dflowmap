@@ -76,7 +76,9 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, name);
   char *instance = new char[1500];
   sprintf(instance, "sink<%u>", bitwidth);
-  long *metric = metrics->getOpMetric(instance);
+  char *unitInstance = new char[1500];
+  sprintf(unitInstance, "sink_1_");
+  long *metric = metrics->getOpMetric(unitInstance);
   processGenerator.createSink(libFp, confFp, instance, metric);
   if (metric != nullptr) {
     metrics->updateStatistics(instance, metric[3], metric[0]);
@@ -1831,9 +1833,12 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
         print_expr(stdout, expr);
         printf(" is E_VAR!\n");
       }
-      if (procName[0] == '\0') {
-        sprintf(procName, "func_port");
-      }
+      char *subProc = new char[6];
+      sprintf(subProc, "_port");
+      strcat(procName, subProc);
+//      if (procName[0] == '\0') {
+//        sprintf(procName, "func_port");
+//      }
       result_suffix++;
       resBWList.push_back(result_bw);
       char *subCalc = new char[1500];
@@ -2195,9 +2200,9 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (DEBUG_CLUSTER) {
-      printf("processing dflow_cluster element ");
+      printf("Start to process dflow_cluster element ");
       dflow_print(stdout, d);
-      printf("\n");
+      printf(", current proc name: %s\n", procName);
     }
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
@@ -2212,6 +2217,11 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
     } else {
       dflow_print(stdout, d);
       fatal_error("This dflow statement should not appear in dflow-cluster!\n");
+    }
+    if (DEBUG_CLUSTER) {
+      printf("After processing dflow_cluster element ");
+      dflow_print(stdout, d);
+      printf(", the proc name: %s\n", procName);
     }
   }
   if (DEBUG_CLUSTER) {
