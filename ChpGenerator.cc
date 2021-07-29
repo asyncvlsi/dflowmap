@@ -1834,11 +1834,12 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
         printf(" is E_VAR!\n");
       }
       char *subProc = new char[6];
-      sprintf(subProc, "_port");
+      if (strlen(procName)) {
+        sprintf(subProc, "_port");
+      } else {
+        sprintf(subProc, "func_port");
+      }
       strcat(procName, subProc);
-//      if (procName[0] == '\0') {
-//        sprintf(procName, "func_port");
-//      }
       result_suffix++;
       resBWList.push_back(result_bw);
       char *subCalc = new char[1500];

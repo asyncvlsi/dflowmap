@@ -125,14 +125,29 @@ void ChpProcGenerator::createMerge(FILE *libFp, FILE *confFp, const char *procNa
       fprintf(libFp, "chan?(int<W2>) in%d; ", i);
     }
     fprintf(libFp, "chan!(int<W2>) out) {\n");
-    fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
-    fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "    *[ctrl?c; log(\"receive \", c); [");
-    for (i = 0; i < numInputs - 1; i++) {
-      fprintf(libFp, "c=%d -> in%d?x [] ", i, i);
+    if (PIPELINE) {
+      fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
+    } else {
+      fprintf(libFp, "  int<W2> x;\n");
     }
-    fprintf(libFp, "c=%d -> in%d?x]; log(\"receive x: \", x); ", i, i);
-    fprintf(libFp, "out!x; log(\"send \", x)]\n");
+    fprintf(libFp, "  chp {\n");
+    if (PIPELINE) {
+      fprintf(libFp, "    *[ctrl?c; log(\"receive \", c); [");
+      for (i = 0; i < numInputs - 1; i++) {
+        fprintf(libFp, "c=%d -> in%d?x [] ", i, i);
+      }
+      fprintf(libFp, "c=%d -> in%d?x]; log(\"receive x: \", x); ", i, i);
+      fprintf(libFp, "out!x; log(\"send \", x)]\n");
+    } else {
+      fprintf(libFp, "    *[[");
+      for (i = 0; i < numInputs; i++) {
+        fprintf(libFp, "ctrl=%d & #in%d -> x:=in%d; log(\"send %d, \", x); out!x,in%d?,ctrl?\n", i, i, i, i, i);
+        if (i < numInputs - 1) {
+          fprintf(libFp, "      []");
+        }
+      }
+      fprintf(libFp, "      ]]\n");
+    }
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
@@ -165,14 +180,28 @@ void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procNa
       fprintf(libFp, "chan!(int<W2>) out%d; ", i);
     }
     fprintf(libFp, "chan!(int<W2>) out%d) {\n", i);
-    fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
-    fprintf(libFp, "  chp {\n");
-    fprintf(libFp, R"(    *[in?x, ctrl?c; log("receive ", c, ", ", x);[)");
-
-    for (i = 0; i < numOutputs - 1; i++) {
-      fprintf(libFp, "c=%d -> out%d!x [] ", i, i);
+    if (PIPELINE) {
+      fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
+    } else {
+      fprintf(libFp, "  int<W2> x;\n");
     }
-    fprintf(libFp, "c=%d -> out%d!x]; log(\"send \", x)]\n", i, i);
+    fprintf(libFp, "  chp {\n");
+    if (PIPELINE) {
+      fprintf(libFp, R"(    *[in?x, ctrl?c; log("receive ", c, ", ", x);[)");
+      for (i = 0; i < numOutputs - 1; i++) {
+        fprintf(libFp, "c=%d -> out%d!x [] ", i, i);
+      }
+      fprintf(libFp, "c=%d -> out%d!x]; log(\"send \", x)]\n", i, i);
+    } else {
+      fprintf(libFp, "    *[[");
+      for (i = 0; i < numOutputs; i++) {
+        fprintf(libFp, "ctrl=%d & #in -> x:=in; log(\"send %d, \", x); out%d!x,in?,ctrl?\n", i, i, i);
+        if (i < numOutputs - 1) {
+          fprintf(libFp, "      []");
+        }
+      }
+      fprintf(libFp, "      ]]\n");
+    }
     fprintf(libFp, "  }\n}\n\n");
   }
   if (!hasInstance(instance)) {
