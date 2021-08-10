@@ -1352,6 +1352,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              IntVec &outResSuffixs,
                              StringVec &normalizedOutList, StringVec &outList,
                              Map<unsigned, unsigned long> &initMap,
+                             Map<unsigned, unsigned long> &buffMap,
                              IntVec &boolResSuffixs,
                              Map<const char *, Expr *> &exprMap,
                              StringMap<unsigned> &inBW,
@@ -1441,10 +1442,11 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     fprintf(resFp, "chan(int<%u>) %s;\n", outBW, newOut);
     unsigned long initVal = initMapIt.second;
     char *initInstance = new char[100];
-    sprintf(initInstance, "init%u", outBW);
+    sprintf(initInstance, "init<%lu,%u>", initVal, outBW);
     long *initMetric = metrics->getOpMetric(initInstance);
     if (!initMetric && LOGIC_OPTIMIZER) {
-      fatal_error("We could not find metrics for %s!\n", initInstance);
+      printf("We could not find metrics for %s!\n", initInstance);
+      exit(-1);
     }
     processGenerator.createInit(libFp, confFp, initInstance, initMetric);
     if (initMetric != nullptr) {
@@ -1461,6 +1463,42 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
             oriOut, newOut, oriOut);
   }
+  for (auto &buffMapIt : buffMap) {
+    unsigned outID = buffMapIt.first;
+    if (initMap.find(outID) != initMap.end()) {
+      continue;
+    }
+    const char *oriOut = outList[outID].c_str();
+    unsigned outBW = outWidthList[outID];
+//    unsigned long numBuffs = buffMapIt.second;
+    unsigned long numBuffs = 10;
+    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
+      char *curBuff = new char[10240];
+      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
+      fprintf(resFp, "chan(int<%u>) %s;\n", outBW, curBuff);
+    }
+    long *buffMetric = new long[4];
+    buffMetric[0] = 0.55;
+    buffMetric[1] = 0.007;
+    buffMetric[2] = 59;
+    buffMetric[3] = 2.12;
+    char *buffInstance = new char[1024];
+    sprintf(buffInstance, "onebuf<%u>", outBW);
+    processGenerator.createBuff(libFp, confFp, buffInstance, buffMetric);
+    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
+      char *curBuff = new char[10240];
+      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
+      char *nxtBuff = new char[10240];
+      if (bufCnt == (numBuffs - 1)) {
+        sprintf(nxtBuff, "%s", oriOut);
+      } else {
+        sprintf(nxtBuff, "%s_buf%d", oriOut, (bufCnt + 1));
+      }
+      fprintf(resFp, "onebuf<%u> %s_inst(%s, %s);\n", outBW, curBuff,
+              curBuff, nxtBuff);
+    }
+  }
+
   fprintf(resFp, "%s ", instance);
   if (debug_verbose) {
     printf("[fu]: ");
@@ -1482,24 +1520,23 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   if (numOuts < 1) {
     fatal_error("No output is found!\n");
   }
-  for (i = 0; i < numOuts - 1; i++) {
+  for (i = 0; i < numOuts; i++) {
     char *actualOut = new char[10240];
     const char *oriOut = outList[i].c_str();
     if (initMap.find(i) != initMap.end()) {
       sprintf(actualOut, "%s_new", oriOut);
+    } else if (buffMap.find(i) != buffMap.end()) {
+      sprintf(actualOut, "%s_buf0", oriOut);
     } else {
       sprintf(actualOut, "%s", oriOut);
     }
-    fprintf(resFp, "%s, ", actualOut);
+    fprintf(resFp, "%s", actualOut);
+    if (i == (numOuts - 1)) {
+      fprintf(resFp, ");\n");
+    } else {
+      fprintf(resFp, ", ");
+    }
   }
-  char *actualOut = new char[10240];
-  const char *oriOut = outList[i].c_str();
-  if (initMap.find(i) != initMap.end()) {
-    sprintf(actualOut, "%s_new", oriOut);
-  } else {
-    sprintf(actualOut, "%s", oriOut);
-  }
-  fprintf(resFp, "%s);\n", actualOut);
   /* create chp library */
   if (strlen(instance) < 5) {
     fatal_error("Invalid instance name %s\n", instance);
@@ -1758,6 +1795,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
                               StringVec &outList, StringVec &normalizedOutList,
                               UIntVec &outWidthList,
                               Map<unsigned, unsigned long> &initMap,
+                              Map<unsigned, unsigned long> &buffMap,
                               IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                               StringMap<unsigned> &inBW, StringMap<unsigned> &hiddenBW,
                               Map<int, int> &outRecord,
@@ -1790,6 +1828,14 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       printf("The init value is not E_INT type!\n");
       exit(-1);
     }
+  }
+  if (nbufs) {
+    printf("[nbuf] ");
+    rhs->Print(stdout);
+    printf(", nBuff: ");
+    print_expr(stdout, nbufs);
+    printf(", isInit: %d", (initExpr != nullptr));
+    printf("\n");
   }
   if (type == E_INT) {
     unsigned long val = expr->u.v;
@@ -1909,6 +1955,10 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       unsigned long initVal = initExpr->u.v;
       initMap.insert(GenPair((numOuts - 1), initVal));
     }
+    if (nbufs) {
+      unsigned long numBuff = nbufs->u.v;
+      buffMap.insert(GenPair((numOuts - 1), numBuff));
+    }
     if (DEBUG_CLUSTER) {
       printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
     }
@@ -1972,6 +2022,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       StringVec normalizedOutList;
       UIntVec outWidthList;
       Map<unsigned, unsigned long> initMap;
+      Map<unsigned, unsigned long> buffMap;
       Map<const char *, Expr *> exprMap;
       StringMap<unsigned> inBW;
       StringMap<unsigned> hiddenBW;
@@ -1981,7 +2032,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
                       oriArgList, argBWList, resBWList, result_suffix, outSendStr,
                       outResSuffixs, outList, normalizedOutList, outWidthList, initMap,
-                      boolResSuffixs, exprMap, inBW, hiddenBW, outRecord, hiddenExprs,
+                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, outRecord, hiddenExprs,
                       buffBWs);
       if (DEBUG_CLUSTER) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -1993,7 +2044,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
         printDFlowFunc(resFp, libFp, confFp, procName, argList, argBWList, resBWList,
                        outWidthList, def, calc,
                        result_suffix, outSendStr, outResSuffixs, normalizedOutList,
-                       outList, initMap, boolResSuffixs, exprMap, inBW, hiddenBW,
+                       outList, initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW,
                        outRecord, hiddenExprs, buffBWs);
       }
       break;
@@ -2191,6 +2242,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
   StringVec normalizedOutList;
   UIntVec outWidthList;
   Map<unsigned, unsigned long> initMap;
+  Map<unsigned, unsigned long> buffMap;
   Map<const char *, Expr *> exprMap;
   StringMap<unsigned> inBW;
   StringMap<unsigned> hiddenBW;
@@ -2209,7 +2261,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
                       oriArgList, argBWList, resBWList, result_suffix, outSendStr,
                       outResSuffixs, outList, normalizedOutList, outWidthList, initMap,
-                      boolResSuffixs, exprMap, inBW, hiddenBW, outRecord, hiddenExprs,
+                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, outRecord, hiddenExprs,
                       buffBWs);
       char *subProc = new char[1024];
       sprintf(subProc, "_p%d", elementCnt);
@@ -2236,7 +2288,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
                    outWidthList, def,
                    calc,
                    result_suffix, outSendStr, outResSuffixs, normalizedOutList, outList,
-                   initMap, boolResSuffixs, exprMap, inBW, hiddenBW, outRecord,
+                   initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, outRecord,
                    hiddenExprs, buffBWs);
   }
 }

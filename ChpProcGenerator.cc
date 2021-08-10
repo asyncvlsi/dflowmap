@@ -289,12 +289,25 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
 
 void ChpProcGenerator::createBuff(FILE *libFp, FILE *confFp, const char *instance,
                                   long *metric) {
-  if (!hasProcess("buffer")) {
-    fprintf(libFp, "template<pint W>\n");
-    fprintf(libFp,
-            "defproc buffer(chan?(int<W>)in; chan!(int<W>) out) {\n");
-    fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  chp {\n    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
+  if (!hasProcess("onebuf")) {
+    fprintf(libFp, R"(
+template<pint W>
+defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
+  int<W> x;
+  chp {
+    *[in?x; out!x]
+  }
+}
+)");
+//    fprintf(libFp, R"(
+//template<pint N, W>
+//defproc nbuf(chan?(int<W>) in; chan!(int<W>)  out) {
+//  onebuf<W> x[N];
+//  (i:N-1: x[i].out=x[i+1].in;)
+//  x[0].in=in;
+//  x[N-1].out=out;
+//}
+//)");
   }
   if (!hasInstance(instance)) {
     if (!metric) {
