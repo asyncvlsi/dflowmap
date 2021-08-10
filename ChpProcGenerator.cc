@@ -46,39 +46,59 @@ void ChpProcGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
 
 void ChpProcGenerator::createFULib(FILE *libFp, FILE *confFp, const char *procName,
                                    const char *calc, const char *def, const char *outSend,
-                                   int numArgs, int numOuts, int numRes,
-                                   const char *instance, long *metric, IntVec &boolRes) {
+                                   int numArgs, int numOuts, const char *instance, long *metric,
+                                   UIntVec &resBW, UIntVec &outBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
     int i = 0;
-    for (; i < (numArgs + numOuts + numRes - 1); i++) {
-      fprintf(libFp, "W%d, ", i);
+    // generate template for input channels
+    for (; i < numArgs; i++) {
+      fprintf(libFp, "W%d", i);
+      if (i == (numArgs - 1)) {
+        fprintf(libFp, ">\n");
+      } else {
+        fprintf(libFp, ", ");
+      }
     }
-    fprintf(libFp, "W%d>\n", i);
+    // generate defproc
     fprintf(libFp, "defproc %s(", procName);
     for (i = 0; i < numArgs; i++) {
       fprintf(libFp, "chan?(int<W%d>)arg%d; ", i, i);
     }
-    for (i = 0; i < numOuts - 1; i++) {
-      fprintf(libFp, "chan!(int<W%d>) out%d; ", i + numArgs, i);
+    for (i = 0; i < numOuts; i++) {
+      unsigned outbw = outBW[i];
+//      if (outbw == 1) {
+//        fprintf(libFp, "chan!(bool) out%d", i);
+//      } else {
+      fprintf(libFp, "chan!(int<%d>) out%d", outBW[i], i);
+//      }
+      if (i == (numOuts - 1)) {
+        fprintf(libFp, ") {\n");
+      } else {
+        fprintf(libFp, "; ");
+      }
     }
-    fprintf(libFp, "chan!(int<W%d>) out%d) {\n", i + numArgs, i);
-
+    // define internal variables for the input channel
     for (i = 0; i < numArgs; i++) {
       fprintf(libFp, "  int<W%d> x%d;\n", i, i);
     }
+    // define intermediate variables
+    int numRes = resBW.size();
     for (i = 0; i < numRes; i++) {
-      if (std::find(boolRes.begin(), boolRes.end(), i) == boolRes.end()) {
-        fprintf(libFp, "  int<W%d> res%d;\n", i + numArgs + numOuts, i);
-      } else {
+      unsigned int resbw = resBW[i];
+      if ((resbw == 1) &&
+          ((std::find(queryResSuffixs2.begin(), queryResSuffixs2.end(), i) != queryResSuffixs2.end())
+           || (std::find(queryResSuffixs.begin(), queryResSuffixs.end(), i) == queryResSuffixs.end())
+          )
+          ) {
         fprintf(libFp, "  bool res%d;\n", i);
+      } else {
+        fprintf(libFp, "  int<%u> res%d;\n", resbw, i);
       }
     }
+    // generate CHP's actual code
     fprintf(libFp, "%s", def);
     fprintf(libFp, "  chp {\n");
-//    if (initSend) {
-//      fprintf(libFp, "%s", initSend);
-//    }
     fprintf(libFp, "    *[\n      ");
     for (i = 0; i < numArgs - 1; i++) {
       fprintf(libFp, "arg%d?x%d, ", i, i);

@@ -61,8 +61,9 @@ public:
              UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
              char *calcStr,
              IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned>
-                 &inBW,
-             StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
+             &inBW,
+             StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+             Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
@@ -71,7 +72,8 @@ public:
            &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
            unsigned &result_bw, char *calcStr, IntVec &boolRes,
            Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-           StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
+           StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+           Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
@@ -82,7 +84,8 @@ public:
            UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
            char *calcStr,
            IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-           StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
+           StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+           Map<Expr *, Expr *> &hiddenExprs);
 
   const char *
   printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char *def,
@@ -91,7 +94,8 @@ public:
             int &result_suffix, unsigned &result_bw, bool &constant,
             char *calcStr, IntVec &boolRes, Map<const char *, Expr *> &exprMap,
             StringMap<unsigned> &inBW,
-            StringMap<unsigned> &hiddenBW, Map<Expr *, Expr *> &hiddenExprs);
+            StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+            Map<Expr *, Expr *> &hiddenExprs);
 
   unsigned getCopyUses(ActId *actId, Scope *sc);
 
@@ -137,7 +141,8 @@ public:
                  Map<unsigned, unsigned long> &buffMap,
                  IntVec &boolRes,
                  Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                 StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
+                 StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                 Map<int, int> &outRecord,
                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
   void
@@ -152,7 +157,8 @@ public:
                   Map<unsigned, unsigned long> &buffMap,
                   IntVec &boolRes,
                   Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                  StringMap<unsigned> &hiddenBW, Map<int, int> &outRecord,
+                  StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                  Map<int, int> &outRecord,
                   Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
 
   void handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,

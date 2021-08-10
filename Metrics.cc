@@ -39,7 +39,8 @@ long *Metrics::getOpMetric(const char *opName) {
   normalizedOp[0] = '\0';
   getNormalizedOpName(opName, normalizedOp);
   for (auto &opMetricsIt : opMetrics) {
-    if (!strcmp(opMetricsIt.first, normalizedOp)) {
+//    if (!strcmp(opMetricsIt.first, normalizedOp)) {
+    if (!String(opMetricsIt.first).find(normalizedOp)) {
       return opMetricsIt.second;
     }
   }

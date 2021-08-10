@@ -13,10 +13,10 @@ public:
   void genMemConfiguration(FILE *confFp, const char *procName);
 
   void
-  createFULib(FILE *libFp, FILE *confFp, const char *procName, const char *calc,
-              const char *def, const char *outSend, int numArgs,
-              int numOuts, int numRes, const char *instance, long *metric,
-              IntVec &boolRes);
+  createFULib(FILE *libFp, FILE *confFp, const char *procName,
+              const char *calc, const char *def, const char *outSend,
+              int numArgs, int numOuts, const char *instance, long *metric,
+              UIntVec &resBW, UIntVec &outBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2);
 
   void
   createMerge(FILE *libFp, FILE *confFp, const char *procName, const char *instance,
