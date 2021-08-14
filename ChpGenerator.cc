@@ -1311,6 +1311,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       getActConnectionName(actConnection, opName, 10240);
       const char *normalizedName = removeDot(opName);
       fprintf(resFp, "copy<%u,%u> %scopy(%s);\n", bitwidth, N, normalizedName, opName);
+      printf("[copy] %scopy\n", normalizedName);
       char *instance = new char[1500];
       sprintf(instance, "copy<%u,%u>", bitwidth, N);
       long *metric = metrics->getOpMetric(instance);
@@ -1449,28 +1450,33 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     printIntVec(boolResSuffixs);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
+  char *oriInstance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<", procName);
+  char *oriProc = new char[strlen(procName) + 1];
+  sprintf(oriProc, "%s", procName);
+  sprintf(oriInstance, "%s<", oriProc);
   int numArgs = argList.size();
   int i = 0;
   for (; i < numArgs; i++) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%u,", argBWList[i]);
+    if (i == (numArgs - 1)) {
+      sprintf(subInstance, "%u>", argBWList[i]);
+    } else {
+      sprintf(subInstance, "%u,", argBWList[i]);
+    }
     strcat(instance, subInstance);
+    strcat(oriInstance, subInstance);
   }
-  for (auto &outWidth : outWidthList) {
+  int numOuts = outWidthList.size();
+  for (i = 0; i < numOuts; i++) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%u,", outWidth);
-    strcat(instance, subInstance);
+    if (i == (numOuts - 1)) {
+      sprintf(subInstance, "%u>", outWidthList[i]);
+    } else {
+      sprintf(subInstance, "%u,", outWidthList[i]);
+    }
+    strcat(oriInstance, subInstance);
   }
-  int numRes = resBWList.size();
-  for (i = 0; i < numRes - 1; i++) {
-    char *subInstance = new char[100];
-    sprintf(subInstance, "%u,", resBWList[i]);
-    strcat(instance, subInstance);
-  }
-  char *subInstance = new char[100];
-  sprintf(subInstance, "%u>", resBWList[i]);
-  strcat(instance, subInstance);
 
   /* create Fake ports for INIT/Buffer */
   for (auto &initMapIt : initMap) {
@@ -1502,6 +1508,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
             oriOut, newOut, oriOut);
+    printf("[init] %s_init\n", oriOut);
   }
   for (auto &buffMapIt : buffMap) {
     unsigned outID = buffMapIt.first;
@@ -1556,7 +1563,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
-  int numOuts = outList.size();
+//  int numOuts = outList.size();
   if (numOuts < 1) {
     fatal_error("No output is found!\n");
   }
@@ -1607,7 +1614,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     printf("numInitElems: %d\n", numInitElems);
   }
   /* Get the perf metric */
-  char *opName = instance + 5;
+  char *opName = oriInstance + 5;
   if (debug_verbose) {
     printf("start to search metric for %s\n", opName);
   }
