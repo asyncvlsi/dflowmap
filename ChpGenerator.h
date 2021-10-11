@@ -49,7 +49,7 @@ public:
 
   unsigned getBitwidth(act_connection *actConnection);
 
-  void getCurProc(const char *str, char *val);
+  void getCurProc(const char *str, char *val, bool isConstant);
 
   unsigned getExprBW(int type, unsigned lBW, unsigned rBW = 0);
 

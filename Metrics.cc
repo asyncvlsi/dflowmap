@@ -44,11 +44,11 @@ long *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  printf ("Missing metric info for (`%s`,`%s')", opName, normalizedOp);
-  if (debug_verbose) {
-    printOpMetrics();
-    printf("\n\n\n\n\n");
-  }
+  printf ("Missing metric info for (`%s`,`%s')\n", opName, normalizedOp);
+//  if (debug_verbose) {
+//    printOpMetrics();
+//    printf("\n\n\n\n\n");
+//  }
   return nullptr;
 }
 

@@ -155,16 +155,13 @@ unsigned ChpGenerator::getBitwidth(act_connection *actConnection) {
   exit(-1);
 }
 
-void ChpGenerator::getCurProc(const char *str, char *val) {
-  char curProc[100];
-  if (strstr(str, "res")) {
-    sprintf(curProc, "r%s", str + 3);
-  } else if (strstr(str, "x")) {
-    sprintf(curProc, "%s", str + 1);
-  } else {
+void ChpGenerator::getCurProc(const char *str, char *val, bool isConstant) {
+  val[0] = '\0';
+  if (isConstant) {
+    char curProc[100];
     sprintf(curProc, "c%s", str);
+    strcpy(val, curProc);
   }
-  strcpy(val, curProc);
 }
 
 unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
@@ -330,9 +327,9 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   }
   char *lVal = new char[100];
-  getCurProc(lStr, lVal);
+  getCurProc(lStr, lVal, lConst);
   char *rVal = new char[100];
-  getCurProc(rStr, rVal);
+  getCurProc(rStr, rVal, rConst);
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
@@ -480,10 +477,10 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
     queryResSuffixs.push_back(rPrefix);
   }
 
-  if (lExpr->type == E_INT) {
+  if (lConst) {
     int rPrefix = std::atoi(rStr + 3);
     queryResSuffixs.push_back(rPrefix);
-  } else if (rExpr->type == E_INT) {
+  } else if (rConst) {
     int lPrefix = std::atoi(lStr + 3);
     queryResSuffixs.push_back(lPrefix);
   }
@@ -549,9 +546,9 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
     printf(".\n");
   }
   char *lVal = new char[100];
-  getCurProc(lStr, lVal);
+  getCurProc(lStr, lVal, lConst);
   char *rVal = new char[100];
-  getCurProc(rStr, rVal);
+  getCurProc(rStr, rVal, rConst);
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   strcat(procName, subProcName);
@@ -629,7 +626,7 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
                                boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
   int lResSuffix = result_suffix;
   char *val = new char[100];
-  getCurProc(lStr, val);
+  getCurProc(lStr, val, lConst);
   sprintf(procName, "%s_%s%s", procName, sym, val);
   char *newExpr = new char[100];
   result_suffix++;
@@ -936,7 +933,7 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                        hiddenExprs);
     }
     case E_QUERY: {
-      return EMIT_QUERY(sc, expr, "query", "?", type, "query", procName, calc, def,
+      return EMIT_QUERY(sc, expr, "q", "?", type, "q", procName, calc, def,
                         argList, oriArgList, argBWList, resBWList, result_suffix,
                         result_bw, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2,
                         hiddenExprs);
@@ -1946,9 +1943,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       }
       char *subProc = new char[6];
       if (strlen(procName)) {
-        sprintf(subProc, "_port%d", outWidth);
+        sprintf(subProc, "_port");
       } else {
-        sprintf(subProc, "func_port%d", outWidth);
+        sprintf(subProc, "func_port");
       }
       strcat(procName, subProc);
       result_suffix++;
@@ -2031,6 +2028,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     outSendStr.push_back(outStr);
     outResSuffixs.push_back(result_suffix);
   }
+  char outWidthStr[1024];
+  sprintf(outWidthStr, "_%d", outWidth);
+  strcat(procName, outWidthStr);
 }
 
 bool ChpGenerator::isActnCp(const char *instance) {
