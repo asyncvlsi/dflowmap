@@ -304,6 +304,13 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
   if ((rResBW > 1) && (String(lStr).find("res") == 0)) {
     queryResSuffixs.push_back(lPrefix);
   }
+
+  if (lExpr->type == E_INT) {
+    queryResSuffixs.push_back(rPrefix);
+  } else if (rExpr->type == E_INT) {
+    queryResSuffixs.push_back(lPrefix);
+  }
+
   if ((lResBW == 0) && (rResBW == 0)) {
     print_expr(stdout, expr);
     printf(", both lResBW and rResBW are 0!\n");
@@ -472,6 +479,15 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
     int rPrefix = std::atoi(rStr + 3);
     queryResSuffixs.push_back(rPrefix);
   }
+
+  if (lExpr->type == E_INT) {
+    int rPrefix = std::atoi(rStr + 3);
+    queryResSuffixs.push_back(rPrefix);
+  } else if (rExpr->type == E_INT) {
+    int lPrefix = std::atoi(lStr + 3);
+    queryResSuffixs.push_back(lPrefix);
+  }
+
   if ((lResBW == 0) && (rResBW == 0)) {
     print_expr(stdout, expr);
     printf(", both lResBW and rResBW are 0!\n");
@@ -1488,7 +1504,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     fprintf(resFp, "chan(int<%u>) %s;\n", outBW, newOut);
     unsigned long initVal = initMapIt.second;
     char *initInstance = new char[100];
-    sprintf(initInstance, "init<%lu,%u>", initVal, outBW);
+    sprintf(initInstance, "init%u", outBW);
     long *initMetric = metrics->getOpMetric(initInstance);
     if (!initMetric && LOGIC_OPTIMIZER) {
       printf("We could not find metrics for %s!\n", initInstance);
@@ -1821,8 +1837,11 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     metrics->writeMetricsFile(normalizedOp, metric);
 #endif
   }
-  processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend, numArgs,
-                               numOuts, instance, metric, resBWList, outWidthList, queryResSuffixs, queryResSuffixs2);
+
+  processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend,
+                               numArgs,
+                               numOuts, instance, metric, resBWList,
+                               outWidthList, queryResSuffixs, queryResSuffixs2);
   if (metric != nullptr) {
     metrics->updateStatistics(opName, metric[3], metric[0]);
   }
@@ -1927,9 +1946,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
       }
       char *subProc = new char[6];
       if (strlen(procName)) {
-        sprintf(subProc, "_port");
+        sprintf(subProc, "_port%d", outWidth);
       } else {
-        sprintf(subProc, "func_port");
+        sprintf(subProc, "func_port%d", outWidth);
       }
       strcat(procName, subProc);
       result_suffix++;
