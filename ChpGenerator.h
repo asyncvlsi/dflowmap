@@ -25,9 +25,13 @@
 
 class ChpGenerator : public ActPass {
 public:
+  void updateprocCount(const char *proc, Map<const char *, unsigned>
+      &procCount);
+
   ChpGenerator(Act *a, const char *name, Metrics *metrics);
 
-  void handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p);
+  void handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
+                     Map<const char *, unsigned> &procCount);
 
   int searchStringVec(StringVec &strVec, const char *str);
 
@@ -36,7 +40,8 @@ public:
   const char *getActIdOrCopyName(Scope *sc, ActId *actId);
 
   void
-  printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name, unsigned bitwidth);
+  printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name,
+            unsigned bitwidth);
 
   void printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
                 const char *normalizedOut, unsigned long val, unsigned outWidth);
@@ -157,17 +162,21 @@ public:
                   Map<unsigned, unsigned long> &buffMap,
                   IntVec &boolRes,
                   Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                  StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                  StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                  IntVec &queryResSuffixs2,
                   Map<int, int> &outRecord,
-                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
+                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs,
+                  Map<const char *, unsigned> &procCount);
 
-  void handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                                act_dataflow_element *d, unsigned &sinkCnt);
+  void
+  handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
+                           act_dataflow_element *d, unsigned &sinkCnt,
+                           Map<const char *, unsigned> &procCount);
 
   void print_dflow(FILE *fp, list_t *dflow);
 
-  void handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process *p, list_t
-  *dflow);
+  void handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
+                          list_t *dflow, Map<const char *, unsigned> &procCount);
 
   void printIntVec(IntVec &ULongVec);
 

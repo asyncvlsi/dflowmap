@@ -179,11 +179,12 @@ int main(int argc, char **argv) {
   }
 
   /* generate chp implementation for each act process */
+  Map<const char *, unsigned> procCount;
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      chpGenerator->handleProcess(resFp, libFp, confFp, p);
+      chpGenerator->handleProcess(resFp, libFp, confFp, p, procCount);
     }
   }
   fprintf(resFp, "main_test test;\n");
@@ -191,6 +192,16 @@ int main(int argc, char **argv) {
   fclose(resFp);
   fclose(confFp);
   metrics->dump();
+
+  /* print procCount info */
+  printf("procCount info:\n");
+  for (auto &procCountIt : procCount) {
+    unsigned count = procCountIt.second;
+//    if (count > 1) {
+      printf("(%s, %u)\n", procCountIt.first, count);
+//    }
+  }
+  printf("\n\n\n\n\n\n\n\n");
 
   return 0;
 }

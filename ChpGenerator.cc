@@ -1845,10 +1845,12 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
 }
 
 void
-ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
+ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
+                              Process *p,
                               act_dataflow_element *d,
                               char *procName, char *calc,
-                              char *def, StringVec &argList, StringVec &oriArgList,
+                              char *def, StringVec &argList,
+                              StringVec &oriArgList,
                               UIntVec &argBWList,
                               UIntVec &resBWList, int &result_suffix,
                               StringVec &outSendStr,
@@ -1857,11 +1859,16 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
                               UIntVec &outWidthList,
                               Map<unsigned, unsigned long> &initMap,
                               Map<unsigned, unsigned long> &buffMap,
-                              IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
-                              StringMap<unsigned> &inBW, StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                              IntVec &boolResSuffixs,
+                              Map<const char *, Expr *> &exprMap,
+                              StringMap<unsigned> &inBW,
+                              StringMap<unsigned> &hiddenBW,
+                              IntVec &queryResSuffixs,
                               IntVec &queryResSuffixs2,
                               Map<int, int> &outRecord,
-                              Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs) {
+                              Map<Expr *, Expr *> &hiddenExprs, UIntVec
+                              &buffBWs,
+                              Map<const char *, unsigned> &procCount) {
   if (d->t != ACT_DFLOW_FUNC) {
     dflow_print(stdout, d);
     printf("This is not dflow_func!\n");
@@ -2027,10 +2034,28 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p
     }
     outSendStr.push_back(outStr);
     outResSuffixs.push_back(result_suffix);
+    char outWidthStr[1024];
+    sprintf(outWidthStr, "_%d", outWidth);
+    strcat(procName, outWidthStr);
+    if (!nbufs && !initExpr) {
+      /* if this process contains BUFF, then it is stateful and can NOT be
+       * shared! */
+      updateprocCount(procName, procCount);
+    }
   }
-  char outWidthStr[1024];
-  sprintf(outWidthStr, "_%d", outWidth);
-  strcat(procName, outWidthStr);
+}
+
+void
+ChpGenerator::updateprocCount(const char *proc, Map<const char *, unsigned>
+&procCount) {
+  printf("update proc count for %s.\n", proc);
+  for (auto &procCountIt : procCount) {
+    if (!strcmp(proc, procCountIt.first)) {
+      procCountIt.second++;
+      return;
+    }
+  }
+  procCount.insert(GenPair(proc, 1));
 }
 
 bool ChpGenerator::isActnCp(const char *instance) {
@@ -2062,9 +2087,11 @@ void ChpGenerator::updateACTN(long area, long leakPower, bool actnCp, bool actnD
   }
 }
 
-void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
-                                            Process *p, act_dataflow_element *d,
-                                            unsigned &sinkCnt) {
+void
+ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
+                                       Process *p, act_dataflow_element *d,
+                                       unsigned &sinkCnt,
+                                       Map<const char *, unsigned> &procCount) {
   Scope *sc = p->CurScope();
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
@@ -2098,11 +2125,14 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *conf
       Map<Expr *, Expr *> hiddenExprs;
       UIntVec buffBWs;
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
-                      oriArgList, argBWList, resBWList, result_suffix, outSendStr,
-                      outResSuffixs, outList, normalizedOutList, outWidthList, initMap,
-                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, outRecord,
+                      oriArgList, argBWList, resBWList, result_suffix,
+                      outSendStr,
+                      outResSuffixs, outList, normalizedOutList, outWidthList,
+                      initMap,
+                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW,
+                      queryResSuffixs, queryResSuffixs2, outRecord,
                       hiddenExprs,
-                      buffBWs);
+                      buffBWs, procCount);
       if (DEBUG_CLUSTER) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         printf("Process normal dflow:\n");
@@ -2288,8 +2318,10 @@ void ChpGenerator::print_dflow(FILE *fp, list_t *dflow) {
 }
 
 void
-ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                                 list_t *dflow) {
+ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp,
+                                 Process *p,
+                                 list_t *dflow,
+                                 Map<const char *, unsigned> &procCount) {
   listitem_t *li;
   char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
   procName[0] = '\0';
@@ -2331,11 +2363,14 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process
     }
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(resFp, libFp, confFp, p, d, procName, calc, def, argList,
-                      oriArgList, argBWList, resBWList, result_suffix, outSendStr,
-                      outResSuffixs, outList, normalizedOutList, outWidthList, initMap,
-                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, outRecord,
+                      oriArgList, argBWList, resBWList, result_suffix,
+                      outSendStr,
+                      outResSuffixs, outList, normalizedOutList, outWidthList,
+                      initMap,
+                      buffMap, boolResSuffixs, exprMap, inBW, hiddenBW,
+                      queryResSuffixs, queryResSuffixs2, outRecord,
                       hiddenExprs,
-                      buffBWs);
+                      buffBWs, procCount);
       char *subProc = new char[1024];
       sprintf(subProc, "_p%d", elementCnt);
       elementCnt++;
@@ -2378,7 +2413,8 @@ void ChpGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
 }
 
 void
-ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) {
+ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
+                            Map<const char *, unsigned> &procCount) {
   const char *pName = p->getName();
   printf("processing %s\n", pName);
   if (p->getlang()->getchp()) {
@@ -2399,13 +2435,14 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p) 
   createCopyProcs(resFp, libFp, confFp);
   listitem_t *li;
   unsigned sinkCnt = 0;
-  for (li = list_first (p->getlang()->getdflow()->dflow); li; li = list_next (li)) {
+  for (li = list_first (p->getlang()->getdflow()->dflow); li; li = list_next (
+      li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_CLUSTER) {
       list_t *dflow_cluster = d->u.dflow_cluster;
-      handleDFlowCluster(resFp, libFp, confFp, p, dflow_cluster);
+      handleDFlowCluster(resFp, libFp, confFp, p, dflow_cluster, procCount);
     } else {
-      handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt);
+      handleNormalDflowElement(resFp, libFp, confFp, p, d, sinkCnt, procCount);
     }
   }
   fprintf(resFp, "}\n\n");
