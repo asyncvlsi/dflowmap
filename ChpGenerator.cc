@@ -229,7 +229,8 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                          char *calcStr,
                          IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                          StringMap<unsigned> &inBW,
-                         StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                         StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                         IntVec &queryResSuffixs2,
                          Map<Expr *, Expr *> &hiddenExprs) {
   Expr *cExpr = expr->u.e.l;
   Expr *lExpr = expr->u.e.r->u.e.l;
@@ -244,7 +245,8 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
   const char *cStr = printExpr(sc, cExpr, procName, calc, def, argList, oriArgList,
                                argBWList,
                                resBWList, result_suffix, cBW, cConst, cCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
   if (cBW != 1) {
     print_expr(stdout, expr);
     printf(", cBW is %u\n!\n", cBW);
@@ -259,7 +261,8 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                                argBWList,
                                resBWList,
                                result_suffix, lResBW, lConst, lCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
   int lResSuffix = result_suffix;
   bool rConst = false;
   char *rCalcStr = new char[1500];
@@ -268,7 +271,8 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                                argBWList,
                                resBWList,
                                result_suffix, rResBW, rConst, rCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
   int rResSuffix = result_suffix;
   char *newExpr = new char[100];
   result_suffix++;
@@ -421,7 +425,8 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
                        int &result_suffix,
                        unsigned &result_bw, char *calcStr, IntVec &boolResSuffixs,
                        Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                       StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                       StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                       IntVec &queryResSuffixs2,
                        Map<Expr *, Expr *> &hiddenExprs) {
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
@@ -436,7 +441,8 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
                                argBWList,
                                resBWList,
                                result_suffix, lResBW, lConst, lCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
   int lResSuffix = result_suffix;
   bool rConst = false;
   char *rCalcStr = new char[1500];
@@ -445,7 +451,8 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
                                argBWList,
                                resBWList,
                                result_suffix, rResBW, rConst, rCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
 
   int rResSuffix = result_suffix;
   if (lConst && rConst) {
@@ -550,7 +557,11 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, i
   char *rVal = new char[100];
   getCurProc(rStr, rVal, rConst);
   char *subProcName = new char[1500];
-  sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  if (!strcmp(lStr, rStr)) {
+    sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
+  } else {
+    sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  }
   strcat(procName, subProcName);
   if (debug_verbose) {
     printf("binary expr: ");
@@ -608,7 +619,8 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
                        char *calcStr,
                        IntVec &boolResSuffixs, Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
-                       StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                       StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                       IntVec &queryResSuffixs2,
                        Map<Expr *, Expr *> &hiddenExprs) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
@@ -623,7 +635,8 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, i
                                argBWList,
                                resBWList,
                                result_suffix, lResBW, lConst, lCalcStr,
-                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2, hiddenExprs);
+                               boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                               queryResSuffixs2, hiddenExprs);
   int lResSuffix = result_suffix;
   char *val = new char[100];
   getCurProc(lStr, val, lConst);
@@ -691,7 +704,8 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
                         UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
                         bool &constant, char *calcStr, IntVec &boolResSuffixs,
                         Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                        StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                        StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                        IntVec &queryResSuffixs2,
                         Map<Expr *, Expr *> &hiddenExprs) {
   int type = expr->type;
   switch (type) {
@@ -929,13 +943,15 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char 
       result_bw = 1;
       return printExpr(sc, lExpr, procName, calc, def, argList, oriArgList,
                        argBWList, resBWList, result_suffix, result_bw,
-                       constant, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2,
+                       constant, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                       queryResSuffixs2,
                        hiddenExprs);
     }
     case E_QUERY: {
       return EMIT_QUERY(sc, expr, "q", "?", type, "q", procName, calc, def,
                         argList, oriArgList, argBWList, resBWList, result_suffix,
-                        result_bw, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2,
+                        result_bw, calcStr, boolResSuffixs, exprMap, inBW, hiddenBW,
+                        queryResSuffixs, queryResSuffixs2,
                         hiddenExprs);
     }
     default: {
@@ -1378,7 +1394,8 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
   fprintf(resFp, "\n");
 }
 
-void ChpGenerator::updateStatistics(const long *metric, const char* instance, bool actnCp, bool actnDp) {
+void
+ChpGenerator::updateStatistics(const long *metric, const char *instance, bool actnCp, bool actnDp) {
   long area = metric[3];
   long leakPower = metric[0];
   metrics->updateStatistics(instance, area, leakPower);
@@ -1396,6 +1413,83 @@ void ChpGenerator::genExprFromStr(const char *str, Expr *expr, int exprType) {
   expr->u.e.l = (Expr *) (newLActId);
 }
 
+void ChpGenerator::createINIT(FILE *resFp, FILE *libFp, FILE *confFp,
+                              Map<unsigned, unsigned long> &initMap,
+                              UIntVec &outWidthList, StringVec &outList) {
+  for (auto &initMapIt : initMap) {
+    unsigned outID = initMapIt.first;
+    const char *oriOut = outList[outID].c_str();
+    char *newOut = new char[10240];
+    sprintf(newOut, "%s_new", oriOut);
+    unsigned outBW = outWidthList[outID];
+    fprintf(resFp, "chan(int<%u>) %s;\n", outBW, newOut);
+    unsigned long initVal = initMapIt.second;
+    char *initInstance = new char[100];
+    sprintf(initInstance, "init%u", outBW);
+    long *initMetric = metrics->getOpMetric(initInstance);
+    if (!initMetric && LOGIC_OPTIMIZER) {
+      printf("We could not find metrics for %s!\n", initInstance);
+      exit(-1);
+    }
+    processGenerator.createInit(libFp, confFp, initInstance, initMetric);
+    if (initMetric != nullptr) {
+      bool actnCp = false;
+      bool actnDp = false;
+      checkACTN(oriOut, actnCp, actnDp);
+      if (actnCp) {
+        printf("[actnCp]: %s_init\n", oriOut);
+      } else if (actnDp) {
+        printf("[actnDp]: %s_init\n", oriOut);
+      }
+      updateStatistics(initMetric, initInstance, actnCp, actnDp);
+    }
+    fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
+            oriOut, newOut, oriOut);
+    printf("[init] %s_init\n", oriOut);
+  }
+}
+
+void ChpGenerator::createBuff(FILE *resFp, FILE *libFp, FILE *confFp,
+                              Map<unsigned, unsigned long> &initMap,
+                              Map<unsigned, unsigned long> &buffMap,
+                              UIntVec &outWidthList, StringVec &outList) {
+  for (auto &buffMapIt : buffMap) {
+    unsigned outID = buffMapIt.first;
+    if (initMap.find(outID) != initMap.end()) {
+      continue;
+    }
+    const char *oriOut = outList[outID].c_str();
+    unsigned outBW = outWidthList[outID];
+//    unsigned long numBuffs = buffMapIt.second;
+    unsigned long numBuffs = 10;
+    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
+      char *curBuff = new char[10240];
+      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
+      fprintf(resFp, "chan(int<%u>) %s;\n", outBW, curBuff);
+    }
+    long *buffMetric = new long[4];
+    buffMetric[0] = 0.55;
+    buffMetric[1] = 0.007;
+    buffMetric[2] = 59;
+    buffMetric[3] = 2.12;
+    char *buffInstance = new char[1024];
+    sprintf(buffInstance, "onebuf<%u>", outBW);
+    processGenerator.createBuff(libFp, confFp, buffInstance, buffMetric);
+    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
+      char *curBuff = new char[10240];
+      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
+      char *nxtBuff = new char[10240];
+      if (bufCnt == (numBuffs - 1)) {
+        sprintf(nxtBuff, "%s", oriOut);
+      } else {
+        sprintf(nxtBuff, "%s_buf%d", oriOut, (bufCnt + 1));
+      }
+      fprintf(resFp, "onebuf<%u> %s_inst(%s, %s);\n", outBW, curBuff,
+              curBuff, nxtBuff);
+    }
+  }
+}
+
 void
 ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              const char *procName, StringVec &argList,
@@ -1409,7 +1503,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              IntVec &boolResSuffixs,
                              Map<const char *, Expr *> &exprMap,
                              StringMap<unsigned> &inBW,
-                             StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
+                             StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
+                             IntVec &queryResSuffixs2,
                              Map<int, int> &outRecord,
                              Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs) {
   calc[strlen(calc) - 2] = ';';
@@ -1465,9 +1560,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   char *instance = new char[MAX_INSTANCE_LEN];
   char *oriInstance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<", procName);
-  char *oriProc = new char[strlen(procName) + 1];
-  sprintf(oriProc, "%s", procName);
-  sprintf(oriInstance, "%s<", oriProc);
+  sprintf(oriInstance, "%s<", procName);
   int numArgs = argList.size();
   int i = 0;
   for (; i < numArgs; i++) {
@@ -1480,84 +1573,19 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     strcat(instance, subInstance);
     strcat(oriInstance, subInstance);
   }
-  int numOuts = outWidthList.size();
-  for (i = 0; i < numOuts; i++) {
-    char *subInstance = new char[100];
-    if (i == (numOuts - 1)) {
-      sprintf(subInstance, "%u>", outWidthList[i]);
-    } else {
-      sprintf(subInstance, "%u,", outWidthList[i]);
-    }
-    strcat(oriInstance, subInstance);
-  }
+//  int numOuts = outWidthList.size();
+//  for (i = 0; i < numOuts; i++) {
+//    char *subInstance = new char[100];
+//    if (i == (numOuts - 1)) {
+//      sprintf(subInstance, "%u>", outWidthList[i]);
+//    } else {
+//      sprintf(subInstance, "%u,", outWidthList[i]);
+//    }
+//    strcat(oriInstance, subInstance);
+//  }
 
-  /* create Fake ports for INIT/Buffer */
-  for (auto &initMapIt : initMap) {
-    unsigned outID = initMapIt.first;
-    const char *oriOut = outList[outID].c_str();
-    char *newOut = new char[10240];
-    sprintf(newOut, "%s_new", oriOut);
-    unsigned outBW = outWidthList[outID];
-    fprintf(resFp, "chan(int<%u>) %s;\n", outBW, newOut);
-    unsigned long initVal = initMapIt.second;
-    char *initInstance = new char[100];
-    sprintf(initInstance, "init%u", outBW);
-    long *initMetric = metrics->getOpMetric(initInstance);
-    if (!initMetric && LOGIC_OPTIMIZER) {
-      printf("We could not find metrics for %s!\n", initInstance);
-      exit(-1);
-    }
-    processGenerator.createInit(libFp, confFp, initInstance, initMetric);
-    if (initMetric != nullptr) {
-      bool actnCp = false;
-      bool actnDp = false;
-      checkACTN(oriOut, actnCp, actnDp);
-      if (actnCp) {
-        printf("[actnCp]: %s_init\n", oriOut);
-      } else if (actnDp) {
-        printf("[actnDp]: %s_init\n", oriOut);
-      }
-      updateStatistics(initMetric, initInstance, actnCp, actnDp);
-    }
-    fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
-            oriOut, newOut, oriOut);
-    printf("[init] %s_init\n", oriOut);
-  }
-  for (auto &buffMapIt : buffMap) {
-    unsigned outID = buffMapIt.first;
-    if (initMap.find(outID) != initMap.end()) {
-      continue;
-    }
-    const char *oriOut = outList[outID].c_str();
-    unsigned outBW = outWidthList[outID];
-//    unsigned long numBuffs = buffMapIt.second;
-    unsigned long numBuffs = 10;
-    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
-      char *curBuff = new char[10240];
-      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
-      fprintf(resFp, "chan(int<%u>) %s;\n", outBW, curBuff);
-    }
-    long *buffMetric = new long[4];
-    buffMetric[0] = 0.55;
-    buffMetric[1] = 0.007;
-    buffMetric[2] = 59;
-    buffMetric[3] = 2.12;
-    char *buffInstance = new char[1024];
-    sprintf(buffInstance, "onebuf<%u>", outBW);
-    processGenerator.createBuff(libFp, confFp, buffInstance, buffMetric);
-    for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
-      char *curBuff = new char[10240];
-      sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
-      char *nxtBuff = new char[10240];
-      if (bufCnt == (numBuffs - 1)) {
-        sprintf(nxtBuff, "%s", oriOut);
-      } else {
-        sprintf(nxtBuff, "%s_buf%d", oriOut, (bufCnt + 1));
-      }
-      fprintf(resFp, "onebuf<%u> %s_inst(%s, %s);\n", outBW, curBuff,
-              curBuff, nxtBuff);
-    }
-  }
+  createINIT(resFp, libFp, confFp, initMap, outWidthList, outList);
+  createBuff(resFp, libFp, confFp, initMap, buffMap, outWidthList, outList);
 
   fprintf(resFp, "%s ", instance);
   if (debug_verbose) {
@@ -1576,7 +1604,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
-//  int numOuts = outList.size();
+  int numOuts = outList.size();
   if (numOuts < 1) {
     fatal_error("No output is found!\n");
   }
@@ -2143,7 +2171,8 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
         printDFlowFunc(resFp, libFp, confFp, procName, argList, argBWList, resBWList,
                        outWidthList, def, calc,
                        result_suffix, outSendStr, outResSuffixs, normalizedOutList,
-                       outList, initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                       outList, initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW,
+                       queryResSuffixs,
                        queryResSuffixs2,
                        outRecord, hiddenExprs, buffBWs);
       }
@@ -2396,7 +2425,8 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp,
                    outWidthList, def,
                    calc,
                    result_suffix, outSendStr, outResSuffixs, normalizedOutList, outList,
-                   initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs, queryResSuffixs2,
+                   initMap, buffMap, boolResSuffixs, exprMap, inBW, hiddenBW, queryResSuffixs,
+                   queryResSuffixs2,
                    outRecord,
                    hiddenExprs, buffBWs);
   }

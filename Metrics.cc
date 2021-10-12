@@ -44,7 +44,7 @@ long *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  printf ("Missing metric info for (`%s`,`%s')\n", opName, normalizedOp);
+  printf("Missing metric info for (`%s`,`%s')\n", opName, normalizedOp);
 //  if (debug_verbose) {
 //    printOpMetrics();
 //    printf("\n\n\n\n\n");
@@ -130,7 +130,7 @@ void Metrics::printStatistics() {
   if (!statisticsFP) {
     fatal_error("Could not create statistics file %s\n", statisticsFilePath);
   }
-  fprintf(statisticsFP, "totalArea: %d, totalLeakPowewr: %d\n", totalArea, totalLeakPowewr);
+  fprintf(statisticsFP, "totalArea: %ld, totalLeakPowewr: %ld\n", totalArea, totalLeakPowewr);
   fprintf(statisticsFP, "Merge area: %ld, ratio: %5.1f\n",
           mergeArea, ((double) 100 * mergeArea / totalArea));
   fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
@@ -232,9 +232,19 @@ int Metrics::getInstanceCnt(const char *instance) {
   return -1;
 }
 
+long Metrics::getInstanceArea(const char *instance) {
+  for (auto &areaStatisticsIt : areaStatistics) {
+    if (!strcmp(areaStatisticsIt.first, instance)) {
+      return areaStatisticsIt.second;
+    }
+  }
+  fatal_error("We could not find %s in instanceCnt!\n", instance);
+  return -1;
+}
+
 void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "Leak Power Statistics:\n");
-  fprintf(statisticsFP, "totalLeakPower: %5.1f\n", totalLeakPowewr);
+  fprintf(statisticsFP, "totalLeakPower: %ld\n", totalLeakPowewr);
   if (!leakpowerStatistics.empty() && (totalLeakPowewr == 0)) {
     printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
     exit(-1);
@@ -260,13 +270,14 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     exit(-1);
   }
   std::multimap<long, const char *> sortedAreas = flip_map(areaStatistics);
+  printf("instance name          # of instances       area percentage     # of instances\n");
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
     int area = iter->first;
     double ratio = (double) area / totalArea * 100;
     const char *instance = iter->second;
     if (ratio > 0.1) {
       int cnt = getInstanceCnt(instance);
-      fprintf(statisticsFP, "%80.50s %5d %5.1f %5d\n", instance, area, ratio, cnt);
+      fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio, cnt);
     }
   }
   fprintf(statisticsFP, "\n");

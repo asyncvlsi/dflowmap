@@ -197,9 +197,9 @@ int main(int argc, char **argv) {
   printf("procCount info:\n");
   for (auto &procCountIt : procCount) {
     unsigned count = procCountIt.second;
-//    if (count > 1) {
+    if (count > 1) {
       printf("(%s, %u)\n", procCountIt.first, count);
-//    }
+    }
   }
   printf("\n\n\n\n\n\n\n\n");
 

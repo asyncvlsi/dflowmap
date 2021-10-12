@@ -26,7 +26,7 @@
 class ChpGenerator : public ActPass {
 public:
   void updateprocCount(const char *proc, Map<const char *, unsigned>
-      &procCount);
+  &procCount);
 
   ChpGenerator(Act *a, const char *name, Metrics *metrics);
 
@@ -213,6 +213,14 @@ private:
   void updateACTN(long area, long leakPower, bool actnCp, bool actnDp);
 
   void updateStatistics(const long *metric, const char *instance, bool actnCp, bool actnDp);
+
+  void createINIT(FILE *resFp, FILE *libFp, FILE *confFp, Map<unsigned, unsigned long> &initMap,
+                  UIntVec &outWidthList, StringVec &outList);
+
+  void createBuff(FILE *resFp, FILE *libFp, FILE *confFp,
+                  Map<unsigned, unsigned long> &initMap,
+                  Map<unsigned, unsigned long> &buffMap,
+                  UIntVec &outWidthList, StringVec &outList);
 };
 
 extern int debug_verbose;

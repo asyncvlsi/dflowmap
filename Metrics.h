@@ -29,6 +29,8 @@ public:
 
   int getInstanceCnt(const char *instance);
 
+  long getInstanceArea(const char *instance);
+
   void readMetricsFile();
 
   void writeMetricsFile(char *opName, long metric[4]);
