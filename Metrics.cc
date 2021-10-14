@@ -270,7 +270,8 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     exit(-1);
   }
   std::multimap<long, const char *> sortedAreas = flip_map(areaStatistics);
-  printf("instance name          # of instances       area percentage     # of instances\n");
+  fprintf(statisticsFP, "instance name      area     percentage     # of instances\n");
+  long redundantArea = 0;
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
     int area = iter->first;
     double ratio = (double) area / totalArea * 100;
@@ -278,9 +279,14 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     if (ratio > 0.1) {
       int cnt = getInstanceCnt(instance);
       fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio, cnt);
+      if (cnt > 1) {
+        redundantArea += (cnt - 1) * getOpMetric(instance)[3];
+      }
     }
   }
   fprintf(statisticsFP, "\n");
+  printf("totalArea: %ld, redundant area: %ld, ratio: %5.1f\n",
+         totalArea, redundantArea, ((double) redundantArea / totalArea * 100.0));
 }
 
 void Metrics::dump() {
