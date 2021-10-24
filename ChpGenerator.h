@@ -130,11 +130,16 @@ public:
 
   void recordExprUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec);
 
-  void collectDflowClusterUses(Scope *sc, list_t *dflow, ActConnectVec &actConnectVec);
+  void collectDflowClusterUses(Scope *sc, list_t *dflow,
+                               ActConnectVec &actConnectVec);
 
   void collectOpUses(Process *p);
 
   void createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp);
+
+  unsigned getMSEquivalentBW(unsigned oriBW);
+
+  long *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
 
   void
   printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, const char *procName,

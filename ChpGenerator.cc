@@ -2215,6 +2215,32 @@ ChpGenerator::updateACTN(long area, long leakPower, bool actnCp, bool actnDp) {
   }
 }
 
+unsigned ChpGenerator::getMSEquivalentBW(unsigned oriBW) {
+  if (oriBW < 4) {
+    return 1;
+  } else if (oriBW < 12) {
+    return 8;
+  } else if (oriBW < 24) {
+    return 16;
+  } else if (oriBW < 48) {
+    return 32;
+  } else if (oriBW <= 64) {
+    return 64;
+  } else {
+    printf("Invalid M/S bitwidth: %u!\n", oriBW);
+    exit(-1);
+  }
+}
+
+long *ChpGenerator::getMSMetric(const char *procName, unsigned guardBW,
+                                unsigned inBW) {
+  char *instance = new char[MAX_INSTANCE_LEN];
+  unsigned equivBW = getMSEquivalentBW(inBW);
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
+  long *metric = metrics->getOpMetric(instance);
+  return metric;
+}
+
 void
 ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
                                        Process *p, act_dataflow_element *d,
@@ -2347,9 +2373,10 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
         }
       }
       fprintf(resFp, ");\n");
+
+      long *metric = getMSMetric(procName, guardBW, bitwidth);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
-      long *metric = metrics->getOpMetric(instance);
       processGenerator.createSplit(libFp, confFp, procName, instance, metric,
                                    numOutputs);
       if (metric != nullptr) {
@@ -2398,9 +2425,9 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       fprintf(resFp, "%s);\n", outputName);
 
+      long *metric = getMSMetric(procName, guardBW, inBW);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
-      long *metric = metrics->getOpMetric(instance);
       processGenerator.createMerge(libFp, confFp, procName, instance, metric,
                                    numInputs);
       if (metric != nullptr) {
