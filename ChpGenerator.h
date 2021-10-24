@@ -137,7 +137,9 @@ public:
 
   void createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp);
 
-  unsigned getMSEquivalentBW(unsigned oriBW);
+  long *getCopyMetric(unsigned N, unsigned bitwidth);
+
+  unsigned getEquivalentBW(unsigned oriBW);
 
   long *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
 

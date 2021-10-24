@@ -1438,30 +1438,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       long *metric = metrics->getOpMetric(instance);
       if (!metric) {
         if (LOGIC_OPTIMIZER) {
-          char *equivInstance = new char[1500];
-          int equivN = ceil_log2(N) - 1;
-          if (equivN < 1) {
-            equivN = 1;
-          }
-          if (DEBUG_OPTIMIZER) {
-            printf(
-                "We are handling copy_%u_%u, and we are using mapping it to %d "
-                "copy_%u_2\n", bitwidth, N, equivN, bitwidth);
-          }
-          sprintf(equivInstance, "copy<%u,2>", bitwidth);
-          long *equivMetric = metrics->getOpMetric(equivInstance);
-          if (!equivMetric) {
-            fatal_error("Missing metrics for copy %s\n", equivInstance);
-          }
-          if (equivN == 1) {
-            metric = equivMetric;
-          } else {
-            metric = new long[4];
-            metric[0] = equivN * equivMetric[0];
-            metric[1] = equivN * equivMetric[1];
-            metric[2] = equivN * equivMetric[2];
-            metric[3] = equivN * equivMetric[3];
-          }
+          metric = getCopyMetric(N, bitwidth);
           char *normalizedOp = new char[10240];
           normalizedOp[0] = '\0';
           metrics->getNormalizedOpName(instance, normalizedOp);
@@ -2215,7 +2192,7 @@ ChpGenerator::updateACTN(long area, long leakPower, bool actnCp, bool actnDp) {
   }
 }
 
-unsigned ChpGenerator::getMSEquivalentBW(unsigned oriBW) {
+unsigned ChpGenerator::getEquivalentBW(unsigned oriBW) {
   if (oriBW < 4) {
     return 1;
   } else if (oriBW < 12) {
@@ -2235,10 +2212,39 @@ unsigned ChpGenerator::getMSEquivalentBW(unsigned oriBW) {
 long *ChpGenerator::getMSMetric(const char *procName, unsigned guardBW,
                                 unsigned inBW) {
   char *instance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getMSEquivalentBW(inBW);
+  unsigned equivBW = getEquivalentBW(inBW);
   sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
   long *metric = metrics->getOpMetric(instance);
   return metric;
+}
+
+long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
+  char *equivInstance = new char[1500];
+  int equivN = ceil_log2(N) - 1;
+  if (equivN < 1) {
+    equivN = 1;
+  }
+  unsigned equivBW = getEquivalentBW(bitwidth);
+  if (DEBUG_OPTIMIZER) {
+    printf(
+        "We are handling copy_%u_%u, and we are using mapping it to %d "
+        "copy_%u_2\n", bitwidth, N, equivN, equivBW);
+  }
+  sprintf(equivInstance, "copy<%u,2>", equivBW);
+  long *equivMetric = metrics->getOpMetric(equivInstance);
+  if (!equivMetric) {
+    fatal_error("Missing metrics for copy %s\n", equivInstance);
+  }
+  long *metric = new long[4];
+  if (equivN == 1) {
+    metric = equivMetric;
+  } else {
+    metric = new long[4];
+    metric[0] = equivN * equivMetric[0];
+    metric[1] = equivN * equivMetric[1];
+    metric[2] = equivN * equivMetric[2];
+    metric[3] = equivN * equivMetric[3];
+  }
 }
 
 void
