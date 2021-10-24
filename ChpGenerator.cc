@@ -95,8 +95,8 @@ ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
           out);
   char *instance = new char[1500];
   sprintf(instance, "source<%lu,%u>", val, outWidth);
-  char *opName = new char[1500];
-  sprintf(opName, "source%u", outWidth);
+  char *opName = new char[8];
+  sprintf(opName, "source1");
   long *metric = metrics->getOpMetric(opName);
   processGenerator.createSource(libFp, confFp, instance, metric);
   if (metric != nullptr) {
