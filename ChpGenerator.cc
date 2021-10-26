@@ -159,12 +159,15 @@ unsigned ChpGenerator::getBitwidth(act_connection *actConnection) {
 }
 
 void ChpGenerator::getCurProc(const char *str, char *val, bool isConstant) {
-  val[0] = '\0';
-  if (isConstant) {
-    char curProc[100];
+  char curProc[100];
+  if (strstr(str, "res")) {
+    sprintf(curProc, "r%s", str + 3);
+  } else if (strstr(str, "x")) {
+    sprintf(curProc, "%s", str + 1);
+  } else {
     sprintf(curProc, "c%s", str);
-    strcpy(val, curProc);
   }
+  strcpy(val, curProc);
 }
 
 unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {

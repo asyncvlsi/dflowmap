@@ -280,7 +280,7 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
       int cnt = getInstanceCnt(instance);
       fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio, cnt);
       if (cnt > 1) {
-        redundantArea += (cnt - 1) * getOpMetric(instance)[3];
+//        redundantArea += (cnt - 1) * getOpMetric(instance)[3];
       }
     }
   }
