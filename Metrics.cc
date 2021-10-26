@@ -6,7 +6,14 @@ void Metrics::updateMetrics(const char *op, long *metric) {
   }
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
-      fatal_error("We already have metric info for %s", op);
+      printf("We already have metric info for %s", op);
+      long *oldMetric = opMetricsIt.second;
+      if ((oldMetric[0] != metric[0])
+          || (oldMetric[1] != metric[1])
+          || (oldMetric[2] != metric[2])
+          || (oldMetric[3] != metric[3])) {
+        exit(-1);
+      }
     }
   }
   opMetrics.insert(std::make_pair(op, metric));
@@ -28,27 +35,23 @@ void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
 }
 
 long *Metrics::getOpMetric(const char *opName) {
-  if (debug_verbose) {
-    printf("get op metric for %s\n", opName);
-  }
   if (opName == nullptr) {
-    fatal_error("normalizedOp is NULL\n");
+    printf("normalizedOp is NULL\n");
+    exit(-1);
   }
   unsigned opLen = strlen(opName);
   char *normalizedOp = new char[opLen + 1];
   normalizedOp[0] = '\0';
   getNormalizedOpName(opName, normalizedOp);
+  if (debug_verbose) {
+    printf("get op metric for %s, norm. name: %s\n", opName, normalizedOp);
+  }
   for (auto &opMetricsIt : opMetrics) {
-//    if (!strcmp(opMetricsIt.first, normalizedOp)) {
     if (!String(opMetricsIt.first).find(normalizedOp)) {
       return opMetricsIt.second;
     }
   }
-  printf("Missing metric info for (`%s`,`%s')\n", opName, normalizedOp);
-//  if (debug_verbose) {
-//    printOpMetrics();
-//    printf("\n\n\n\n\n");
-//  }
+  printf("We don't have metric info for (`%s`,`%s')\n", opName, normalizedOp);
   return nullptr;
 }
 
@@ -64,7 +67,8 @@ void Metrics::writeMetricsFile(char *opName, long metric[4]) {
   printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
   std::ofstream metricFp;
   metricFp.open(metricFilePath, std::ios_base::app);
-  metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  " << metric[2]
+  metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  "
+           << metric[2]
            << "  " << metric[3] << "\n";
 }
 
@@ -128,9 +132,11 @@ void Metrics::printStatistics() {
   printf("Print statistics to file: %s\n", statisticsFilePath);
   FILE *statisticsFP = fopen(statisticsFilePath, "w");
   if (!statisticsFP) {
-    fatal_error("Could not create statistics file %s\n", statisticsFilePath);
+    printf("Could not create statistics file %s\n", statisticsFilePath);
+    exit(-1);
   }
-  fprintf(statisticsFP, "totalArea: %ld, totalLeakPowewr: %ld\n", totalArea, totalLeakPowewr);
+  fprintf(statisticsFP, "totalArea: %ld, totalLeakPowewr: %ld\n", totalArea,
+          totalLeakPowewr);
   fprintf(statisticsFP, "Merge area: %ld, ratio: %5.1f\n",
           mergeArea, ((double) 100 * mergeArea / totalArea));
   fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
@@ -158,7 +164,8 @@ void Metrics::printCopyStatistics(FILE *statisticsFP) {
     fprintf(statisticsFP, "%d-bit COPY:\n", copyStatisticsIt.first);
     Map<int, int> &record = copyStatisticsIt.second;
     for (auto &recordIt : record) {
-      fprintf(statisticsFP, "  %d outputs: %d\n", recordIt.first, recordIt.second);
+      fprintf(statisticsFP, "  %d outputs: %d\n", recordIt.first,
+              recordIt.second);
     }
   }
   fprintf(statisticsFP, "\n");
@@ -184,7 +191,8 @@ void Metrics::updateSplitMetrics(long area, long leakPower) {
   splitLeakPower += leakPower;
 }
 
-void Metrics::updateStatistics(const char *instance, long area, long leakPower) {
+void
+Metrics::updateStatistics(const char *instance, long area, long leakPower) {
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
@@ -204,8 +212,10 @@ void Metrics::updateStatistics(const char *instance, long area, long leakPower) 
       }
     }
     if (!foundLP) {
-      fatal_error("We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
-                  instance);
+      printf(
+          "We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
+          instance);
+      exit(-1);
     }
     for (auto &instanceCntIt : instanceCnt) {
       if (!strcmp(instanceCntIt.first, instance)) {
@@ -213,8 +223,9 @@ void Metrics::updateStatistics(const char *instance, long area, long leakPower) 
         return;
       }
     }
-    fatal_error("We could find %s in areaStatistics, but not in instanceCnt!\n",
-                instance);
+    printf("We could find %s in areaStatistics, but not in instanceCnt!\n",
+           instance);
+    exit(-1);
   } else {
     areaStatistics.insert(GenPair(instance, area));
     leakpowerStatistics.insert(GenPair(instance, leakPower));
@@ -228,8 +239,8 @@ int Metrics::getInstanceCnt(const char *instance) {
       return instanceCntIt.second;
     }
   }
-  fatal_error("We could not find %s in instanceCnt!\n", instance);
-  return -1;
+  printf("We could not find %s in instanceCnt!\n", instance);
+  exit(-1);
 }
 
 long Metrics::getInstanceArea(const char *instance) {
@@ -238,8 +249,8 @@ long Metrics::getInstanceArea(const char *instance) {
       return areaStatisticsIt.second;
     }
   }
-  fatal_error("We could not find %s in instanceCnt!\n", instance);
-  return -1;
+  printf("We could not find %s in instanceCnt!\n", instance);
+  exit(-1);
 }
 
 void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
@@ -249,14 +260,17 @@ void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
     printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
     exit(-1);
   }
-  std::multimap<long, const char *> sortedLeakpowers = flip_map(leakpowerStatistics);
-  for (auto iter = sortedLeakpowers.rbegin(); iter != sortedLeakpowers.rend(); iter++) {
+  std::multimap<long, const char *>
+      sortedLeakpowers = flip_map(leakpowerStatistics);
+  for (auto iter = sortedLeakpowers.rbegin();
+       iter != sortedLeakpowers.rend(); iter++) {
     double leakPower = iter->first;
     double ratio = (double) leakPower / totalLeakPowewr * 100;
     const char *instance = iter->second;
     if (ratio > 0.1) {
       int cnt = getInstanceCnt(instance);
-      fprintf(statisticsFP, "%80.50s %5.1f %5.1f %5d\n", instance, leakPower, ratio, cnt);
+      fprintf(statisticsFP, "%80.50s %5.1f %5.1f %5d\n", instance, leakPower,
+              ratio, cnt);
     }
   }
   fprintf(statisticsFP, "\n");
@@ -270,7 +284,8 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     exit(-1);
   }
   std::multimap<long, const char *> sortedAreas = flip_map(areaStatistics);
-  fprintf(statisticsFP, "instance name      area     percentage     # of instances\n");
+  fprintf(statisticsFP,
+          "instance name      area     percentage     # of instances\n");
   long redundantArea = 0;
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
     int area = iter->first;
@@ -278,7 +293,8 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     const char *instance = iter->second;
     if (ratio > 0.1) {
       int cnt = getInstanceCnt(instance);
-      fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio, cnt);
+      fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio,
+              cnt);
       if (cnt > 1) {
 //        redundantArea += (cnt - 1) * getOpMetric(instance)[3];
       }
@@ -286,7 +302,8 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
   }
   fprintf(statisticsFP, "\n");
   printf("totalArea: %ld, redundant area: %ld, ratio: %5.1f\n",
-         totalArea, redundantArea, ((double) redundantArea / totalArea * 100.0));
+         totalArea, redundantArea,
+         ((double) redundantArea / totalArea * 100.0));
 }
 
 void Metrics::dump() {

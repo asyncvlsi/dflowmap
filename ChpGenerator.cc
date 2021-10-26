@@ -9,7 +9,6 @@ void ChpGenerator::printIntVec(IntVec &intVec) {
   printf("\n");
 }
 
-
 void ChpGenerator::printULongVec(ULongVec &longVec) {
   for (auto &val : longVec) {
     printf("%lu ", val);
@@ -71,7 +70,8 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp,
                         const char *name,
                         unsigned bitwidth) {
   if (name == nullptr) {
-    fatal_error("sink name is NULL!\n");
+    printf("sink name is NULL!\n");
+    exit(-1);
   }
   const char *normalizedName = removeDot(name);
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, name);
@@ -177,10 +177,12 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
   }
   switch (type) {
     case E_INT: {
-      fatal_error("We shoudld not try to get expr bw for E_INT!\n");
+      printf("We shoudld not try to get expr bw for E_INT!\n");
+      exit(-1);
     }
     case E_VAR: {
-      fatal_error("We shoudld not try to get expr bw for E_VAR!\n");
+      printf("We shoudld not try to get expr bw for E_VAR!\n");
+      exit(-1);
     }
     case E_AND:
     case E_OR:
@@ -220,8 +222,8 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
       return maxBW;
     }
     default: {
-      fatal_error("Try to get expr bw for unknown type %d\n", type);
-      return -1;
+      printf("Try to get expr bw for unknown type %d\n", type);
+      exit(-1);
     }
   }
 }
@@ -305,7 +307,7 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
   }
   if ((String(lStr).find("res") == 0) &&
       ((String(rStr).find("x") == 0)
-       || (((String(rStr) <= "9")) && (String(rStr) >= "0"))
+          || (((String(rStr) <= "9")) && (String(rStr) >= "0"))
       )
       ) {
     queryResSuffixs.push_back(cPrefix);
@@ -749,7 +751,8 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
   switch (type) {
     case E_INT: {
       if (procName[0] == '\0') {
-        fatal_error("we should NOT process Source here!\n");
+        printf("we should NOT process Source here!\n");
+        exit(-1);
       }
       unsigned long val = expr->u.v;
       const char *valStr = strdup(std::to_string(val).c_str());
@@ -1042,21 +1045,21 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
     default: {
       print_expr(stdout, expr);
       printf("\n");
-      fatal_error(
-          "when printing expression, encounter unknown expression type %d\n",
-          type);
-      break;
+      printf("when printing expression, encounter unknown expression type %d\n",
+             type);
+      exit(-1);
     }
   }
-  fatal_error("Shouldn't be here");
-  return "-should-not-be-here-";
+  printf("Shouldn't be here");
+  exit(-1);
 }
 
 void
 ChpGenerator::getActConnectionName(act_connection *actConnection, char *buff,
                                    int sz) {
   if (actConnection == nullptr) {
-    fatal_error("Try to get the name of NULL act connection!\n");
+    printf("Try to get the name of NULL act connection!\n");
+    exit(-1);
   }
   ActId *uid = actConnection->toid();
   uid->sPrint(buff, sz);
@@ -1325,7 +1328,8 @@ void ChpGenerator::collectDflowClusterUses(Scope *sc, list_t *dflow,
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
-          fatal_error("\nMerge has less than TWO inputs!\n");
+          printf("\nMerge has less than TWO inputs!\n");
+          exit(-1);
         }
         ActId **inputs = d->u.splitmerge.multi;
         for (int i = 0; i < numInputs; i++) {
@@ -1335,23 +1339,24 @@ void ChpGenerator::collectDflowClusterUses(Scope *sc, list_t *dflow,
         break;
       }
       case ACT_DFLOW_MIXER: {
-        fatal_error("We don't support MIXER for now!\n");
-        break;
+        printf("We don't support MIXER for now!\n");
+        exit(-1);
       }
       case ACT_DFLOW_ARBITER: {
-        fatal_error("We don't support ARBITER for now!\n");
-        break;
+        printf("We don't support ARBITER for now!\n");
+        exit(-1);
       }
       case ACT_DFLOW_CLUSTER: {
-        fatal_error("Do not support nested dflow_cluster!\n");
-        break;
+        printf("Do not support nested dflow_cluster!\n");
+        exit(-1);
       }
       case ACT_DFLOW_SINK: {
-        fatal_error("dflow cluster should not connect to SINK!\n");
+        printf("dflow cluster should not connect to SINK!\n");
+        exit(-1);
       }
       default: {
-        fatal_error("Unknown dataflow type %d\n", d->t);
-        break;
+        printf("Unknown dataflow type %d\n", d->t);
+        exit(-1);
       }
     }
   }
@@ -1389,7 +1394,8 @@ void ChpGenerator::collectOpUses(Process *p) {
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
-          fatal_error("\nMerge has less than TWO inputs!\n");
+          printf("\nMerge has less than TWO inputs!\n");
+          exit(-1);
         }
         ActId **inputs = d->u.splitmerge.multi;
         for (int i = 0; i < numInputs; i++) {
@@ -1399,11 +1405,13 @@ void ChpGenerator::collectOpUses(Process *p) {
         break;
       }
       case ACT_DFLOW_MIXER: {
-        fatal_error("We don't support MIXER for now!\n");
+        printf("We don't support MIXER for now!\n");
+        exit(-1);
         break;
       }
       case ACT_DFLOW_ARBITER: {
-        fatal_error("We don't support ARBITER for now!\n");
+        printf("We don't support ARBITER for now!\n");
+        exit(-1);
         break;
       }
       case ACT_DFLOW_CLUSTER: {
@@ -1415,8 +1423,8 @@ void ChpGenerator::collectOpUses(Process *p) {
         break;
       }
       default: {
-        fatal_error("Unknown dataflow type %d\n", d->t);
-        break;
+        printf("Unknown dataflow type %d\n", d->t);
+        exit(-1);
       }
     }
   }
@@ -1682,7 +1690,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   }
   int numOuts = outList.size();
   if (numOuts < 1) {
-    fatal_error("No output is found!\n");
+    printf("No output is found!\n");
+    exit(-1);
   }
   for (i = 0; i < numOuts; i++) {
     char *actualOut = new char[10240];
@@ -1703,7 +1712,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   }
   /* create chp library */
   if (strlen(instance) < 5) {
-    fatal_error("Invalid instance name %s\n", instance);
+    printf("Invalid instance name %s\n", instance);
+    exit(-1);
   }
   char *outSend = new char[10240];
   sprintf(outSend, "      ");
@@ -1890,7 +1900,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     /* adjust perf number by adding latch, etc. */
     long *latchMetric = metrics->getOpMetric("latch1");
     if (latchMetric == nullptr) {
-      fatal_error("We could not find metric for latch1!\n");
+      printf("We could not find metric for latch1!\n");
+      exit(-1);
     }
     area = (long) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
                    + highBWInPorts * 2.86 + delay / 500 * 1.43);
@@ -1900,7 +1911,8 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                      + highBWInPorts * 20.19 + delay / 500 * 28.544);
     long *twoToOneMetric = metrics->getOpMetric("twoToOne");
     if (twoToOneMetric == nullptr) {
-      fatal_error("We could not find metric for 2-in-1-out!\n");
+      printf("We could not find metric for 2-in-1-out!\n");
+      exit(-1);
     }
     delay = delay + twoToOneMetric[2] + latchMetric[2];
     /* adjust perf number in case there are BUFFs (i.e., "register" in Verilog) */
@@ -1913,15 +1925,17 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     unsigned numBuffs = buffBWs.size();
     if (numBuffs > numOuts) {
-      fatal_error("%s has more buffs (%u) than outputs(%u)!\n", normalizedOp, numBuffs,
+      printf("%s has more buffs (%u) than outputs(%u)!\n", normalizedOp, numBuffs,
                   numOuts);
+      exit(-1);
     }
     for (auto &buffBW : buffBWs) {
       char *regName = new char[10];
       sprintf(regName, "reg%u", buffBW);
       long *regMetric = metrics->getOpMetric(regName);
       if (regMetric == nullptr) {
-        fatal_error("We could not find metric for %s!\n", regName);
+        printf("We could not find metric for %s!\n", regName);
+        exit(-1);
       }
       leakpower += regMetric[0];
       energy += regMetric[1];
@@ -2231,12 +2245,13 @@ long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
   if (DEBUG_OPTIMIZER) {
     printf(
         "We are handling copy_%u_%u, and we are using mapping it to %d "
-        "copy_%u_2\n", bitwidth, N, equivN, equivBW);
+        "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
   }
   sprintf(equivInstance, "copy<%u,2>", equivBW);
   long *equivMetric = metrics->getOpMetric(equivInstance);
   if (!equivMetric) {
-    fatal_error("Missing metrics for copy %s\n", equivInstance);
+    printf("Missing metrics for copy %s\n", equivInstance);
+    exit(-1);
   }
   long *metric = new long[4];
   if (equivN == 1) {
@@ -2451,16 +2466,19 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
       break;
     }
     case ACT_DFLOW_MIXER: {
-      fatal_error("We don't support MIXER for now!\n");
+      printf("We don't support MIXER for now!\n");
+      exit(-1);
       break;
     }
     case ACT_DFLOW_ARBITER: {
-      fatal_error("We don't support ARBITER for now!\n");
+      printf("We don't support ARBITER for now!\n");
+      exit(-1);
       break;
     }
     case ACT_DFLOW_CLUSTER: {
       dflow_print(stdout, d);
-      fatal_error("We should not process dflow_clsuter here!");
+      printf("We should not process dflow_clsuter here!");
+      exit(-1);
     }
     case ACT_DFLOW_SINK: {
       ActId *input = d->u.sink.chan;
@@ -2474,7 +2492,8 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
       break;
     }
     default: {
-      fatal_error("Unknown dataflow type %d\n", d->t);
+      printf("Unknown dataflow type %d\n", d->t);
+      exit(-1);
     }
   }
 }
@@ -2553,7 +2572,8 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp,
       strcat(procName, subProc);
     } else {
       dflow_print(stdout, d);
-      fatal_error("This dflow statement should not appear in dflow-cluster!\n");
+      printf("This dflow statement should not appear in dflow-cluster!\n");
+      exit(-1);
     }
     if (DEBUG_CLUSTER) {
       printf("After processing dflow_cluster element ");
@@ -2602,7 +2622,8 @@ ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
     return;
   }
   if (!p->getlang()->getdflow()) {
-    fatal_error("Process `%s': no dataflow body", p->getName());
+    printf("Process `%s': no dataflow body", p->getName());
+    exit(-1);
   }
   p->PrintHeader(resFp, "defproc");
   fprintf(resFp, "\n{");
