@@ -2237,7 +2237,7 @@ long *ChpGenerator::getMSMetric(const char *procName, unsigned guardBW,
 
 long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
   char *equivInstance = new char[1500];
-  int equivN = ceil_log2(N) - 1;
+  int equivN = ceil(log2(N)) - 1;
   if (equivN < 1) {
     equivN = 1;
   }
@@ -2253,7 +2253,7 @@ long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
     printf("Missing metrics for copy %s\n", equivInstance);
     exit(-1);
   }
-  long *metric = new long[4];
+  long *metric;
   if (equivN == 1) {
     metric = equivMetric;
   } else {
@@ -2263,6 +2263,7 @@ long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
     metric[2] = equivN * equivMetric[2];
     metric[3] = equivN * equivMetric[3];
   }
+  return metric;
 }
 
 void
