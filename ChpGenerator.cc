@@ -768,6 +768,7 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
       return valStr;
     }
     case E_VAR: {
+      printf("It is E_VAR!\n");
       int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
       act_connection *actConnection = actId->Canonical(sc);
@@ -1008,12 +1009,17 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
-      Expr *rExpr = expr->u.e.r;
-      if (rExpr) {
-        result_bw = rExpr->u.v;
-      } else {
-        result_bw = 1;
+      if (result_bw == 0) {
+        Expr *rExpr = expr->u.e.r;
+        if (rExpr) {
+          result_bw = rExpr->u.v;
+        } else {
+          result_bw = 1;
+        }
       }
+      printf("It is E_BUILTIN_INT! The real expression is ");
+      print_expr(stdout, lExpr);
+      printf(", result_bw: %u\n", result_bw);
       return printExpr(sc, lExpr, procName, calc, def, argList, oriArgList,
                        argBWList,
                        resBWList,
@@ -1881,20 +1887,26 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     char *optimizerProcName = new char[1000];
     sprintf(optimizerProcName, "op");
     printf("Run logic optimizer for %s\n", optimizerProcName);
-    ExprBlockInfo *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
-                                                      in_expr_map,
-                                                      in_width_map,
-                                                      out_expr_list, out_expr_name_list,
-                                                      out_width_map,
-                                                      hidden_expr_list,
-                                                      hidden_expr_name_list);
+    ExprBlockInfo
+        *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
+                                            in_expr_map,
+                                            in_width_map,
+                                            out_expr_list, out_expr_name_list,
+                                            out_width_map,
+                                            hidden_expr_list,
+                                            hidden_expr_name_list);
     printf(
         "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
         "s\n",
-        optimizerProcName, info->area, info->power_typ_dynamic, info->power_typ_static,
+        optimizerProcName,
+        info->area,
+        info->power_typ_dynamic,
+        info->power_typ_static,
         info->delay_typ);
-    long leakpower = (long) (info->power_typ_static * 1e9);  // Leakage power (nW)
-    long energy = (long) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
+    long leakpower =
+        (long) (info->power_typ_static * 1e9);  // Leakage power (nW)
+    long energy =
+        (long) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
     long delay = (long) (info->delay_typ * 1e12); // Delay (ps)
     long area = (long) (info->area * 1e12);  // AREA (um^2)
     /* adjust perf number by adding latch, etc. */
@@ -1904,11 +1916,12 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       exit(-1);
     }
     area = (long) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
-                   + highBWInPorts * 2.86 + delay / 500 * 1.43);
-    leakpower = (long) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
-                        + highBWInPorts * 5.36 + delay / 500 * 1.38);
+        + highBWInPorts * 2.86 + delay / 500 * 1.43);
+    leakpower =
+        (long) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
+            + highBWInPorts * 5.36 + delay / 500 * 1.38);
     energy = (long) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
-                     + highBWInPorts * 20.19 + delay / 500 * 28.544);
+        + highBWInPorts * 20.19 + delay / 500 * 28.544);
     long *twoToOneMetric = metrics->getOpMetric("twoToOne");
     if (twoToOneMetric == nullptr) {
       printf("We could not find metric for 2-in-1-out!\n");
@@ -1925,8 +1938,10 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     unsigned numBuffs = buffBWs.size();
     if (numBuffs > numOuts) {
-      printf("%s has more buffs (%u) than outputs(%u)!\n", normalizedOp, numBuffs,
-                  numOuts);
+      printf("%s has more buffs (%u) than outputs(%u)!\n",
+             normalizedOp,
+             numBuffs,
+             numOuts);
       exit(-1);
     }
     for (auto &buffBW : buffBWs) {
@@ -2056,12 +2071,12 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     /* check if the expression only has E_VAR. Note that it could be built-in int/bool, e.g., int(varName, bw). In
      * this case, it still only has E_VAR expression. */
-    bool onlyVarExpr = false;
-    if (type == E_VAR) {
-      onlyVarExpr = true;
-    } else if ((type == E_BUILTIN_INT) || (type == E_BUILTIN_BOOL)) {
-      onlyVarExpr = (expr->u.e.l->type == E_VAR);
+    Expr *actualExpr = expr;
+    while ((type == E_BUILTIN_INT) || (type == E_BUILTIN_BOOL)) {
+      actualExpr = actualExpr->u.e.l;
+      type = actualExpr->type;
     }
+    bool onlyVarExpr = (type == E_VAR);
     if (onlyVarExpr) {
       if (debug_verbose) {
         printf("The expression ");
