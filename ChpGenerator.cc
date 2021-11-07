@@ -2191,7 +2191,9 @@ ChpGenerator::updateprocCount(const char *proc, Map<const char *, unsigned>
       return;
     }
   }
-  procCount.insert(GenPair(proc, 1));
+  char *newProc = new char[strlen(proc) + 1];
+  sprintf(newProc, proc);
+  procCount.insert(GenPair(newProc, 1));
 }
 
 bool ChpGenerator::isActnCp(const char *instance) {

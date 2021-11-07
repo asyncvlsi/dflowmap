@@ -38,9 +38,10 @@ int debug_verbose;
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
-  fprintf (stderr, " -m <metrics> : provide file name for energy/delay/area metrics\n");
-  fprintf (stderr, " -q : quiet mode\n");
-  fprintf (stderr, " -v : increase verbosity (default 1)\n");
+  fprintf(stderr,
+          " -m <metrics> : provide file name for energy/delay/area metrics\n");
+  fprintf(stderr, " -q : quiet mode\n");
+  fprintf(stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
 
@@ -60,7 +61,7 @@ void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
       fprintf(resFp, ";\n");
       p->Print(libFp);
       if (isMEM) {
-        const char* memProcName = p->getName();
+        const char *memProcName = p->getName();
         chpGenerator->genMemConfiguration(confFp, memProcName);
         if (debug_verbose) {
           unsigned len = strlen(memProcName);
@@ -86,37 +87,34 @@ int main(int argc, char **argv) {
   debug_verbose = 1;
   quiet_mode = 0;
 
-  while ((ch = getopt (argc, argv, "vqm:")) != -1) {
+  while ((ch = getopt(argc, argv, "vqm:")) != -1) {
     switch (ch) {
-    case 'v':
-      debug_verbose++;
-      break;
-      
-    case 'q':
-      quiet_mode = 1;
-      debug_verbose = 0;
-      break;
-      
-    case 'm':
-      if (mfile) {
-	FREE (mfile);
-      }
-      mfile = Strdup (optarg);
-      break;
-      
-    case '?':
-    default:
-      usage (argv[0]);
-      break;
+      case 'v':debug_verbose++;
+        break;
+
+      case 'q':quiet_mode = 1;
+        debug_verbose = 0;
+        break;
+
+      case 'm':
+        if (mfile) {
+          FREE (mfile);
+        }
+        mfile = Strdup(optarg);
+        break;
+
+      case '?':
+      default:usage(argv[0]);
+        break;
     }
   }
-      
+
   if (optind != argc - 1) {
     usage(argv[0]);
   }
 
   char *act_file = argv[optind];
-  
+
   /* read in the ACT file */
   Act *a = new Act(act_file);
   a->Expand();
@@ -194,14 +192,22 @@ int main(int argc, char **argv) {
   metrics->dump();
 
   /* print procCount info */
-  printf("procCount info:\n");
+  long totalDuplicatedArea = 0;
+  printf("\n\n\n\nprocCount info:\n");
   for (auto &procCountIt : procCount) {
     unsigned count = procCountIt.second;
     if (count > 1) {
-      printf("(%s, %u)\n", procCountIt.first, count);
+      const char *op = procCountIt.first;
+      long *metric = metrics->getOpMetric(op+5);
+      if (!metric) {
+        exit(-1);
+      }
+      long area = metric[3];
+      printf("(%s, %u, %ld)\n", op, count, area);
+      totalDuplicatedArea += (long)(count - 1) * area;
     }
   }
-  printf("\n\n\n\n\n\n\n\n");
+  printf("\ntotalDuplicatedArea: %ld\n", totalDuplicatedArea);
 
   return 0;
 }
