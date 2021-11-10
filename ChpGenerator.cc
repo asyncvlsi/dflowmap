@@ -458,7 +458,6 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  int oriResSuffix = result_suffix;
   bool lConst = false;
   char *lCalcStr = new char[1500];
   unsigned lResBW = 0;
@@ -548,8 +547,6 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op,
     print_expr(stdout, expr);
     printf("\n");
   }
-  bool resL = (oriResSuffix == lResSuffix);
-  bool resR = (oriResSuffix == rResSuffix);
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
 //  if (!resL) {
@@ -768,7 +765,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
       return valStr;
     }
     case E_VAR: {
-      printf("It is E_VAR!\n");
       int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
       act_connection *actConnection = actId->Canonical(sc);
