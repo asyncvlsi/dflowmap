@@ -184,11 +184,6 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
       printf("We shoudld not try to get expr bw for E_VAR!\n");
       exit(-1);
     }
-    case E_AND:
-    case E_OR:
-    case E_XOR: {
-      return maxBW;
-    }
     case E_NE:
     case E_EQ:
     case E_GE:
@@ -197,24 +192,17 @@ unsigned ChpGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
     case E_LT: {
       return 1;
     }
-    case E_PLUS: {
-      return maxBW + 1;
-    }
-    case E_MINUS: {
-      return maxBW;
-    }
-    case E_MULT: {
-      return lBW + rBW;
-    }
+    case E_AND:
+    case E_OR:
+    case E_XOR:
+    case E_PLUS:
+    case E_MINUS:
+    case E_MULT:
     case E_MOD:
     case E_LSR:
     case E_ASR:
-    case E_DIV: {
-      return maxBW;
-    }
-    case E_LSL: {
-      return lBW + rBW;
-    }
+    case E_DIV:
+    case E_LSL:
     case E_NOT:
     case E_UMINUS:
     case E_COMPLEMENT:

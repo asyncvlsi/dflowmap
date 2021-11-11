@@ -1,9 +1,6 @@
 #include "Metrics.h"
 
 void Metrics::updateMetrics(const char *op, long *metric) {
-  if (debug_verbose) {
-    printf("Update metrics for %s\n", op);
-  }
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
       printf("We already have metric info for %s", op);
@@ -99,9 +96,6 @@ void Metrics::readMetricsFile() {
     if (!emptyLine && (metricCount != 4)) {
       printf("%s has %d metrics!\n", metricFilePath, metricCount);
       exit(-1);
-    }
-    if (debug_verbose) {
-      printf("Add metrics for %s\n", instance);
     }
     updateMetrics(instance, metric);
   }
@@ -307,8 +301,5 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
 }
 
 void Metrics::dump() {
-  if (debug_verbose) {
-    printOpMetrics();
-  }
   printStatistics();
 }
