@@ -780,12 +780,6 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
       if (result_bw == 0) {
         result_bw = argBW;
       }
-//      if (procName[0] == '\0') {
-//        resBWList.push_back(result_bw);
-//        if (DEBUG_CLUSTER) {
-//          printf("var %s has bw %u\n", oriVarName, result_bw);
-//        }
-//      }
       getExprFromName(curArg, exprMap, false, E_VAR);
       return curArg;
     }

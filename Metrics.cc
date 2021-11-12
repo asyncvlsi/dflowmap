@@ -41,10 +41,10 @@ long *Metrics::getOpMetric(const char *opName) {
   normalizedOp[0] = '\0';
   getNormalizedOpName(opName, normalizedOp);
   if (debug_verbose) {
-    printf("get op metric for %s, norm. name: %s\n", opName, normalizedOp);
+    printf("get op metric for %s, norm name: %s\n", opName, normalizedOp);
   }
   for (auto &opMetricsIt : opMetrics) {
-    if (!String(opMetricsIt.first).find(normalizedOp)) {
+    if (!strcmp(opMetricsIt.first, normalizedOp)) {
       return opMetricsIt.second;
     }
   }
