@@ -235,12 +235,12 @@ void ChpProcGenerator::createSplit(FILE *libFp, FILE *confFp, const char *procNa
     fprintf(confFp, "begin %s\n", instance);
     for (int i = 0; i < numOutputs; i++) {
       fprintf(confFp, "  begin out%d\n", i);
-      fprintf(confFp, "    int D %d\n", metric[2]);
-      fprintf(confFp, "    int E %d\n", metric[1]);
+      fprintf(confFp, "    int D %ld\n", metric[2]);
+      fprintf(confFp, "    int E %ld\n", metric[1]);
       fprintf(confFp, "  end\n");
     }
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -264,11 +264,11 @@ void ChpProcGenerator::createSource(FILE *libFp, FILE *confFp, const char *insta
     }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -298,11 +298,11 @@ void ChpProcGenerator::createInit(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -343,11 +343,11 @@ defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -376,11 +376,11 @@ void ChpProcGenerator::createSink(FILE *libFp, FILE *confFp, const char *instanc
     }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -425,11 +425,11 @@ void ChpProcGenerator::createCopy(FILE *libFp, FILE *confFp, const char *instanc
     fprintf(confFp, "    int E 0\n");
     fprintf(confFp, "  end\n");
     fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %d\n", metric[2]);
-    fprintf(confFp, "    int E %d\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", metric[2]);
+    fprintf(confFp, "    int E %ld\n", metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %de-9\n", metric[0]);
-    fprintf(confFp, "  int area %d\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
+    fprintf(confFp, "  int area %ld\n", metric[3]);
     fprintf(confFp, "end\n");
   }
 }

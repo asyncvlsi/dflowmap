@@ -33,14 +33,12 @@
 #include "ChpGenerator.h"
 #include "Metrics.h"
 
-int quiet_mode;
 int debug_verbose;
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
-  fprintf(stderr, " -q : quiet mode\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
@@ -68,10 +66,8 @@ void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
           char *memName = new char[len - 1];
           strncpy(memName, memProcName, len - 2);
           memName[len - 2] = '\0';
-          if (debug_verbose) {
-            printf("memName: %s\n", memName);
-            printf("[mem]: mem_%s_inst\n", memName);
-          }
+          printf("memName: %s\n", memName);
+          printf("[mem]: mem_%s_inst\n", memName);
         }
       }
     }
@@ -80,22 +76,55 @@ void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
   fprintf(libFp, "}\n\n");
 }
 
+static void create_outfiles (const char *src,
+			     FILE **resfp, FILE **libfp, FILE **conffp)
+{
+  int i;
+  i = strlen (src);
+  while (i > 0) {
+    if (src[i-1] == '/') {
+      break;
+    }
+    i--;
+  }
+
+  int len = strlen (src);
+  char *tmpbuf = new char[8 + len];
+  for (int j=0; j < i; j++) {
+    tmpbuf[j] = src[j];
+  }
+  snprintf (tmpbuf+i, 8 + len - i, "result_%s", src+i);
+  *resfp = fopen (tmpbuf, "w");
+  if (!*resfp) {
+    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+  }
+
+  snprintf (tmpbuf+i, 8 + len - i,  "lib_%s", src+i);
+  *libfp = fopen (tmpbuf, "w");
+  if (!*libfp) {
+    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+  }
+  fprintf (*resfp, "import \"%s\";\n\n", tmpbuf);
+
+  snprintf (tmpbuf+i, 8 + len - i, "conf_%s", src+i);
+  *conffp = fopen (tmpbuf, "w");
+  if (!*conffp) {
+    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+  }
+}
+
+
 int main(int argc, char **argv) {
   int ch;
   char *mfile = nullptr;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
 
-  debug_verbose = 1;
-  quiet_mode = 0;
+  debug_verbose = 0;
 
   while ((ch = getopt(argc, argv, "vqm:")) != -1) {
     switch (ch) {
       case 'v':debug_verbose++;
-        break;
-
-      case 'q':quiet_mode = 1;
-        debug_verbose = 0;
         break;
 
       case 'm':
@@ -121,28 +150,17 @@ int main(int argc, char **argv) {
   Act *a = new Act(act_file);
   a->Expand();
   a->mangle(nullptr);
+
   if (debug_verbose) {
-    printf("Processing ACT file %s!\n", act_file);
+    fprintf(stdout, "Processing ACT file %s!\n", act_file);
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
     printf("\n\n\n");
   }
-  /* create output file */
-  char *result_file = new char[8 + strlen(act_file)];
-  strcpy(result_file, "result_");
-  strcat(result_file, act_file);
-  FILE *resFp = fopen(result_file, "w");
 
-  char *lib_file = new char[5 + strlen(act_file)];
-  strcpy(lib_file, "lib_");
-  strcat(lib_file, act_file);
-  FILE *libFp = fopen(lib_file, "w");
-  fprintf(resFp, "import \"%s\";\n\n", lib_file);
-
-  char *conf_file = new char[6 + strlen(act_file)];
-  strcpy(conf_file, "conf_");
-  strcat(conf_file, act_file);
-  FILE *confFp = fopen(conf_file, "w");
+  /* open files */
+  FILE *resFp, *libFp, *confFp;
+  create_outfiles (act_file, &resFp, &libFp, &confFp);
   fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
@@ -193,23 +211,27 @@ int main(int argc, char **argv) {
   fclose(confFp);
   metrics->dump();
 
+  /* print procCount info */
+  long totalDuplicatedArea = 0;
   if (debug_verbose) {
-    /* print procCount info */
-    long totalDuplicatedArea = 0;
     printf("\n\n\n\nprocCount info:\n");
-    for (auto &procCountIt : procCount) {
-      unsigned count = procCountIt.second;
-      if (count > 1) {
-        const char *op = procCountIt.first;
-        long *metric = metrics->getOpMetric(op + 5);
-        if (!metric) {
-          exit(-1);
-        }
-        long area = metric[3];
-        printf("(%s, %u, %ld)\n", op, count, area);
-        totalDuplicatedArea += (long) (count - 1) * area;
+  }
+  for (auto &procCountIt : procCount) {
+    unsigned count = procCountIt.second;
+    if (count > 1) {
+      const char *op = procCountIt.first;
+      long *metric = metrics->getOpMetric(op+5);
+      if (!metric) {
+        exit(-1);
       }
+      long area = metric[3];
+      if (debug_verbose) {
+	printf("(%s, %u, %ld)\n", op, count, area);
+      }
+      totalDuplicatedArea += (long)(count - 1) * area;
     }
+  }
+  if (debug_verbose) {
     printf("\ntotalDuplicatedArea: %ld\n", totalDuplicatedArea);
   }
 
