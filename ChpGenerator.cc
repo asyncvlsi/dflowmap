@@ -115,7 +115,9 @@ void ChpGenerator::collectBitwidthInfo(Process *p) {
     delete tmp;
     int bitwidth = TypeFactory::bitWidth(vx->t);
     if (bitwidth <= 0) {
-      printf("%s has negative bw %d!\n", varName, bitwidth);
+      if (debug_verbose) {
+        printf("%s has negative bw %d!\n", varName, bitwidth);
+      }
     } else {
       if (debug_verbose) {
         printf("Update bitwidthMap for (%s, %d).\n", varName, bitwidth);
@@ -333,7 +335,7 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     }
   }
   resBWList.push_back(result_bw);
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("query res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   }
@@ -411,8 +413,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
   resRExpr->u.e.l = newLExpr;
   resRExpr->u.e.r = newRExpr;
   resExpr->u.e.r = resRExpr;
-//  resExpr->u.e.r->u.e.l = newLExpr;
-//  resExpr->u.e.r->u.e.r = newRExpr;
   hiddenBW.insert(GenPair(newExpr, result_bw));
   hiddenExprs.insert(GenPair(resRHS, resExpr));
   if (debug_verbose) {
@@ -522,7 +522,7 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op,
     }
   }
   resBWList.push_back(result_bw);
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("bin res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
   }
@@ -677,7 +677,7 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op,
     }
   }
   resBWList.push_back(result_bw);
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("uni res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s %s;\n", result_suffix, op, lStr);
   }
@@ -995,9 +995,11 @@ ChpGenerator::printExpr(Scope *sc, Expr *expr, char *procName, char *calc,
           result_bw = 1;
         }
       }
-      printf("It is E_BUILTIN_INT! The real expression is ");
-      print_expr(stdout, lExpr);
-      printf(", result_bw: %u\n", result_bw);
+      if (debug_verbose) {
+        printf("It is E_BUILTIN_INT! The real expression is ");
+        print_expr(stdout, lExpr);
+        printf(", result_bw: %u\n", result_bw);
+      }
       return printExpr(sc, lExpr, procName, calc, def, argList, oriArgList,
                        argBWList,
                        resBWList,
@@ -1106,9 +1108,6 @@ void ChpGenerator::printOpUses() {
 
 bool ChpGenerator::isOpUsed(Scope *sc, ActId *actId) {
   act_connection *actConnection = actId->Canonical(sc);
-//  char *connectionName = new char[10240];
-//  getActConnectionName(actConnection, connectionName, 10240);
-//  printf("unique act connection name: %s\n", connectionName);
   return opUses.find(actConnection) != opUses.end();
 }
 
@@ -1427,7 +1426,9 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       const char *normalizedName = removeDot(opName);
       fprintf(resFp, "copy<%u,%u> %scopy(%s);\n", bitwidth, N, normalizedName,
               opName);
-      printf("[copy] %scopy\n", normalizedName);
+      if (debug_verbose) {
+        printf("[copy] %scopy\n", normalizedName);
+      }
       char *instance = new char[1500];
       sprintf(instance, "copy<%u,%u>", bitwidth, N);
       long *metric = metrics->getOpMetric(instance);
@@ -1446,12 +1447,6 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       if (metric != nullptr) {
         bool actnCp = false;
         bool actnDp = false;
-//        checkACTN(normalizedName, actnCp, actnDp);
-//        if (actnCp) {
-//          printf("[actnCp]: %scopy\n", normalizedName);
-//        } else if (actnDp) {
-//          printf("[actnDp]: %scopy\n", normalizedName);
-//        }
         updateStatistics(metric, instance, actnCp, actnDp);
       }
     }
@@ -1501,17 +1496,13 @@ void ChpGenerator::createINIT(FILE *resFp, FILE *libFp, FILE *confFp,
     if (initMetric != nullptr) {
       bool actnCp = false;
       bool actnDp = false;
-//      checkACTN(oriOut, actnCp, actnDp);
-//      if (actnCp) {
-//        printf("[actnCp]: %s_init\n", oriOut);
-//      } else if (actnDp) {
-//        printf("[actnDp]: %s_init\n", oriOut);
-//      }
       updateStatistics(initMetric, initInstance, actnCp, actnDp);
     }
     fprintf(resFp, "init<%lu,%u> %s_init(%s, %s);\n", initVal, outBW,
             oriOut, newOut, oriOut);
-    printf("[init] %s_init\n", oriOut);
+    if (debug_verbose) {
+      printf("[init] %s_init\n", oriOut);
+    }
   }
 }
 
@@ -1576,7 +1567,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                              Map<Expr *, Expr *> &hiddenExprs,
                              UIntVec &buffBWs) {
   calc[strlen(calc) - 2] = ';';
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("PRINT DFLOW FUNCTION\n");
     printf("size: %d\n", strlen(procName));
     printf("procName: %s\n", procName);
@@ -1641,17 +1632,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     strcat(instance, subInstance);
     strcat(oriInstance, subInstance);
   }
-//  int numOuts = outWidthList.size();
-//  for (i = 0; i < numOuts; i++) {
-//    char *subInstance = new char[100];
-//    if (i == (numOuts - 1)) {
-//      sprintf(subInstance, "%u>", outWidthList[i]);
-//    } else {
-//      sprintf(subInstance, "%u,", outWidthList[i]);
-//    }
-//    strcat(oriInstance, subInstance);
-//  }
-
   createINIT(resFp, libFp, confFp, initMap, outWidthList, outList);
   createBuff(resFp, libFp, confFp, initMap, buffMap, outWidthList, outList);
 
@@ -1721,7 +1701,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   strcat(log, subLog);
   strcat(outSend, log);
   int numInitElems = initMap.size();
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("numInitElems: %d\n", numInitElems);
   }
   /* Get the perf metric */
@@ -1753,7 +1733,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       char *inChar = new char[10240];
       sprintf(inChar, "%s", inName.c_str());
-      if (DEBUG_OPTIMIZER) {
+      if (debug_verbose) {
         printf("inChar: %s\n", inChar);
       }
       Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
@@ -1767,14 +1747,13 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     /* Prepare hidden_expr_list */
     list_t *hidden_expr_list = list_new();
     list_t *hidden_expr_name_list = list_new();
-//    iHashtable *out_expr_map = ihash_new(0);
     iHashtable *out_width_map = ihash_new(0);
     for (auto &hiddenBWIt : hiddenBW) {
       String hiddenName = hiddenBWIt.first;
       unsigned bw = hiddenBWIt.second;
       char *hiddenChar = new char[1024];
       sprintf(hiddenChar, "%s", hiddenName.c_str());
-      if (DEBUG_OPTIMIZER) {
+      if (debug_verbose) {
         printf("hiddenChar: %s\n", hiddenChar);
       }
       Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
@@ -1796,21 +1775,17 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     list_t *out_expr_list = list_new();
     list_t *out_expr_name_list = list_new();
     IntVec processedResIDs;
-//    int numOuts = outRecord.size();
     for (int ii = 0; ii < numOuts; ii++) {
       int resID = outRecord.find(ii)->second;
       char *resChar = new char[1024];
       sprintf(resChar, "res%d", resID);
-      if (DEBUG_OPTIMIZER) {
+      if (debug_verbose) {
         printf("resChar: %s\n", resChar);
       }
       Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
       list_append(out_expr_list, resExpr);
-
-//      b_expr = ihash_add(out_expr_map, (long) resExpr);
       char *outChar = new char[1024];
       sprintf(outChar, "out%d", ii);
-//      b_expr->v = outChar;
       list_append(out_expr_name_list, outChar);
       if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
           != processedResIDs.end()) {
@@ -1823,7 +1798,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       processedResIDs.push_back(resID);
     }
     auto optimizer = new ExternalExprOpt(genus, bd, false);
-    if (DEBUG_OPTIMIZER) {
+    if (debug_verbose) {
       listitem_t *li;
       printf("in_expr_bundle:\n");
       for (li = list_first (in_expr_list); li; li = list_next (li)) {
@@ -1864,7 +1839,9 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     metrics->getNormalizedOpName(opName, normalizedOp);
     char *optimizerProcName = new char[1000];
     sprintf(optimizerProcName, "op");
-    printf("Run logic optimizer for %s\n", optimizerProcName);
+    if (debug_verbose) {
+      printf("Run logic optimizer for %s\n", optimizerProcName);
+    }
     ExprBlockInfo
         *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
                                             in_expr_map,
@@ -1873,14 +1850,16 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
                                             out_width_map,
                                             hidden_expr_list,
                                             hidden_expr_name_list);
-    printf(
-        "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
-        "s\n",
-        optimizerProcName,
-        info->area,
-        info->power_typ_dynamic,
-        info->power_typ_static,
-        info->delay_typ);
+    if (debug_verbose) {
+      printf(
+          "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
+          "s\n",
+          optimizerProcName,
+          info->area,
+          info->power_typ_dynamic,
+          info->power_typ_static,
+          info->delay_typ);
+    }
     long leakpower =
         (long) (info->power_typ_static * 1e9);  // Leakage power (nW)
     long energy =
@@ -1907,7 +1886,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     delay = delay + twoToOneMetric[2] + latchMetric[2];
     /* adjust perf number in case there are BUFFs (i.e., "register" in Verilog) */
-    if (DEBUG_OPTIMIZER) {
+    if (debug_verbose) {
       printf("buffBWs: ");
       for (auto &buffBW : buffBWs) {
         printf("%u ", buffBW);
@@ -2009,13 +1988,15 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       exit(-1);
     }
   }
-  if (nbufs) {
-    printf("[nbuf] ");
-    rhs->Print(stdout);
-    printf(", nBuff: ");
-    print_expr(stdout, nbufs);
-    printf(", isInit: %d", (initExpr != nullptr));
-    printf("\n");
+  if (debug_verbose) {
+    if (nbufs) {
+      printf("[nbuf] ");
+      rhs->Print(stdout);
+      printf(", nBuff: ");
+      print_expr(stdout, nbufs);
+      printf(", isInit: %d", (initExpr != nullptr));
+      printf("\n");
+    }
   }
   if (type == E_INT) {
     unsigned long val = expr->u.v;
@@ -2088,7 +2069,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       strcat(procName, subProcName);
       buffBWs.push_back(result_bw);
     }
-    if (DEBUG_CLUSTER) {
+    if (debug_verbose) {
       printf(
           "___________________________________\n\n\n\n\n\nFor dataflow element: ");
       dflow_print(stdout, d);
@@ -2143,7 +2124,7 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       unsigned long numBuff = nbufs->u.v;
       buffMap.insert(GenPair((numOuts - 1), numBuff));
     }
-    if (DEBUG_CLUSTER) {
+    if (debug_verbose) {
       printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
     }
     outSendStr.push_back(outStr);
@@ -2162,7 +2143,9 @@ ChpGenerator::handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
 void
 ChpGenerator::updateprocCount(const char *proc, Map<const char *, unsigned>
 &procCount) {
-  printf("update proc count for %s.\n", proc);
+  if (debug_verbose) {
+    printf("update proc count for %s.\n", proc);
+  }
   for (auto &procCountIt : procCount) {
     if (!strcmp(proc, procCountIt.first)) {
       procCountIt.second++;
@@ -2237,7 +2220,7 @@ long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
     equivN = 1;
   }
   unsigned equivBW = getEquivalentBW(bitwidth);
-  if (DEBUG_OPTIMIZER) {
+  if (debug_verbose) {
     printf(
         "We are handling copy_%u_%u, and we are using mapping it to %d "
         "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
@@ -2271,7 +2254,6 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
     case ACT_DFLOW_FUNC: {
       char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
-//      sprintf(procName, "func_");
       char *calc = new char[MAX_CALC_LEN];
       sprintf(calc, "\n");
       IntVec boolResSuffixs;
@@ -2307,7 +2289,7 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
                       queryResSuffixs, queryResSuffixs2, outRecord,
                       hiddenExprs,
                       buffBWs, procCount);
-      if (DEBUG_CLUSTER) {
+      if (debug_verbose) {
         printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         printf("Process normal dflow:\n");
         dflow_print(stdout, d);
@@ -2369,12 +2351,12 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
         printSink(resFp, libFp, confFp, sink, bitwidth);
       }
       fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, bitwidth, splitName);
-      if (actnCp) {
-        printf("[actnCp]: %s\n", splitName);
-      } else if (actnDp) {
-        printf("[actnDp]: %s\n", splitName);
-      }
       if (debug_verbose) {
+        if (actnCp) {
+          printf("[actnCp]: %s\n", splitName);
+        } else if (actnDp) {
+          printf("[actnDp]: %s\n", splitName);
+        }
         printf("[split]: %s\n", splitName);
       }
       const char *guardStr = getActIdOrCopyName(sc, guard);
@@ -2547,7 +2529,7 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp,
   UIntVec buffBWs;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
-    if (DEBUG_CLUSTER) {
+    if (debug_verbose) {
       printf("Start to process dflow_cluster element ");
       dflow_print(stdout, d);
       printf(", current proc name: %s\n", procName);
@@ -2571,13 +2553,13 @@ ChpGenerator::handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp,
       printf("This dflow statement should not appear in dflow-cluster!\n");
       exit(-1);
     }
-    if (DEBUG_CLUSTER) {
+    if (debug_verbose) {
       printf("After processing dflow_cluster element ");
       dflow_print(stdout, d);
       printf(", the proc name: %s\n", procName);
     }
   }
-  if (DEBUG_CLUSTER) {
+  if (debug_verbose) {
     printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     printf("Process cluster dflow:\n");
     print_dflow(stdout, dflow);
@@ -2612,7 +2594,9 @@ void
 ChpGenerator::handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
                             Map<const char *, unsigned> &procCount) {
   const char *pName = p->getName();
-  printf("processing %s\n", pName);
+  if (debug_verbose) {
+    printf("processing %s\n", pName);
+  }
   if (p->getlang()->getchp()) {
     p->Print(libFp);
     return;

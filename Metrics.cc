@@ -3,7 +3,9 @@
 void Metrics::updateMetrics(const char *op, long *metric) {
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
-      printf("We already have metric info for %s", op);
+      if (debug_verbose) {
+        printf("We already have metric info for %s", op);
+      }
       long *oldMetric = opMetricsIt.second;
       if ((oldMetric[0] != metric[0])
           || (oldMetric[1] != metric[1])
@@ -48,7 +50,9 @@ long *Metrics::getOpMetric(const char *opName) {
       return opMetricsIt.second;
     }
   }
-  printf("We don't have metric info for (`%s`,`%s')\n", opName, normalizedOp);
+  if (debug_verbose) {
+    printf("We don't have metric info for (`%s`,`%s')\n", opName, normalizedOp);
+  }
   return nullptr;
 }
 
@@ -61,7 +65,9 @@ void Metrics::printOpMetrics() {
 }
 
 void Metrics::writeMetricsFile(char *opName, long metric[4]) {
-  printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
+  if (debug_verbose) {
+    printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
+  }
   std::ofstream metricFp;
   metricFp.open(metricFilePath, std::ios_base::app);
   metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  "
@@ -70,7 +76,9 @@ void Metrics::writeMetricsFile(char *opName, long metric[4]) {
 }
 
 void Metrics::readMetricsFile() {
-  printf("Read metric file: %s\n", metricFilePath);
+  if (debug_verbose) {
+    printf("Read metric file: %s\n", metricFilePath);
+  }
   std::ifstream metricFp(metricFilePath);
   std::string line;
   while (std::getline(metricFp, line)) {
@@ -123,7 +131,9 @@ void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
 }
 
 void Metrics::printStatistics() {
-  printf("Print statistics to file: %s\n", statisticsFilePath);
+  if (debug_verbose) {
+    printf("Print statistics to file: %s\n", statisticsFilePath);
+  }
   FILE *statisticsFP = fopen(statisticsFilePath, "w");
   if (!statisticsFP) {
     printf("Could not create statistics file %s\n", statisticsFilePath);
@@ -295,9 +305,11 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     }
   }
   fprintf(statisticsFP, "\n");
-  printf("totalArea: %ld, redundant area: %ld, ratio: %5.1f\n",
-         totalArea, redundantArea,
-         ((double) redundantArea / totalArea * 100.0));
+  if (debug_verbose) {
+    printf("totalArea: %ld, redundant area: %ld, ratio: %5.1f\n",
+           totalArea, redundantArea,
+           ((double) redundantArea / totalArea * 100.0));
+  }
 }
 
 void Metrics::dump() {

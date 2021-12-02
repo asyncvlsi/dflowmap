@@ -68,8 +68,10 @@ void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
           char *memName = new char[len - 1];
           strncpy(memName, memProcName, len - 2);
           memName[len - 2] = '\0';
-          printf("memName: %s\n", memName);
-          printf("[mem]: mem_%s_inst\n", memName);
+          if (debug_verbose) {
+            printf("memName: %s\n", memName);
+            printf("[mem]: mem_%s_inst\n", memName);
+          }
         }
       }
     }
@@ -119,8 +121,8 @@ int main(int argc, char **argv) {
   Act *a = new Act(act_file);
   a->Expand();
   a->mangle(nullptr);
-  fprintf(stdout, "Processing ACT file %s!\n", act_file);
   if (debug_verbose) {
+    printf("Processing ACT file %s!\n", act_file);
     printf("------------------ACT FILE--------------------\n");
     a->Print(stdout);
     printf("\n\n\n");
@@ -191,23 +193,25 @@ int main(int argc, char **argv) {
   fclose(confFp);
   metrics->dump();
 
-  /* print procCount info */
-  long totalDuplicatedArea = 0;
-  printf("\n\n\n\nprocCount info:\n");
-  for (auto &procCountIt : procCount) {
-    unsigned count = procCountIt.second;
-    if (count > 1) {
-      const char *op = procCountIt.first;
-      long *metric = metrics->getOpMetric(op+5);
-      if (!metric) {
-        exit(-1);
+  if (debug_verbose) {
+    /* print procCount info */
+    long totalDuplicatedArea = 0;
+    printf("\n\n\n\nprocCount info:\n");
+    for (auto &procCountIt : procCount) {
+      unsigned count = procCountIt.second;
+      if (count > 1) {
+        const char *op = procCountIt.first;
+        long *metric = metrics->getOpMetric(op + 5);
+        if (!metric) {
+          exit(-1);
+        }
+        long area = metric[3];
+        printf("(%s, %u, %ld)\n", op, count, area);
+        totalDuplicatedArea += (long) (count - 1) * area;
       }
-      long area = metric[3];
-      printf("(%s, %u, %ld)\n", op, count, area);
-      totalDuplicatedArea += (long)(count - 1) * area;
     }
+    printf("\ntotalDuplicatedArea: %ld\n", totalDuplicatedArea);
   }
-  printf("\ntotalDuplicatedArea: %ld\n", totalDuplicatedArea);
 
   return 0;
 }
