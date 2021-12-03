@@ -1,12 +1,12 @@
 #include "Metrics.h"
 
-void Metrics::updateMetrics(const char *op, long *metric) {
+void Metrics::updateMetrics(const char *op, double *metric) {
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
       if (debug_verbose) {
         printf("We already have metric info for %s", op);
       }
-      long *oldMetric = opMetricsIt.second;
+      double *oldMetric = opMetricsIt.second;
       if ((oldMetric[0] != metric[0])
           || (oldMetric[1] != metric[1])
           || (oldMetric[2] != metric[2])
@@ -33,7 +33,7 @@ void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
   normalizeName(normalizedOp, ',', '_');
 }
 
-long *Metrics::getOpMetric(const char *opName) {
+double *Metrics::getOpMetric(const char *opName) {
   if (opName == nullptr) {
     printf("normalizedOp is NULL\n");
     exit(-1);
@@ -64,7 +64,7 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::writeMetricsFile(char *opName, long metric[4]) {
+void Metrics::writeMetricsFile(char *opName, double metric[4]) {
   if (debug_verbose) {
     printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
   }
@@ -85,7 +85,7 @@ void Metrics::readMetricsFile() {
     std::istringstream iss(line);
     char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;
-    long *metric = new long[4];
+    auto metric = new double[4];
     bool emptyLine = true;
     do {
       std::string numStr;
@@ -175,28 +175,28 @@ void Metrics::printCopyStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "\n");
 }
 
-void Metrics::updateACTNCpMetrics(long area, long leakPower) {
+void Metrics::updateACTNCpMetrics(double area, double leakPower) {
   actnCpArea += area;
   actnCpLeakPower += leakPower;
 }
 
-void Metrics::updateACTNDpMetrics(long area, long leakPower) {
+void Metrics::updateACTNDpMetrics(double area, double leakPower) {
   actnDpArea += area;
   actnDpLeakPower += leakPower;
 }
 
-void Metrics::updateMergeMetrics(long area, long leakPower) {
+void Metrics::updateMergeMetrics(double area, double leakPower) {
   mergeArea += area;
   mergeLeakPower += leakPower;
 }
 
-void Metrics::updateSplitMetrics(long area, long leakPower) {
+void Metrics::updateSplitMetrics(double area, double leakPower) {
   splitArea += area;
   splitLeakPower += leakPower;
 }
 
 void
-Metrics::updateStatistics(const char *instance, long area, long leakPower) {
+Metrics::updateStatistics(const char *instance, double area, double leakPower) {
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
@@ -247,7 +247,7 @@ int Metrics::getInstanceCnt(const char *instance) {
   exit(-1);
 }
 
-long Metrics::getInstanceArea(const char *instance) {
+double Metrics::getInstanceArea(const char *instance) {
   for (auto &areaStatisticsIt : areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
       return areaStatisticsIt.second;
@@ -264,7 +264,7 @@ void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
     printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
     exit(-1);
   }
-  std::multimap<long, const char *>
+  std::multimap<double, const char *>
       sortedLeakpowers = flip_map(leakpowerStatistics);
   for (auto iter = sortedLeakpowers.rbegin();
        iter != sortedLeakpowers.rend(); iter++) {
@@ -287,12 +287,12 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     printf("areaStatistics is not empty, but totalArea is 0!\n");
     exit(-1);
   }
-  std::multimap<long, const char *> sortedAreas = flip_map(areaStatistics);
+  std::multimap<double, const char *> sortedAreas = flip_map(areaStatistics);
   fprintf(statisticsFP,
           "instance name      area     percentage     # of instances\n");
-  long redundantArea = 0;
+  double redundantArea = 0;
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
-    int area = iter->first;
+    double area = iter->first;
     double ratio = (double) area / totalArea * 100;
     const char *instance = iter->second;
     if (ratio > 0.1) {
@@ -306,9 +306,8 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
   }
   fprintf(statisticsFP, "\n");
   if (debug_verbose) {
-    printf("totalArea: %ld, redundant area: %ld, ratio: %5.1f\n",
-           totalArea, redundantArea,
-           ((double) redundantArea / totalArea * 100.0));
+    printf("totalArea: %f, redundant area: %f, ratio: %5.1f\n",
+           totalArea, redundantArea, (redundantArea / totalArea * 100));
   }
 }
 

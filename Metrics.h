@@ -13,11 +13,11 @@ class Metrics {
 public:
   Metrics(const char *metricFP, const char *statisticsFP);
 
-  void updateMetrics(const char *op, long *metric);
+  void updateMetrics(const char *op, double *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateStatistics(const char *instance, long area, long leakPower);
+  void updateStatistics(const char *instance, double area, double leakPower);
 
   void printOpMetrics();
 
@@ -25,58 +25,58 @@ public:
 
   static void normalizeName(char *src, char toDel, char newChar);
 
-  long *getOpMetric(const char *op);
+  double *getOpMetric(const char *op);
 
   int getInstanceCnt(const char *instance);
 
-  long getInstanceArea(const char *instance);
+  double getInstanceArea(const char *instance);
 
   void readMetricsFile();
 
-  void writeMetricsFile(char *opName, long metric[4]);
+  void writeMetricsFile(char *opName, double metric[4]);
 
-  void updateMergeMetrics(long area, long leakPower);
+  void updateMergeMetrics(double area, double leakPower);
 
-  void updateSplitMetrics(long area, long leakPower);
+  void updateSplitMetrics(double area, double leakPower);
 
-  void updateACTNCpMetrics(long area, long leakPower);
+  void updateACTNCpMetrics(double area, double leakPower);
 
-  void updateACTNDpMetrics(long area, long leakPower);
+  void updateACTNDpMetrics(double area, double leakPower);
 
   void dump();
 
 private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
-  Map<const char *, long *> opMetrics;
+  Map<const char *, double *> opMetrics;
 
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<int, Map<int, int>> copyStatistics;
 
-  long totalArea = 0;
+  double totalArea = 0;
 
   /* instanceName, area (um^2) of all of the instances of the process */
-  Map<const char *, long> areaStatistics;
+  Map<const char *, double> areaStatistics;
 
-  long totalLeakPowewr = 0;
+  double totalLeakPowewr = 0;
 
   /* instanceName, LeakPower (nW) of all of the instances of the process */
-  Map<const char *, long> leakpowerStatistics;
+  Map<const char *, double> leakpowerStatistics;
 
-  long mergeArea = 0;
+  double mergeArea = 0;
 
-  long splitArea = 0;
+  double splitArea = 0;
 
-  long actnCpArea = 0;
+  double actnCpArea = 0;
 
-  long actnDpArea = 0;
+  double actnDpArea = 0;
 
-  long mergeLeakPower = 0;
+  double mergeLeakPower = 0;
 
-  long splitLeakPower = 0;
+  double splitLeakPower = 0;
 
-  long actnCpLeakPower = 0;
+  double actnCpLeakPower = 0;
 
-  long actnDpLeakPower = 0;
+  double actnDpLeakPower = 0;
 
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;

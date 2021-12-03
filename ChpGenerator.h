@@ -137,11 +137,11 @@ public:
 
   void createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp);
 
-  long *getCopyMetric(unsigned N, unsigned bitwidth);
+  double *getCopyMetric(unsigned N, unsigned bitwidth);
 
   unsigned getEquivalentBW(unsigned oriBW);
 
-  long *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
+  double *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
 
   void
   printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, const char *procName,
@@ -217,9 +217,9 @@ private:
 
   void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
 
-  void updateACTN(long area, long leakPower, bool actnCp, bool actnDp);
+  void updateACTN(double area, double leakPower, bool actnCp, bool actnDp);
 
-  void updateStatistics(const long *metric, const char *instance, bool actnCp, bool actnDp);
+  void updateStatistics(const double *metric, const char *instance, bool actnCp, bool actnDp);
 
   void createINIT(FILE *resFp, FILE *libFp, FILE *confFp, Map<unsigned, unsigned long> &initMap,
                   UIntVec &outWidthList, StringVec &outList);

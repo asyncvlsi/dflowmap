@@ -79,7 +79,7 @@ ChpGenerator::printSink(FILE *resFp, FILE *libFp, FILE *confFp,
   sprintf(instance, "sink<%u>", bitwidth);
   char *unitInstance = new char[1500];
   sprintf(unitInstance, "sink_1_");
-  long *metric = metrics->getOpMetric(unitInstance);
+  double *metric = metrics->getOpMetric(unitInstance);
   processGenerator.createSink(libFp, confFp, instance, metric);
   if (metric != nullptr) {
     metrics->updateStatistics(instance, metric[3], metric[0]);
@@ -97,7 +97,7 @@ ChpGenerator::printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
   sprintf(instance, "source<%lu,%u>", val, outWidth);
   char *opName = new char[8];
   sprintf(opName, "source1");
-  long *metric = metrics->getOpMetric(opName);
+  double *metric = metrics->getOpMetric(opName);
   processGenerator.createSource(libFp, confFp, instance, metric);
   if (metric != nullptr) {
     metrics->updateStatistics(instance, metric[3], metric[0]);
@@ -240,7 +240,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  int oriResSuffix = result_suffix;
   bool cConst = false;
   char *cCalcStr = new char[1500];
   unsigned cBW = 0;
@@ -256,7 +255,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     printf(", cBW is %u\n!\n", cBW);
     exit(-1);
   }
-  int cResSuffix = result_suffix;
   boolResSuffixs.push_back(result_suffix);
   bool lConst = false;
   char *lCalcStr = new char[1500];
@@ -269,7 +267,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                                boolResSuffixs, exprMap, inBW, hiddenBW,
                                queryResSuffixs,
                                queryResSuffixs2, hiddenExprs);
-  int lResSuffix = result_suffix;
   bool rConst = false;
   char *rCalcStr = new char[1500];
   unsigned rResBW = 0;
@@ -281,7 +278,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
                                boolResSuffixs, exprMap, inBW, hiddenBW,
                                queryResSuffixs,
                                queryResSuffixs2, hiddenExprs);
-  int rResSuffix = result_suffix;
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
@@ -374,9 +370,6 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     printf("[PERF] handle query expression for ");
     print_expr(stdout, expr);
   }
-  bool resC = (oriResSuffix == cResSuffix);
-  bool resL = (oriResSuffix == lResSuffix);
-  bool resR = (oriResSuffix == rResSuffix);
   char *newCExprName = new char[1000];
   newCExprName[0] = '\0';
 //  if (!resC) {
@@ -457,7 +450,6 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op,
                                boolResSuffixs, exprMap, inBW, hiddenBW,
                                queryResSuffixs,
                                queryResSuffixs2, hiddenExprs);
-  int lResSuffix = result_suffix;
   bool rConst = false;
   char *rCalcStr = new char[1500];
   unsigned rResBW = 0;
@@ -469,8 +461,6 @@ ChpGenerator::EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op,
                                boolResSuffixs, exprMap, inBW, hiddenBW,
                                queryResSuffixs,
                                queryResSuffixs2, hiddenExprs);
-
-  int rResSuffix = result_suffix;
   if (lConst && rConst) {
     print_expr(stdout, expr);
     printf(" has both const operands!\n");
@@ -647,7 +637,6 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  int oriResSuffix = result_suffix;
   bool lConst;
   char *lCalcStr = new char[1500];
   unsigned lResBW = 0;
@@ -659,7 +648,6 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op,
                                boolResSuffixs, exprMap, inBW, hiddenBW,
                                queryResSuffixs,
                                queryResSuffixs2, hiddenExprs);
-  int lResSuffix = result_suffix;
   char *val = new char[100];
   getCurProc(lStr, val, lConst);
   sprintf(procName, "%s_%s%s", procName, sym, val);
@@ -693,7 +681,6 @@ ChpGenerator::EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op,
     printf("[PERF] handle uni expression for ");
     print_expr(stdout, expr);
   }
-  bool resL = (oriResSuffix == lResSuffix);
   char *newLExprName = new char[1000];
   newLExprName[0] = '\0';
 //  if (!resL) {
@@ -1431,7 +1418,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
       }
       char *instance = new char[1500];
       sprintf(instance, "copy<%u,%u>", bitwidth, N);
-      long *metric = metrics->getOpMetric(instance);
+      double *metric = metrics->getOpMetric(instance);
       if (!metric) {
         if (LOGIC_OPTIMIZER) {
           metric = getCopyMetric(N, bitwidth);
@@ -1455,10 +1442,10 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
 }
 
 void
-ChpGenerator::updateStatistics(const long *metric, const char *instance,
+ChpGenerator::updateStatistics(const double *metric, const char *instance,
                                bool actnCp, bool actnDp) {
-  long area = metric[3];
-  long leakPower = metric[0];
+  double area = metric[3];
+  double leakPower = metric[0];
   metrics->updateStatistics(instance, area, leakPower);
   updateACTN(area, leakPower, actnCp, actnDp);
 }
@@ -1487,7 +1474,7 @@ void ChpGenerator::createINIT(FILE *resFp, FILE *libFp, FILE *confFp,
     unsigned long initVal = initMapIt.second;
     char *initInstance = new char[100];
     sprintf(initInstance, "init%u", outBW);
-    long *initMetric = metrics->getOpMetric(initInstance);
+    double *initMetric = metrics->getOpMetric(initInstance);
     if (!initMetric && LOGIC_OPTIMIZER) {
       printf("We could not find metrics for %s!\n", initInstance);
       exit(-1);
@@ -1517,14 +1504,14 @@ void ChpGenerator::createBuff(FILE *resFp, FILE *libFp, FILE *confFp,
     }
     const char *oriOut = outList[outID].c_str();
     unsigned outBW = outWidthList[outID];
-//    unsigned long numBuffs = buffMapIt.second;
     unsigned long numBuffs = 10;
     for (int bufCnt = 0; bufCnt < numBuffs; bufCnt++) {
       char *curBuff = new char[10240];
       sprintf(curBuff, "%s_buf%d", oriOut, bufCnt);
       fprintf(resFp, "chan(int<%u>) %s;\n", outBW, curBuff);
     }
-    long *buffMetric = new long[4];
+    auto buffMetric = new double[4];
+    //TODO: no magic number!
     buffMetric[0] = 0.55;
     buffMetric[1] = 0.007;
     buffMetric[2] = 59;
@@ -1709,7 +1696,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
   if (debug_verbose) {
     printf("start to search metric for %s\n", opName);
   }
-  long *metric = metrics->getOpMetric(opName);
+  double *metric = metrics->getOpMetric(opName);
   if (!metric) {
 #if LOGIC_OPTIMIZER
     if (debug_verbose) {
@@ -1860,26 +1847,24 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
           info->power_typ_static,
           info->delay_typ);
     }
-    long leakpower =
-        (long) (info->power_typ_static * 1e9);  // Leakage power (nW)
-    long energy =
-        (long) (info->power_typ_dynamic * info->delay_typ * 1e15);  // 1e-15J
-    long delay = (long) (info->delay_typ * 1e12); // Delay (ps)
-    long area = (long) (info->area * 1e12);  // AREA (um^2)
+    double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
+    double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
+    double delay = info->delay_typ * 1e12; // Delay (ps)
+    double area = info->area * 1e12;  // AREA (um^2)
     /* adjust perf number by adding latch, etc. */
-    long *latchMetric = metrics->getOpMetric("latch1");
+    double *latchMetric = metrics->getOpMetric("latch1");
     if (latchMetric == nullptr) {
       printf("We could not find metric for latch1!\n");
       exit(-1);
     }
-    area = (long) (area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
-        + highBWInPorts * 2.86 + delay / 500 * 1.43);
-    leakpower =
-        (long) (leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
-            + highBWInPorts * 5.36 + delay / 500 * 1.38);
-    energy = (long) (energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
-        + highBWInPorts * 20.19 + delay / 500 * 28.544);
-    long *twoToOneMetric = metrics->getOpMetric("twoToOne");
+    //TODO
+    area = area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
+        + highBWInPorts * 2.86 + delay / 500 * 1.43;
+    leakpower = leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
+        + highBWInPorts * 5.36 + delay / 500 * 1.38;
+    energy = energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
+        + highBWInPorts * 20.19 + delay / 500 * 28.544;
+    double *twoToOneMetric = metrics->getOpMetric("twoToOne");
     if (twoToOneMetric == nullptr) {
       printf("We could not find metric for 2-in-1-out!\n");
       exit(-1);
@@ -1904,7 +1889,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     for (auto &buffBW : buffBWs) {
       char *regName = new char[10];
       sprintf(regName, "reg%u", buffBW);
-      long *regMetric = metrics->getOpMetric(regName);
+      double *regMetric = metrics->getOpMetric(regName);
       if (regMetric == nullptr) {
         printf("We could not find metric for %s!\n", regName);
         exit(-1);
@@ -1915,7 +1900,7 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
       area += regMetric[3];
     }
     /* get the final metric */
-    metric = new long[4];
+    metric = new double[4];
     metric[0] = leakpower;
     metric[1] = energy;
     metric[2] = delay;
@@ -1924,7 +1909,6 @@ ChpGenerator::printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp,
     metrics->writeMetricsFile(normalizedOp, metric);
 #endif
   }
-
   processGenerator.createFULib(libFp, confFp, procName, calc, def, outSend,
                                numArgs,
                                numOuts, instance, metric, resBWList,
@@ -2153,7 +2137,7 @@ ChpGenerator::updateprocCount(const char *proc, Map<const char *, unsigned>
     }
   }
   char *newProc = new char[strlen(proc) + 1];
-  sprintf(newProc, proc);
+  sprintf(newProc, "%s", proc);
   procCount.insert(GenPair(newProc, 1));
 }
 
@@ -2179,7 +2163,10 @@ void ChpGenerator::checkACTN(const char *channel, bool &actnCp, bool &actnDp) {
 }
 
 void
-ChpGenerator::updateACTN(long area, long leakPower, bool actnCp, bool actnDp) {
+ChpGenerator::updateACTN(double area,
+                         double leakPower,
+                         bool actnCp,
+                         bool actnDp) {
   if (actnCp) {
     metrics->updateACTNCpMetrics(area, leakPower);
   } else if (actnDp) {
@@ -2204,18 +2191,18 @@ unsigned ChpGenerator::getEquivalentBW(unsigned oriBW) {
   }
 }
 
-long *ChpGenerator::getMSMetric(const char *procName, unsigned guardBW,
-                                unsigned inBW) {
+double *ChpGenerator::getMSMetric(const char *procName, unsigned guardBW,
+                                  unsigned inBW) {
   char *instance = new char[MAX_INSTANCE_LEN];
   unsigned equivBW = getEquivalentBW(inBW);
   sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
-  long *metric = metrics->getOpMetric(instance);
+  double *metric = metrics->getOpMetric(instance);
   return metric;
 }
 
-long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
+double *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
   char *equivInstance = new char[1500];
-  int equivN = ceil(log2(N)) - 1;
+  int equivN = int(ceil(log2(N))) - 1;
   if (equivN < 1) {
     equivN = 1;
   }
@@ -2226,16 +2213,16 @@ long *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
         "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
   }
   sprintf(equivInstance, "copy<%u,2>", equivBW);
-  long *equivMetric = metrics->getOpMetric(equivInstance);
+  double *equivMetric = metrics->getOpMetric(equivInstance);
   if (!equivMetric) {
     printf("Missing metrics for copy %s\n", equivInstance);
     exit(-1);
   }
-  long *metric;
+  double *metric;
   if (equivN == 1) {
     metric = equivMetric;
   } else {
-    metric = new long[4];
+    metric = new double[4];
     metric[0] = equivN * equivMetric[0];
     metric[1] = equivN * equivMetric[1];
     metric[2] = equivN * equivMetric[2];
@@ -2376,15 +2363,15 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       fprintf(resFp, ");\n");
 
-      long *metric = getMSMetric(procName, guardBW, bitwidth);
+      double *metric = getMSMetric(procName, guardBW, bitwidth);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
       processGenerator.createSplit(libFp, confFp, procName, instance, metric,
                                    numOutputs);
       if (metric != nullptr) {
         updateStatistics(metric, instance, actnCp, actnDp);
-        long area = metric[3];
-        long leakPower = metric[0];
+        double area = metric[3];
+        double leakPower = metric[0];
         metrics->updateSplitMetrics(area, leakPower);
       } else if (LOGIC_OPTIMIZER) {
         printf("We could not find metrics for the SPLIT %s!\n", instance);
@@ -2427,15 +2414,15 @@ ChpGenerator::handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp,
       }
       fprintf(resFp, "%s);\n", outputName);
 
-      long *metric = getMSMetric(procName, guardBW, inBW);
+      double *metric = getMSMetric(procName, guardBW, inBW);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
       processGenerator.createMerge(libFp, confFp, procName, instance, metric,
                                    numInputs);
       if (metric != nullptr) {
         updateStatistics(metric, instance, actnCp, actnDp);
-        long area = metric[3];
-        long leakPower = metric[0];
+        double area = metric[3];
+        double leakPower = metric[0];
         metrics->updateMergeMetrics(area, leakPower);
       } else if (LOGIC_OPTIMIZER) {
         printf("We could not find metrics for the MERGE %s!\n", instance);

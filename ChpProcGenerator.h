@@ -15,26 +15,26 @@ public:
   void
   createFULib(FILE *libFp, FILE *confFp, const char *procName,
               const char *calc, const char *def, const char *outSend,
-              int numArgs, int numOuts, const char *instance, long *metric,
+              int numArgs, int numOuts, const char *instance, double *metric,
               UIntVec &resBW, UIntVec &outBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2);
 
   void
   createMerge(FILE *libFp, FILE *confFp, const char *procName, const char *instance,
-              long *metric, int numInputs);
+              double *metric, int numInputs);
 
   void
   createSplit(FILE *libFp, FILE *confFp, const char *procName, const char *instance,
-              long *metric, int numOutputs);
+              double *metric, int numOutputs);
 
-  void createSource(FILE *libFp, FILE *confFp, const char *instance, long *metric);
+  void createSource(FILE *libFp, FILE *confFp, const char *instance, double *metric);
 
-  void createInit(FILE *libFp, FILE *confFp, const char *instance, long *metric);
+  void createInit(FILE *libFp, FILE *confFp, const char *instance, double *metric);
 
-  void createBuff(FILE *libFp, FILE *confFp, const char *instance, long *metric);
+  void createBuff(FILE *libFp, FILE *confFp, const char *instance, double *metric);
 
-  void createSink(FILE *libFp, FILE *confFp, const char *instance, long *metric);
+  void createSink(FILE *libFp, FILE *confFp, const char *instance, double *metric);
 
-  void createCopy(FILE *libFp, FILE *confFp, const char *instance, long *metric);
+  void createCopy(FILE *libFp, FILE *confFp, const char *instance, double *metric);
 
 private:
   const char *processes[MAX_PROCESSES];

@@ -76,43 +76,41 @@ void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
   fprintf(libFp, "}\n\n");
 }
 
-static void create_outfiles (const char *src,
-			     FILE **resfp, FILE **libfp, FILE **conffp)
-{
+static void create_outfiles(const char *src,
+                            FILE **resfp, FILE **libfp, FILE **conffp) {
   int i;
-  i = strlen (src);
+  i = strlen(src);
   while (i > 0) {
-    if (src[i-1] == '/') {
+    if (src[i - 1] == '/') {
       break;
     }
     i--;
   }
 
-  int len = strlen (src);
+  int len = strlen(src);
   char *tmpbuf = new char[8 + len];
-  for (int j=0; j < i; j++) {
+  for (int j = 0; j < i; j++) {
     tmpbuf[j] = src[j];
   }
-  snprintf (tmpbuf+i, 8 + len - i, "result_%s", src+i);
-  *resfp = fopen (tmpbuf, "w");
+  snprintf(tmpbuf + i, 8 + len - i, "result_%s", src + i);
+  *resfp = fopen(tmpbuf, "w");
   if (!*resfp) {
-    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
 
-  snprintf (tmpbuf+i, 8 + len - i,  "lib_%s", src+i);
-  *libfp = fopen (tmpbuf, "w");
+  snprintf(tmpbuf + i, 8 + len - i, "lib_%s", src + i);
+  *libfp = fopen(tmpbuf, "w");
   if (!*libfp) {
-    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
-  fprintf (*resfp, "import \"%s\";\n\n", tmpbuf);
+  fprintf(*resfp, "import \"%s\";\n\n", tmpbuf);
 
-  snprintf (tmpbuf+i, 8 + len - i, "conf_%s", src+i);
-  *conffp = fopen (tmpbuf, "w");
+  snprintf(tmpbuf + i, 8 + len - i, "conf_%s", src + i);
+  *conffp = fopen(tmpbuf, "w");
   if (!*conffp) {
-    fatal_error ("Could not open file `%s' for writing", tmpbuf);
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
 }
-
 
 int main(int argc, char **argv) {
   int ch;
@@ -160,7 +158,7 @@ int main(int argc, char **argv) {
 
   /* open files */
   FILE *resFp, *libFp, *confFp;
-  create_outfiles (act_file, &resFp, &libFp, &confFp);
+  create_outfiles(act_file, &resFp, &libFp, &confFp);
   fprintf(confFp, "begin sim.chp\n");
 
   /* read in the Metric file */
@@ -212,7 +210,7 @@ int main(int argc, char **argv) {
   metrics->dump();
 
   /* print procCount info */
-  long totalDuplicatedArea = 0;
+  double totalDuplicatedArea = 0;
   if (debug_verbose) {
     printf("\n\n\n\nprocCount info:\n");
   }
@@ -220,19 +218,19 @@ int main(int argc, char **argv) {
     unsigned count = procCountIt.second;
     if (count > 1) {
       const char *op = procCountIt.first;
-      long *metric = metrics->getOpMetric(op+5);
+      double *metric = metrics->getOpMetric(op + 5);
       if (!metric) {
         exit(-1);
       }
-      long area = metric[3];
+      double area = metric[3];
       if (debug_verbose) {
-	printf("(%s, %u, %ld)\n", op, count, area);
+        printf("(%s, %u, %f)\n", op, count, area);
       }
-      totalDuplicatedArea += (long)(count - 1) * area;
+      totalDuplicatedArea += (double) (count - 1) * area;
     }
   }
   if (debug_verbose) {
-    printf("\ntotalDuplicatedArea: %ld\n", totalDuplicatedArea);
+    printf("\ntotalDuplicatedArea: %f\n", totalDuplicatedArea);
   }
 
   return 0;
