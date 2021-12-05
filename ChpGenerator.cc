@@ -335,18 +335,20 @@ ChpGenerator::EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op,
     printf("query res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   }
+  char *cVal = new char[100];
+  getCurProc(cStr, cVal, cConst);
   char *lVal = new char[100];
   getCurProc(lStr, lVal, lConst);
   char *rVal = new char[100];
   getCurProc(rStr, rVal, rConst);
-  char *subProcName = new char[1500];
   if (!strcmp(lStr, rStr)) {
     printf("This query expr has the same true/false branch!\n");
     print_expr(stdout, expr);
     printf("!\n");
     exit(-1);
   }
-  sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  char *subProcName = new char[1500];
+  sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
   strcat(procName, subProcName);
   if (debug_verbose) {
     printf(
