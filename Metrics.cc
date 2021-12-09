@@ -93,8 +93,7 @@ void Metrics::readMetricsFile() {
       if (!numStr.empty()) {
         emptyLine = false;
         if (metricCount >= 0) {
-          char *residual;
-          metric[metricCount] = std::strtol(numStr.c_str(), &residual, 10);
+          metric[metricCount] = std::strtod(numStr.c_str(), nullptr);
         } else {
           sprintf(instance, "%s", numStr.c_str());
         }
