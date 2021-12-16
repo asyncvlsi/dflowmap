@@ -24,9 +24,9 @@
 #endif
 
 class ChpGenerator : public ActPass {
-public:
-  void updateprocCount(const char *proc, Map<const char *, unsigned>
-  &procCount);
+ public:
+  void updateprocCount(const char *proc,
+                       Map<const char *, unsigned> &procCount);
 
   ChpGenerator(Act *a, const char *name, Metrics *metrics);
 
@@ -39,12 +39,16 @@ public:
 
   const char *getActIdOrCopyName(Scope *sc, ActId *actId);
 
-  void
-  printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name,
-            unsigned bitwidth);
+  void printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name,
+                 unsigned bitwidth);
 
-  void printInt(FILE *resFp, FILE *libFp, FILE *confFp, const char *out,
-                const char *normalizedOut, unsigned long val, unsigned outWidth);
+  void printInt(FILE *resFp,
+                FILE *libFp,
+                FILE *confFp,
+                const char *out,
+                const char *normalizedOut,
+                unsigned long val,
+                unsigned outWidth);
 
   void collectBitwidthInfo(Process *p);
 
@@ -58,49 +62,101 @@ public:
 
   unsigned getExprBW(int type, unsigned lBW, unsigned rBW = 0);
 
-  const char *
-  EMIT_QUERY(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
-             const char *metricSym,
-             char *procName, char *calc, char *def, StringVec &argList, StringVec
-             &oriArgList, UIntVec &argBWList,
-             UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
-             char *calcStr,
-             IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned>
-             &inBW,
-             StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
-             Map<Expr *, Expr *> &hiddenExprs);
+  const char *EMIT_QUERY(Scope *sc,
+                         Expr *expr,
+                         const char *sym,
+                         const char *op,
+                         int type,
+                         const char *metricSym,
+                         char *procName,
+                         char *calc,
+                         char *def,
+                         StringVec &argList,
+                         StringVec
+                         &oriArgList,
+                         UIntVec &argBWList,
+                         UIntVec &resBWList,
+                         int &result_suffix,
+                         unsigned &result_bw,
+                         char *calcStr,
+                         IntVec &boolRes,
+                         Map<const char *, Expr *> &exprMap,
+                         StringMap<unsigned>
+                         &inBW,
+                         StringMap<unsigned> &hiddenBW,
+                         IntVec &queryResSuffixs,
+                         IntVec &queryResSuffixs2,
+                         Map<Expr *, Expr *> &hiddenExprs);
 
-  const char *
-  EMIT_BIN(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
-           const char *metricSym,
-           char *procName, char *calc, char *def, StringVec &argList, StringVec
-           &oriArgList, UIntVec &argBWList, UIntVec &resBWList, int &result_suffix,
-           unsigned &result_bw, char *calcStr, IntVec &boolRes,
-           Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-           StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
-           Map<Expr *, Expr *> &hiddenExprs);
+  const char *EMIT_BIN(Scope *sc,
+                       Expr *expr,
+                       const char *sym,
+                       const char *op,
+                       int type,
+                       const char *metricSym,
+                       char *procName,
+                       char *calc,
+                       char *def,
+                       StringVec &argList,
+                       StringVec
+                       &oriArgList,
+                       UIntVec &argBWList,
+                       UIntVec &resBWList,
+                       int &result_suffix,
+                       unsigned &result_bw,
+                       char *calcStr,
+                       IntVec &boolRes,
+                       Map<const char *, Expr *> &exprMap,
+                       StringMap<unsigned> &inBW,
+                       StringMap<unsigned> &hiddenBW,
+                       IntVec &queryResSuffixs,
+                       IntVec &queryResSuffixs2,
+                       Map<Expr *, Expr *> &hiddenExprs);
 
-  const char *
-  EMIT_UNI(Scope *sc, Expr *expr, const char *sym, const char *op, int type,
-           const char *metricSym,
-           char *procName, char *calc, char *def, StringVec &argList,
-           StringVec &oriArgList,
-           UIntVec &argBWList,
-           UIntVec &resBWList, int &result_suffix, unsigned &result_bw,
-           char *calcStr,
-           IntVec &boolRes, Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-           StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
-           Map<Expr *, Expr *> &hiddenExprs);
+  const char *EMIT_UNI(Scope *sc,
+                       Expr *expr,
+                       const char *sym,
+                       const char *op,
+                       int type,
+                       const char *metricSym,
+                       char *procName,
+                       char *calc,
+                       char *def,
+                       StringVec &argList,
+                       StringVec &oriArgList,
+                       UIntVec &argBWList,
+                       UIntVec &resBWList,
+                       int &result_suffix,
+                       unsigned &result_bw,
+                       char *calcStr,
+                       IntVec &boolRes,
+                       Map<const char *, Expr *> &exprMap,
+                       StringMap<unsigned> &inBW,
+                       StringMap<unsigned> &hiddenBW,
+                       IntVec &queryResSuffixs,
+                       IntVec &queryResSuffixs2,
+                       Map<Expr *, Expr *> &hiddenExprs);
 
-  const char *
-  printExpr(Scope *sc, Expr *expr, char *procName, char *calc, char *def,
-            StringVec &argList,
-            StringVec &oriArgList, UIntVec &argBWList, UIntVec &resBWList,
-            int &result_suffix, unsigned &result_bw, bool &constant,
-            char *calcStr, IntVec &boolRes, Map<const char *, Expr *> &exprMap,
-            StringMap<unsigned> &inBW,
-            StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
-            Map<Expr *, Expr *> &hiddenExprs);
+  const char *printExpr(Scope *sc,
+                        Expr *expr,
+                        char *procName,
+                        char *calc,
+                        char *def,
+                        StringVec &argList,
+                        StringVec &oriArgList,
+                        UIntVec &argBWList,
+                        UIntVec &resBWList,
+                        int &result_suffix,
+                        unsigned &result_bw,
+                        bool &constant,
+                        char *calcStr,
+                        IntVec &boolRes,
+                        Map<const char *, Expr *> &exprMap,
+                        StringMap<unsigned> &inBW,
+                        StringMap<unsigned> &hiddenBW,
+                        IntVec &queryResSuffixs,
+                        IntVec &queryResSuffixs2,
+                        Map<Expr *, Expr *> &hiddenExprs);
 
   unsigned getCopyUses(ActId *actId, Scope *sc);
 
@@ -130,7 +186,8 @@ public:
 
   void recordExprUses(Scope *sc, Expr *expr, ActConnectVec &actConnectVec);
 
-  void collectDflowClusterUses(Scope *sc, list_t *dflow,
+  void collectDflowClusterUses(Scope *sc,
+                               list_t *dflow,
                                ActConnectVec &actConnectVec);
 
   void collectOpUses(Process *p);
@@ -143,47 +200,80 @@ public:
 
   double *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
 
-  void
-  printDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, const char *procName,
-                 StringVec &argList, UIntVec &argBWList,
-                 UIntVec &resBWList, UIntVec &outWidthList, const char *def,
-                 char *calc, int result_suffix, StringVec &outSendStr,
-                 IntVec &outResSuffixs, StringVec &normalizedOutList,
-                 StringVec &outList, Map<unsigned, unsigned long> &initMap,
-                 Map<unsigned, unsigned long> &buffMap,
-                 IntVec &boolRes,
-                 Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                 StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs, IntVec &queryResSuffixs2,
-                 Map<int, int> &outRecord,
-                 Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs);
+  void printDFlowFunc(FILE *resFp,
+                      FILE *libFp,
+                      FILE *confFp,
+                      const char *procName,
+                      StringVec &argList,
+                      UIntVec &argBWList,
+                      UIntVec &resBWList,
+                      UIntVec &outWidthList,
+                      const char *def,
+                      char *calc,
+                      int result_suffix,
+                      StringVec &outSendStr,
+                      IntVec &outResSuffixs,
+                      StringVec &normalizedOutList,
+                      StringVec &outList,
+                      Map<unsigned, unsigned long> &initMap,
+                      Map<unsigned, unsigned long> &buffMap,
+                      IntVec &boolRes,
+                      Map<const char *, Expr *> &exprMap,
+                      StringMap<unsigned> &inBW,
+                      StringMap<unsigned> &hiddenBW,
+                      IntVec &queryResSuffixs,
+                      IntVec &queryResSuffixs2,
+                      Map<int, int> &outRecord,
+                      Map<Expr *, Expr *> &hiddenExprs,
+                      UIntVec &buffBWs);
 
-  void
-  handleDFlowFunc(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                  act_dataflow_element *d, char *procName, char *calc,
-                  char *def, StringVec &argList, StringVec &oriArgList,
-                  UIntVec &argBWList,
-                  UIntVec &resBWList, int &result_suffix, StringVec &outSendStr,
-                  IntVec &outResSuffixs,
-                  StringVec &outList, StringVec &normalizedOutList,
-                  UIntVec &outWidthList, Map<unsigned, unsigned long> &initMap,
-                  Map<unsigned, unsigned long> &buffMap,
-                  IntVec &boolRes,
-                  Map<const char *, Expr *> &exprMap, StringMap<unsigned> &inBW,
-                  StringMap<unsigned> &hiddenBW, IntVec &queryResSuffixs,
-                  IntVec &queryResSuffixs2,
-                  Map<int, int> &outRecord,
-                  Map<Expr *, Expr *> &hiddenExprs, UIntVec &buffBWs,
-                  Map<const char *, unsigned> &procCount);
+  void handleDFlowFunc(FILE *resFp,
+                       FILE *libFp,
+                       FILE *confFp,
+                       Process *p,
+                       act_dataflow_element *d,
+                       char *procName,
+                       char *calc,
+                       char *def,
+                       StringVec &argList,
+                       StringVec &oriArgList,
+                       UIntVec &argBWList,
+                       UIntVec &resBWList,
+                       int &result_suffix,
+                       StringVec &outSendStr,
+                       IntVec &outResSuffixs,
+                       StringVec &outList,
+                       StringVec &normalizedOutList,
+                       UIntVec &outWidthList,
+                       Map<unsigned, unsigned long> &initMap,
+                       Map<unsigned, unsigned long> &buffMap,
+                       IntVec &boolRes,
+                       Map<const char *, Expr *> &exprMap,
+                       StringMap<unsigned> &inBW,
+                       StringMap<unsigned> &hiddenBW,
+                       IntVec &queryResSuffixs,
+                       IntVec &queryResSuffixs2,
+                       Map<int, int> &outRecord,
+                       Map<Expr *, Expr *> &hiddenExprs,
+                       UIntVec &buffBWs,
+                       Map<const char *, unsigned> &procCount);
 
-  void
-  handleNormalDflowElement(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                           act_dataflow_element *d, unsigned &sinkCnt,
-                           Map<const char *, unsigned> &procCount);
+  void handleNormalDflowElement(FILE *resFp,
+                                FILE *libFp,
+                                FILE *confFp,
+                                Process *p,
+                                act_dataflow_element *d,
+                                unsigned &sinkCnt,
+                                Map<const char *, unsigned> &procCount);
 
   void print_dflow(FILE *fp, list_t *dflow);
 
-  void handleDFlowCluster(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                          list_t *dflow, Map<const char *, unsigned> &procCount);
+  void handleDFlowCluster(FILE *resFp,
+                          FILE *libFp,
+                          FILE *confFp,
+                          Process *p,
+                          list_t *dflow,
+                          Map<const char *, unsigned> &procCount);
 
   void printIntVec(IntVec &ULongVec);
 
@@ -193,14 +283,13 @@ public:
 
   void genMemConfiguration(FILE *confFp, const char *procName);
 
-private:
+ private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
-/* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
+  /* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
   Map<act_connection *, unsigned> opUses;
-/* copy operator, # of times it has already been used */
+  /* copy operator, # of times it has already been used */
   Map<act_connection *, unsigned> copyUses;
-//  unsigned sinkCnt = 0;
   Metrics *metrics;
   ChpProcGenerator processGenerator{};
 
@@ -208,8 +297,10 @@ private:
 
   void genExprFromInt(unsigned long val, Expr *expr);
 
-  Expr *getExprFromName(const char *name, Map<const char *, Expr *> &exprMap,
-                        bool exitOnMissing, int exprType);
+  Expr *getExprFromName(const char *name,
+                        Map<const char *, Expr *> &exprMap,
+                        bool exitOnMissing,
+                        int exprType);
 
   static bool isActnCp(const char *instance);
 
@@ -219,17 +310,22 @@ private:
 
   void updateACTN(double area, double leakPower, bool actnCp, bool actnDp);
 
-  void updateStatistics(const double *metric, const char *instance, bool actnCp, bool actnDp);
+  void updateStatistics(const double *metric,
+                        const char *instance,
+                        bool actnCp,
+                        bool actnDp);
 
-  void createINIT(FILE *resFp, FILE *libFp, FILE *confFp, Map<unsigned, unsigned long> &initMap,
-                  UIntVec &outWidthList, StringVec &outList);
+  void createINIT(FILE *resFp,
+                  FILE *libFp,
+                  FILE *confFp,
+                  Map<unsigned, unsigned long> &initMap,
+                  UIntVec &outWidthList,
+                  StringVec &outList);
 
   void createBuff(FILE *resFp, FILE *libFp, FILE *confFp,
                   Map<unsigned, unsigned long> &initMap,
                   Map<unsigned, unsigned long> &buffMap,
                   UIntVec &outWidthList, StringVec &outList);
 };
-
-extern int debug_verbose;
 
 #endif //DFLOWMAP_CHPGENERATOR_H

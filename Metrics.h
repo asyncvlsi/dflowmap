@@ -10,7 +10,7 @@
 #include "Constant.h"
 
 class Metrics {
-public:
+ public:
   Metrics(const char *metricFP, const char *statisticsFP);
 
   void updateMetrics(const char *op, double *metric);
@@ -45,7 +45,7 @@ public:
 
   void dump();
 
-private:
+ private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
   Map<const char *, double *> opMetrics;
 

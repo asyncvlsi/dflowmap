@@ -194,8 +194,9 @@ void Metrics::updateSplitMetrics(double area, double leakPower) {
   splitLeakPower += leakPower;
 }
 
-void
-Metrics::updateStatistics(const char *instance, double area, double leakPower) {
+void Metrics::updateStatistics(const char *instance,
+                               double area,
+                               double leakPower) {
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
