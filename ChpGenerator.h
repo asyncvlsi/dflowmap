@@ -200,6 +200,10 @@ class ChpGenerator : public ActPass {
 
   double *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
 
+  double *getArbiterMetric(unsigned numInputs,
+                           unsigned inBW,
+                           unsigned coutBW);
+
   void printDFlowFunc(FILE *resFp,
                       FILE *libFp,
                       FILE *confFp,

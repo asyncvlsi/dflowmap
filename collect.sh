@@ -4,6 +4,7 @@ scp $LOC/result_$1 ./
 scp $LOC/conf_$1 ./
 scp $LOC/$1 ./
 scp $LOC/$1.log ./
+cp $1.log log
 #scp $LOC/output ./
 #scp $LOC/$1_statistics ./
 #scp $LOC/$1_merge ./

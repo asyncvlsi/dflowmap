@@ -41,6 +41,13 @@ class ChpProcGenerator {
                    double *metric,
                    int numOutputs);
 
+  void createArbiter(FILE *libFp,
+                     FILE *confFp,
+                     const char *procName,
+                     const char *instance,
+                     double *metric,
+                     int numInputs);
+
   void createSource(FILE *libFp,
                     FILE *confFp,
                     const char *instance,

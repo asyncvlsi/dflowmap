@@ -1360,8 +1360,18 @@ void ChpGenerator::collectDflowClusterUses(Scope *sc,
         exit(-1);
       }
       case ACT_DFLOW_ARBITER: {
-        printf("We don't support ARBITER for now!\n");
-        exit(-1);
+        int numInputs = d->u.splitmerge.nmulti;
+        if (numInputs < 2) {
+          dflow_print(stdout, d);
+          printf("\nArbiter has less than TWO inputs!\n");
+          exit(-1);
+        }
+        ActId **inputs = d->u.splitmerge.multi;
+        for (int i = 0; i < numInputs; i++) {
+          ActId *in = inputs[i];
+          recordOpUses(sc, in, actConnectVec);
+        }
+        break;
       }
       case ACT_DFLOW_CLUSTER: {
         printf("Do not support nested dflow_cluster!\n");
@@ -1427,8 +1437,17 @@ void ChpGenerator::collectOpUses(Process *p) {
         break;
       }
       case ACT_DFLOW_ARBITER: {
-        printf("We don't support ARBITER for now!\n");
-        exit(-1);
+        int numInputs = d->u.splitmerge.nmulti;
+        if (numInputs < 2) {
+          dflow_print(stdout, d);
+          printf("\nArbiter has less than TWO inputs!\n");
+          exit(-1);
+        }
+        ActId **inputs = d->u.splitmerge.multi;
+        for (int i = 0; i < numInputs; i++) {
+          ActId *in = inputs[i];
+          updateOpUses(in, sc);
+        }
         break;
       }
       case ACT_DFLOW_CLUSTER: {
@@ -2266,6 +2285,21 @@ double *ChpGenerator::getMSMetric(const char *procName,
   return metric;
 }
 
+double *ChpGenerator::getArbiterMetric(unsigned numInputs,
+                                       unsigned inBW,
+                                       unsigned coutBW) {
+  char *instance = new char[MAX_INSTANCE_LEN];
+  unsigned equivBW = getEquivalentBW(inBW);
+  sprintf(instance,
+          "%s_%d<%d,%d>",
+          Constant::MERGE_PREFIX,
+          numInputs,
+          coutBW,
+          equivBW);
+  double *metric = metrics->getOpMetric(instance);
+  return metric;
+}
+
 double *ChpGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
   char *equivInstance = new char[1500];
   int equivN = int(ceil(log2(N))) - 1;
@@ -2505,8 +2539,55 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp,
       break;
     }
     case ACT_DFLOW_ARBITER: {
-      printf("We don't support ARBITER for now!\n");
-      exit(-1);
+      ActId *output = d->u.splitmerge.single;
+      char *outputName = new char[10240];
+      getActIdName(sc, output, outputName, 10240);
+      const char *normalizedOutput = removeDot(outputName);
+      bool actnCp = false;
+      bool actnDp = false;
+      unsigned inBW = getActIdBW(output, p);
+      int numInputs = d->u.splitmerge.nmulti;
+      int coutBW = ceil(log2(numInputs));
+      char *procName = new char[MAX_PROC_NAME_LEN];
+      sprintf(procName, "%s_%d", Constant::ARBITER_PREFIX, numInputs);
+      fprintf(resFp,
+              "%s<%d,%d> %s_inst(",
+              procName,
+              inBW,
+              coutBW,
+              normalizedOutput);
+      if (debug_verbose) {
+        printf("[arbiter]: %s_inst\n", normalizedOutput);
+      }
+      ActId **inputs = d->u.splitmerge.multi;
+      for (int i = 0; i < numInputs; i++) {
+        ActId *in = inputs[i];
+        const char *inStr = getActIdOrCopyName(sc, in);
+        fprintf(resFp, "%s, ", inStr);
+      }
+      ActId *cout = d->u.splitmerge.nondetctrl;
+      char *coutName = new char[10240];
+      getActIdName(sc, cout, coutName, 10240);
+      fprintf(resFp, "%s, %s);\n", outputName, coutName);
+
+      double *metric = getArbiterMetric(numInputs, inBW, coutBW);
+      char *instance = new char[MAX_INSTANCE_LEN];
+      sprintf(instance, "%s<%d,%d>", procName, inBW, coutBW);
+      processGenerator.createArbiter(libFp,
+                                     confFp,
+                                     procName,
+                                     instance,
+                                     metric,
+                                     numInputs);
+      if (metric != nullptr) {
+        updateStatistics(metric, instance, actnCp, actnDp);
+        double area = metric[3];
+        double leakPower = metric[0];
+        metrics->updateMergeMetrics(area, leakPower);
+      } else if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for the MERGE %s!\n", instance);
+        exit(-1);
+      }
       break;
     }
     case ACT_DFLOW_CLUSTER: {
