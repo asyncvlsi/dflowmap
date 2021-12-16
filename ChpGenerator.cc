@@ -2545,7 +2545,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp,
       const char *normalizedOutput = removeDot(outputName);
       bool actnCp = false;
       bool actnDp = false;
-      unsigned inBW = getActIdBW(output, p);
+      unsigned outBW = getActIdBW(output, p);
       int numInputs = d->u.splitmerge.nmulti;
       int coutBW = ceil(log2(numInputs));
       char *procName = new char[MAX_PROC_NAME_LEN];
@@ -2553,7 +2553,7 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp,
       fprintf(resFp,
               "%s<%d,%d> %s_inst(",
               procName,
-              inBW,
+              outBW,
               coutBW,
               normalizedOutput);
       if (debug_verbose) {
@@ -2570,9 +2570,9 @@ void ChpGenerator::handleNormalDflowElement(FILE *resFp,
       getActIdName(sc, cout, coutName, 10240);
       fprintf(resFp, "%s, %s);\n", outputName, coutName);
 
-      double *metric = getArbiterMetric(numInputs, inBW, coutBW);
+      double *metric = getArbiterMetric(numInputs, outBW, coutBW);
       char *instance = new char[MAX_INSTANCE_LEN];
-      sprintf(instance, "%s<%d,%d>", procName, inBW, coutBW);
+      sprintf(instance, "%s<%d,%d>", procName, outBW, coutBW);
       processGenerator.createArbiter(libFp,
                                      confFp,
                                      procName,
