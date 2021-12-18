@@ -44,6 +44,53 @@ void ChpProcGenerator::genMemConfiguration(FILE *confFp, const char *procName) {
   fprintf(confFp, "end\n");
 }
 
+void ChpProcGenerator::createConf(FILE *confFp,
+                                  const char *instance,
+                                  unsigned numOutputs,
+                                  double *metric) {
+  if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
+    fprintf(confFp, "begin %s\n", instance);
+    for (int i = 0; i < numOutputs; i++) {
+      fprintf(confFp, "  begin out%d\n", i);
+      fprintf(confFp, "    int D %ld\n", (long) metric[2]);
+      fprintf(confFp, "    int E %ld\n", (long) metric[1]);
+      fprintf(confFp, "  end\n");
+    }
+    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
+    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
+    fprintf(confFp, "end\n");
+  }
+}
+
+void ChpProcGenerator::createConf(FILE *confFp,
+                                  const char *instance,
+                                  double *metric) {
+  if (!hasInstance(instance)) {
+    if (!metric) {
+      if (LOGIC_OPTIMIZER) {
+        printf("We could not find metrics for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
+    fprintf(confFp, "    int E %ld\n", (long) metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
+    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
+    fprintf(confFp, "end\n");
+  }
+}
+
 void ChpProcGenerator::createFULib(FILE *libFp,
                                    FILE *confFp,
                                    const char *procName,
@@ -125,25 +172,7 @@ void ChpProcGenerator::createFULib(FILE *libFp,
     fprintf(libFp, "%s", outSend);
     fprintf(libFp, "\n    ]\n  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    for (int i = 0; i < numOuts; i++) {
-      fprintf(confFp, "  begin out%d\n", i);
-      fprintf(confFp, "    int D %ld\n", metric[2]);
-      fprintf(confFp, "    int E %ld\n", (metric[1] / numOuts));
-      fprintf(confFp, "  end\n");
-    }
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, numOuts, metric);
 }
 
 void ChpProcGenerator::createMerge(FILE *libFp,
@@ -187,23 +216,7 @@ void ChpProcGenerator::createMerge(FILE *libFp,
     }
     fprintf(libFp, "  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %ld\n", metric[2]);
-    fprintf(confFp, "    int E %ld\n", metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }
 
 void ChpProcGenerator::createSplit(FILE *libFp,
@@ -251,25 +264,7 @@ void ChpProcGenerator::createSplit(FILE *libFp,
     }
     fprintf(libFp, "  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    for (int i = 0; i < numOutputs; i++) {
-      fprintf(confFp, "  begin out%d\n", i);
-      fprintf(confFp, "    int D %ld\n", metric[2]);
-      fprintf(confFp, "    int E %ld\n", metric[1]);
-      fprintf(confFp, "  end\n");
-    }
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, numOutputs, metric);
 }
 
 void ChpProcGenerator::createArbiter(FILE *libFp,
@@ -304,23 +299,7 @@ void ChpProcGenerator::createArbiter(FILE *libFp,
     }
     fprintf(libFp, "  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
-    fprintf(confFp, "    int E %ld\n", (long) metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
-    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }
 
 void ChpProcGenerator::createSource(FILE *libFp,
@@ -329,28 +308,12 @@ void ChpProcGenerator::createSource(FILE *libFp,
                                     double *metric) {
   if (!hasProcess("source")) {
     fprintf(libFp, "template<pint V, W>\n");
-    fprintf(libFp, "defproc source(chan!(int<W>)x) {\n");
+    fprintf(libFp, "defproc source(chan!(int<W>)out) {\n");
     fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "    *[log(\"send \", V); x!V]\n");
+    fprintf(libFp, "    *[log(\"send \", V); out!V]\n");
     fprintf(libFp, "  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin x\n");
-    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
-    fprintf(confFp, "    int E %ld\n", (long) metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
-    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }
 
 void ChpProcGenerator::createInit(FILE *libFp,
@@ -366,27 +329,7 @@ void ChpProcGenerator::createInit(FILE *libFp,
     fprintf(libFp, "    log(\"send initVal \", V);\n");
     fprintf(libFp, "    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin in\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %ld\n", metric[2]);
-    fprintf(confFp, "    int E %ld\n", metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }
 
 void ChpProcGenerator::createBuff(FILE *libFp,
@@ -404,27 +347,7 @@ defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
 }
 )");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin in\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %ld\n", metric[2]);
-    fprintf(confFp, "    int E %ld\n", metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }
 
 void ChpProcGenerator::createSink(FILE *libFp,
@@ -443,6 +366,7 @@ void ChpProcGenerator::createSink(FILE *libFp,
     }
     fprintf(libFp, "  }\n}\n");
   }
+
   if (!hasInstance(instance)) {
     if (!metric) {
       if (LOGIC_OPTIMIZER) {
@@ -453,11 +377,11 @@ void ChpProcGenerator::createSink(FILE *libFp,
     }
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin x\n");
-    fprintf(confFp, "    int D %ld\n", metric[2]);
-    fprintf(confFp, "    int E %ld\n", metric[1]);
+    fprintf(confFp, "    int D %ld\n", (long)metric[2]);
+    fprintf(confFp, "    int E %ld\n", (long)metric[1]);
     fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
+    fprintf(confFp, "  real leakage %lde-9\n", (long)metric[0]);
+    fprintf(confFp, "  int area %ld\n", (long)metric[3]);
     fprintf(confFp, "end\n");
   }
 }
@@ -492,25 +416,5 @@ void ChpProcGenerator::createCopy(FILE *libFp,
     fprintf(libFp, "                 (i:M: n.out[i] = t[i].in;)\n");
     fprintf(libFp, "      ]\n  ]\n}\n");
   }
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin in\n");
-    fprintf(confFp, "    int D 0\n");
-    fprintf(confFp, "    int E 0\n");
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  begin out\n");
-    fprintf(confFp, "    int D %ld\n", metric[2]);
-    fprintf(confFp, "    int E %ld\n", metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", metric[0]);
-    fprintf(confFp, "  int area %ld\n", metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(confFp, instance, metric);
 }

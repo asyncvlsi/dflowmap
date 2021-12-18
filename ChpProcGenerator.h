@@ -12,6 +12,15 @@ class ChpProcGenerator {
 
   void genMemConfiguration(FILE *confFp, const char *procName);
 
+  void createConf(FILE *confFp,
+                  const char *instance,
+                  unsigned numOutputs,
+                  double *metric);
+
+  void createConf(FILE *confFp,
+                  const char *instance,
+                  double *metric);
+
   void createFULib(FILE *libFp,
                    FILE *confFp,
                    const char *procName,
