@@ -1520,6 +1520,7 @@ void ChpGenerator::updateStatistics(const double *metric,
 void ChpGenerator::genExprFromInt(unsigned long val, Expr *expr) {
   expr->type = E_INT;
   expr->u.v = val;
+  expr->u.v_extra = NULL;
 }
 
 void ChpGenerator::genExprFromStr(const char *str, Expr *expr, int exprType) {
