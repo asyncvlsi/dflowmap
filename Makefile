@@ -24,7 +24,7 @@ TARGETS=$(EXE)
 #TARGETINCS=ChpGenerator.h Metrics.h ChpProcGenerator.h
 #TARGETINCSUBDIR=act
 
-OBJS=ChpGenerator.o main.o Metrics.o ChpProcGenerator.o
+OBJS=ChpLibGenerator.o main.o Metrics.o ChpProcGenerator.o
 
 SRCS=$(OBJS:.o=.cc)
 

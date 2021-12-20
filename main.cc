@@ -30,7 +30,7 @@
 #include <act/lang.h>
 #include <act/types.h>
 #include <algorithm>
-#include "ChpGenerator.h"
+#include "ChpProcGenerator.h"
 #include "Metrics.h"
 
 int debug_verbose;
@@ -43,7 +43,7 @@ static void usage(char *name) {
   exit(1);
 }
 
-void printCustomNamespace(ChpGenerator *chpGenerator, ActNamespace *ns,
+void printCustomNamespace(ChpProcGenerator *chpGenerator, ActNamespace *ns,
                           FILE *resFp, FILE *libFp, FILE *confFp) {
   const char *nsName = ns->getName();
   fprintf(resFp, "namespace %s {\n", nsName);
@@ -173,13 +173,13 @@ int main(int argc, char **argv) {
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
-  auto chpGenerator = new ChpGenerator(a, "ChpGenerator", metrics);
+  auto chpProcGenerator = new ChpProcGenerator(a, "ChpProcGenerator", metrics);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
     ActNamespace *n = *i;
     if (!n->isExported()) {
-      printCustomNamespace(chpGenerator, n, resFp, libFp, confFp);
+      printCustomNamespace(chpProcGenerator, n, resFp, libFp, confFp);
     }
   }
 
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      chpGenerator->handleProcess(resFp, libFp, confFp, p, procCount);
+      chpProcGenerator->handleProcess(resFp, libFp, confFp, p, procCount);
     }
   }
   fprintf(resFp, "main_test test;\n");
