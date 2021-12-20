@@ -1,23 +1,24 @@
-int ceil_log2(unsigned long long x) {
-  static const unsigned long long t[6] = {
-      0xFFFFFFFF00000000ull,
-      0x00000000FFFF0000ull,
-      0x000000000000FF00ull,
-      0x00000000000000F0ull,
-      0x000000000000000Cull,
-      0x0000000000000002ull
-  };
+#include "helper.h"
 
-  int y = (((x & (x - 1)) == 0) ? 0 : 1);
-  int j = 32;
-  int i;
+bool isActnCp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
+}
 
-  for (i = 0; i < 6; i++) {
-    int k = (((x & t[i]) == 0) ? 0 : j);
-    y += k;
-    x >>= k;
-    j >>= 1;
+bool isActnDp(const char *instance) {
+  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
+}
+
+void normalizeName(char *src, char toDel, char newChar) {
+  char *pos = strchr(src, toDel);
+  while (pos) {
+    *pos = newChar;
+    pos = strchr(pos + 1, toDel);
   }
+}
 
-  return y;
+void getNormalizedOpName(const char *op, char *normalizedOp) {
+  strcat(normalizedOp, op);
+  normalizeName(normalizedOp, '<', '_');
+  normalizeName(normalizedOp, '>', '_');
+  normalizeName(normalizedOp, ',', '_');
 }

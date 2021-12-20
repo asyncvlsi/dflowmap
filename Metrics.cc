@@ -18,21 +18,6 @@ void Metrics::updateMetrics(const char *op, double *metric) {
   opMetrics.insert(std::make_pair(op, metric));
 }
 
-void Metrics::normalizeName(char *src, char toDel, char newChar) {
-  char *pos = strchr(src, toDel);
-  while (pos) {
-    *pos = newChar;
-    pos = strchr(pos + 1, toDel);
-  }
-}
-
-void Metrics::getNormalizedOpName(const char *op, char *normalizedOp) {
-  strcat(normalizedOp, op);
-  normalizeName(normalizedOp, '<', '_');
-  normalizeName(normalizedOp, '>', '_');
-  normalizeName(normalizedOp, ',', '_');
-}
-
 double *Metrics::getOpMetric(const char *opName) {
   if (opName == nullptr) {
     printf("normalizedOp is NULL\n");

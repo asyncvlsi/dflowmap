@@ -306,10 +306,6 @@ class ChpGenerator : public ActPass {
                         bool exitOnMissing,
                         int exprType);
 
-  static bool isActnCp(const char *instance);
-
-  static bool isActnDp(const char *instance);
-
   void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
 
   void updateACTN(double area, double leakPower, bool actnCp, bool actnDp);

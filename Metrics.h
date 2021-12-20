@@ -8,6 +8,7 @@
 #include <act/act.h>
 #include "common.h"
 #include "Constant.h"
+#include "helper.h"
 
 class Metrics {
  public:
@@ -20,10 +21,6 @@ class Metrics {
   void updateStatistics(const char *instance, double area, double leakPower);
 
   void printOpMetrics();
-
-  static void getNormalizedOpName(const char *op, char *normalizedOp);
-
-  static void normalizeName(char *src, char toDel, char newChar);
 
   double *getOpMetric(const char *op);
 

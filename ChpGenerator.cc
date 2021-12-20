@@ -1490,7 +1490,7 @@ void ChpGenerator::createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp) {
           metric = getCopyMetric(N, bitwidth);
           char *normalizedOp = new char[10240];
           normalizedOp[0] = '\0';
-          metrics->getNormalizedOpName(instance, normalizedOp);
+          getNormalizedOpName(instance, normalizedOp);
           metrics->updateMetrics(normalizedOp, metric);
           metrics->writeMetricsFile(normalizedOp, metric);
         }
@@ -2225,14 +2225,6 @@ void ChpGenerator::updateprocCount(const char *proc,
   char *newProc = new char[strlen(proc) + 1];
   sprintf(newProc, "%s", proc);
   procCount.insert(GenPair(newProc, 1));
-}
-
-bool ChpGenerator::isActnCp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
-}
-
-bool ChpGenerator::isActnDp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
 }
 
 void ChpGenerator::checkACTN(const char *channel, bool &actnCp, bool &actnDp) {
