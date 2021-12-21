@@ -1,5 +1,5 @@
-#ifndef DFLOWMAP_CHPPROCGENERATOR_H
-#define DFLOWMAP_CHPPROCGENERATOR_H
+#ifndef DFLOWMAP_CHPLIBGENERATOR_H
+#define DFLOWMAP_CHPLIBGENERATOR_H
 
 #include <cstring>
 #include <algorithm>
@@ -92,4 +92,4 @@ class ChpLibGenerator {
 
 };
 
-#endif //DFLOWMAP_CHPPROCGENERATOR_H
+#endif //DFLOWMAP_CHPLIBGENERATOR_H

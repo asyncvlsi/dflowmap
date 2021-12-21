@@ -1,5 +1,5 @@
-#ifndef DFLOWMAP_CHPGENERATOR_H
-#define DFLOWMAP_CHPGENERATOR_H
+#ifndef DFLOWMAP_CHPPROCGENERATOR_H
+#define DFLOWMAP_CHPPROCGENERATOR_H
 
 #include <stdio.h>
 #include <string.h>
@@ -25,13 +25,10 @@
 
 class ChpProcGenerator {
  public:
-  void updateprocCount(const char *proc,
-                       Map<const char *, unsigned> &procCount);
 
-  ChpProcGenerator(Act *a, const char *name, Metrics *metrics);
+  ChpProcGenerator(Metrics *metrics, FILE *resFp, FILE *libFp, FILE *confFp);
 
-  void handleProcess(FILE *resFp, FILE *libFp, FILE *confFp, Process *p,
-                     Map<const char *, unsigned> &procCount);
+  void handleProcess(Process *p);
 
   int searchStringVec(StringVec &strVec, const char *str);
 
@@ -39,13 +36,9 @@ class ChpProcGenerator {
 
   const char *getActIdOrCopyName(Scope *sc, ActId *actId);
 
-  void printSink(FILE *resFp, FILE *libFp, FILE *confFp, const char *name,
-                 unsigned bitwidth);
+  void printSink(const char *name, unsigned bitwidth);
 
-  void printInt(FILE *resFp,
-                FILE *libFp,
-                FILE *confFp,
-                const char *out,
+  void printInt(const char *out,
                 const char *normalizedOut,
                 unsigned long val,
                 unsigned outWidth);
@@ -192,7 +185,7 @@ class ChpProcGenerator {
 
   void collectOpUses(Process *p);
 
-  void createCopyProcs(FILE *resFp, FILE *libFp, FILE *confFp);
+  void createCopyProcs();
 
   double *getCopyMetric(unsigned N, unsigned bitwidth);
 
@@ -204,10 +197,7 @@ class ChpProcGenerator {
                            unsigned inBW,
                            unsigned coutBW);
 
-  void printDFlowFunc(FILE *resFp,
-                      FILE *libFp,
-                      FILE *confFp,
-                      const char *procName,
+  void printDFlowFunc(const char *procName,
                       StringVec &argList,
                       UIntVec &argBWList,
                       UIntVec &resBWList,
@@ -231,10 +221,7 @@ class ChpProcGenerator {
                       Map<Expr *, Expr *> &hiddenExprs,
                       UIntVec &buffBWs);
 
-  void handleDFlowFunc(FILE *resFp,
-                       FILE *libFp,
-                       FILE *confFp,
-                       Process *p,
+  void handleDFlowFunc(Process *p,
                        act_dataflow_element *d,
                        char *procName,
                        char *calc,
@@ -258,26 +245,16 @@ class ChpProcGenerator {
                        IntVec &queryResSuffixs,
                        IntVec &queryResSuffixs2,
                        Map<int, int> &outRecord,
-                       Map<Expr *, Expr *> &hiddenExprs,
                        UIntVec &buffBWs,
-                       Map<const char *, unsigned> &procCount);
+                       Map<Expr *, Expr *> &hiddenExprs);
 
-  void handleNormalDflowElement(FILE *resFp,
-                                FILE *libFp,
-                                FILE *confFp,
-                                Process *p,
+  void handleNormalDflowElement(Process *p,
                                 act_dataflow_element *d,
-                                unsigned &sinkCnt,
-                                Map<const char *, unsigned> &procCount);
+                                unsigned &sinkCnt);
 
   void print_dflow(FILE *fp, list_t *dflow);
 
-  void handleDFlowCluster(FILE *resFp,
-                          FILE *libFp,
-                          FILE *confFp,
-                          Process *p,
-                          list_t *dflow,
-                          Map<const char *, unsigned> &procCount);
+  void handleDFlowCluster(Process *p, list_t *dflow);
 
   void printIntVec(IntVec &ULongVec);
 
@@ -285,7 +262,7 @@ class ChpProcGenerator {
 
   bool isOpUsed(Scope *sc, ActId *actId);
 
-  void genMemConfiguration(FILE *confFp, const char *procName);
+  void genMemConfiguration(const char *procName);
 
  private:
   /* op, its bitwidth */
@@ -295,7 +272,11 @@ class ChpProcGenerator {
   /* copy operator, # of times it has already been used */
   Map<act_connection *, unsigned> copyUses;
   Metrics *metrics;
-  ChpLibGenerator processGenerator{};
+  FILE *resFp;
+  FILE *libFp;
+  FILE *confFp;
+
+  ChpLibGenerator libGenerator{};
 
   void genExprFromStr(const char *str, Expr *expr, int exprType);
 
@@ -315,17 +296,14 @@ class ChpProcGenerator {
                         bool actnCp,
                         bool actnDp);
 
-  void createINIT(FILE *resFp,
-                  FILE *libFp,
-                  FILE *confFp,
-                  Map<unsigned, unsigned long> &initMap,
+  void createINIT(Map<unsigned, unsigned long> &initMap,
                   UIntVec &outWidthList,
                   StringVec &outList);
 
-  void createBuff(FILE *resFp, FILE *libFp, FILE *confFp,
-                  Map<unsigned, unsigned long> &initMap,
+  void createBuff(Map<unsigned, unsigned long> &initMap,
                   Map<unsigned, unsigned long> &buffMap,
-                  UIntVec &outWidthList, StringVec &outList);
+                  UIntVec &outWidthList,
+                  StringVec &outList);
 };
 
-#endif //DFLOWMAP_CHPGENERATOR_H
+#endif //DFLOWMAP_CHPPROCGENERATOR_H

@@ -60,7 +60,7 @@ void printCustomNamespace(ChpProcGenerator *chpGenerator, ActNamespace *ns,
       p->Print(libFp);
       if (isMEM) {
         const char *memProcName = p->getName();
-        chpGenerator->genMemConfiguration(confFp, memProcName);
+        chpGenerator->genMemConfiguration(memProcName);
         if (debug_verbose) {
           unsigned len = strlen(memProcName);
           char *memName = new char[len - 1];
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
-  auto chpProcGenerator = new ChpProcGenerator(a, "ChpProcGenerator", metrics);
+  auto chpProcGenerator = new ChpProcGenerator(metrics, resFp, libFp, confFp);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      chpProcGenerator->handleProcess(resFp, libFp, confFp, p, procCount);
+      chpProcGenerator->handleProcess(p);
     }
   }
   fprintf(resFp, "main_test test;\n");
