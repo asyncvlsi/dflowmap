@@ -18,6 +18,7 @@
 #include "ChpLibGenerator.h"
 #include "Metrics.h"
 #include "common.h"
+#include "helper.h"
 
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>

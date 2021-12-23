@@ -1,6 +1,5 @@
 #include <act/lang.h>
 #include "ChpProcGenerator.h"
-#include "helper.cc"
 
 void ChpProcGenerator::printIntVec(IntVec &intVec) {
   for (auto &val : intVec) {

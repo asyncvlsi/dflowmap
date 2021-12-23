@@ -4,13 +4,14 @@ void Metrics::updateMetrics(const char *op, double *metric) {
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, op)) {
       if (debug_verbose) {
-        printf("We already have metric info for %s", op);
+        printf("We already have metric info for %s\n", op);
       }
       double *oldMetric = opMetricsIt.second;
       if ((oldMetric[0] != metric[0])
           || (oldMetric[1] != metric[1])
           || (oldMetric[2] != metric[2])
           || (oldMetric[3] != metric[3])) {
+        printf("We find different metric record for %s\n", op);
         exit(-1);
       }
     }
@@ -56,8 +57,8 @@ void Metrics::writeMetricsFile(char *opName, double metric[4]) {
   std::ofstream metricFp;
   metricFp.open(metricFilePath, std::ios_base::app);
   metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  "
-           << metric[2]
-           << "  " << metric[3] << "\n";
+           << metric[2] << "  " << metric[3] << "\n";
+  metricFp.close();
 }
 
 void Metrics::readMetricsFile() {
