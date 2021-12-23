@@ -107,7 +107,7 @@ void ChpProcGenerator::collectBitwidthInfo(Process *p) {
     ValueIdx *vx = *inst;
     act_connection *c;
     const char *varName = vx->getName();
-    auto tmp = new ActId(vx->getName());
+    auto tmp = ActId::parseId(vx->getName());
     c = tmp->Canonical(p->CurScope());
     delete tmp;
     int bitwidth = TypeFactory::bitWidth(vx->t);
@@ -1522,7 +1522,7 @@ void ChpProcGenerator::genExprFromInt(unsigned long val, Expr *expr) {
 void ChpProcGenerator::genExprFromStr(const char *str,
                                       Expr *expr,
                                       int exprType) {
-  auto newLActId = new ActId(str);
+  auto newLActId = ActId::parseId(str);
   expr->type = exprType;
   expr->u.e.l = (Expr *) (newLActId);
 }
@@ -1893,7 +1893,7 @@ void ChpProcGenerator::printDFlowFunc(const char *procName,
     }
     char *normalizedOp = new char[MAX_INSTANCE_LEN];
     normalizedOp[0] = '\0';
-    metrics->getNormalizedOpName(opName, normalizedOp);
+    getNormalizedOpName(opName, normalizedOp);
     char *optimizerProcName = new char[1000];
     sprintf(optimizerProcName, "op");
     if (debug_verbose) {
