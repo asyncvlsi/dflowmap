@@ -1,4 +1,4 @@
-#include "helper.h"
+#include "Helper.h"
 
 bool isActnCp(const char *instance) {
   return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;

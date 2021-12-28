@@ -14,11 +14,10 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
-#include <math.h>
 #include "ChpLibGenerator.h"
 #include "Metrics.h"
 #include "common.h"
-#include "helper.h"
+#include "Helper.h"
 
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>
@@ -187,16 +186,6 @@ class ChpProcGenerator {
   void collectOpUses(Process *p);
 
   void createCopyProcs();
-
-  double *getCopyMetric(unsigned N, unsigned bitwidth);
-
-  unsigned getEquivalentBW(unsigned oriBW);
-
-  double *getMSMetric(const char *procName, unsigned guardBW, unsigned inBW);
-
-  double *getArbiterMetric(unsigned numInputs,
-                           unsigned inBW,
-                           unsigned coutBW);
 
   void printDFlowFunc(const char *procName,
                       StringVec &argList,

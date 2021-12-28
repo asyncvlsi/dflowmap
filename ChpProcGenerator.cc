@@ -1482,7 +1482,7 @@ void ChpProcGenerator::createCopyProcs() {
       double *metric = metrics->getOpMetric(instance);
       if (!metric) {
         if (LOGIC_OPTIMIZER) {
-          metric = getCopyMetric(N, bitwidth);
+          metric = metrics->getCopyMetric(N, bitwidth);
           char *normalizedOp = new char[10240];
           normalizedOp[0] = '\0';
           getNormalizedOpName(instance, normalizedOp);
@@ -1979,9 +1979,9 @@ void ChpProcGenerator::printDFlowFunc(const char *procName,
 #endif
   }
   libGenerator.createFULib(libFp, confFp, procName, calc, def, outSend,
-                               numArgs,
-                               numOuts, instance, metric, resBWList,
-                               outWidthList, queryResSuffixs, queryResSuffixs2);
+                           numArgs,
+                           numOuts, instance, metric, resBWList,
+                           outWidthList, queryResSuffixs, queryResSuffixs2);
   if (metric != nullptr) {
     metrics->updateStatistics(opName, metric[3], metric[0]);
   }
@@ -2215,79 +2215,6 @@ void ChpProcGenerator::updateACTN(double area,
   }
 }
 
-unsigned ChpProcGenerator::getEquivalentBW(unsigned oriBW) {
-  if (oriBW < 4) {
-    return 1;
-  } else if (oriBW < 12) {
-    return 8;
-  } else if (oriBW < 24) {
-    return 16;
-  } else if (oriBW < 48) {
-    return 32;
-  } else if (oriBW <= 64) {
-    return 64;
-  } else {
-    printf("Invalid M/S bitwidth: %u!\n", oriBW);
-    exit(-1);
-  }
-}
-
-double *ChpProcGenerator::getMSMetric(const char *procName,
-                                      unsigned guardBW,
-                                      unsigned inBW) {
-  char *instance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
-  double *metric = metrics->getOpMetric(instance);
-  return metric;
-}
-
-double *ChpProcGenerator::getArbiterMetric(unsigned numInputs,
-                                           unsigned inBW,
-                                           unsigned coutBW) {
-  char *instance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(instance,
-          "%s_%d<%d,%d>",
-          Constant::MERGE_PREFIX,
-          numInputs,
-          coutBW,
-          equivBW);
-  double *metric = metrics->getOpMetric(instance);
-  return metric;
-}
-
-double *ChpProcGenerator::getCopyMetric(unsigned N, unsigned bitwidth) {
-  char *equivInstance = new char[1500];
-  int equivN = int(ceil(log2(N))) - 1;
-  if (equivN < 1) {
-    equivN = 1;
-  }
-  unsigned equivBW = getEquivalentBW(bitwidth);
-  if (debug_verbose) {
-    printf(
-        "We are handling copy_%u_%u, and we are using mapping it to %d "
-        "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
-  }
-  sprintf(equivInstance, "copy<%u,2>", equivBW);
-  double *equivMetric = metrics->getOpMetric(equivInstance);
-  if (!equivMetric) {
-    printf("Missing metrics for copy %s\n", equivInstance);
-    exit(-1);
-  }
-  double *metric;
-  if (equivN == 1) {
-    metric = equivMetric;
-  } else {
-    metric = new double[4];
-    metric[0] = equivN * equivMetric[0];
-    metric[1] = equivN * equivMetric[1];
-    metric[2] = equivN * equivMetric[2];
-    metric[3] = equivN * equivMetric[3];
-  }
-  return metric;
-}
-
 void ChpProcGenerator::handleNormalDflowElement(Process *p,
                                                 act_dataflow_element *d,
                                                 unsigned &sinkCnt) {
@@ -2418,11 +2345,11 @@ void ChpProcGenerator::handleNormalDflowElement(Process *p,
       }
       fprintf(resFp, ");\n");
 
-      double *metric = getMSMetric(procName, guardBW, bitwidth);
+      double *metric = metrics->getMSMetric(procName, guardBW, bitwidth);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, bitwidth);
       libGenerator.createSplit(libFp, confFp, procName, instance, metric,
-                                   numOutputs);
+                               numOutputs);
       if (metric != nullptr) {
         updateStatistics(metric, instance, actnCp, actnDp);
         double area = metric[3];
@@ -2469,11 +2396,11 @@ void ChpProcGenerator::handleNormalDflowElement(Process *p,
       }
       fprintf(resFp, "%s);\n", outputName);
 
-      double *metric = getMSMetric(procName, guardBW, inBW);
+      double *metric = metrics->getMSMetric(procName, guardBW, inBW);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
       libGenerator.createMerge(libFp, confFp, procName, instance, metric,
-                                   numInputs);
+                               numInputs);
       if (metric != nullptr) {
         updateStatistics(metric, instance, actnCp, actnDp);
         double area = metric[3];
@@ -2522,15 +2449,15 @@ void ChpProcGenerator::handleNormalDflowElement(Process *p,
       getActIdName(sc, cout, coutName, 10240);
       fprintf(resFp, "%s, %s);\n", outputName, coutName);
 
-      double *metric = getArbiterMetric(numInputs, outBW, coutBW);
+      double *metric = metrics->getArbiterMetric(numInputs, outBW, coutBW);
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, outBW, coutBW);
       libGenerator.createArbiter(libFp,
-                                     confFp,
-                                     procName,
-                                     instance,
-                                     metric,
-                                     numInputs);
+                                 confFp,
+                                 procName,
+                                 instance,
+                                 metric,
+                                 numInputs);
       if (metric != nullptr) {
         updateStatistics(metric, instance, actnCp, actnDp);
         double area = metric[3];

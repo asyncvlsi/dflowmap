@@ -2,13 +2,13 @@
 #define DFLOWMAP_METRICS_H
 
 #include <cstdio>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <sstream>
 #include <act/act.h>
 #include "common.h"
-#include "Constant.h"
-#include "helper.h"
+#include "Helper.h"
 
 class Metrics {
  public:
@@ -41,6 +41,18 @@ class Metrics {
   void updateACTNDpMetrics(double area, double leakPower);
 
   void dump();
+
+  unsigned getEquivalentBW(unsigned oriBW);
+
+  double *getCopyMetric(unsigned N, unsigned bitwidth);
+
+  double *getMSMetric(const char *procName,
+                      unsigned guardBW,
+                      unsigned inBW);
+
+  double *getArbiterMetric(unsigned numInputs,
+                           unsigned inBW,
+                           unsigned coutBW);
 
  private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */

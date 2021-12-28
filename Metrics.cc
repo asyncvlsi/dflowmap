@@ -99,6 +99,79 @@ Metrics::Metrics(const char *metricFP, const char *statisticsFP) {
   statisticsFilePath = statisticsFP;
 }
 
+unsigned Metrics::getEquivalentBW(unsigned oriBW) {
+  if (oriBW < 4) {
+    return 1;
+  } else if (oriBW < 12) {
+    return 8;
+  } else if (oriBW < 24) {
+    return 16;
+  } else if (oriBW < 48) {
+    return 32;
+  } else if (oriBW <= 64) {
+    return 64;
+  } else {
+    printf("Invalid M/S bitwidth: %u!\n", oriBW);
+    exit(-1);
+  }
+}
+
+double *Metrics::getCopyMetric(unsigned N, unsigned bitwidth) {
+  char *equivInstance = new char[1500];
+  int equivN = int(ceil(log2(N))) - 1;
+  if (equivN < 1) {
+    equivN = 1;
+  }
+  unsigned equivBW = getEquivalentBW(bitwidth);
+  if (debug_verbose) {
+    printf(
+        "We are handling copy_%u_%u, and we are using mapping it to %d "
+        "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
+  }
+  sprintf(equivInstance, "copy<%u,2>", equivBW);
+  double *equivMetric = getOpMetric(equivInstance);
+  if (!equivMetric) {
+    printf("Missing metrics for copy %s\n", equivInstance);
+    exit(-1);
+  }
+  double *metric;
+  if (equivN == 1) {
+    metric = equivMetric;
+  } else {
+    metric = new double[4];
+    metric[0] = equivN * equivMetric[0];
+    metric[1] = equivN * equivMetric[1];
+    metric[2] = equivN * equivMetric[2];
+    metric[3] = equivN * equivMetric[3];
+  }
+  return metric;
+}
+
+double *Metrics::getMSMetric(const char *procName,
+                             unsigned guardBW,
+                             unsigned inBW) {
+  char *instance = new char[MAX_INSTANCE_LEN];
+  unsigned equivBW = getEquivalentBW(inBW);
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
+  double *metric = getOpMetric(instance);
+  return metric;
+}
+
+double *Metrics::getArbiterMetric(unsigned numInputs,
+                                  unsigned inBW,
+                                  unsigned coutBW) {
+  char *instance = new char[MAX_INSTANCE_LEN];
+  unsigned equivBW = getEquivalentBW(inBW);
+  sprintf(instance,
+          "%s_%d<%d,%d>",
+          Constant::MERGE_PREFIX,
+          numInputs,
+          coutBW,
+          equivBW);
+  double *metric = getOpMetric(instance);
+  return metric;
+}
+
 void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   auto copyStatisticsIt = copyStatistics.find(bitwidth);
   if (copyStatisticsIt != copyStatistics.end()) {
