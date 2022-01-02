@@ -9,6 +9,9 @@
 #include <act/act.h>
 #include "common.h"
 #include "Helper.h"
+#if LOGIC_OPTIMIZER
+#include <act/expropt.h>
+#endif
 
 class Metrics {
  public:
@@ -18,7 +21,10 @@ class Metrics {
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateStatistics(const char *instance, double area, double leakPower);
+  void updateStatistics(const char *instName,
+                        bool actnCp,
+                        bool actnDp,
+                        double metric[4]);
 
   void printOpMetrics();
 
@@ -30,11 +36,11 @@ class Metrics {
 
   void readMetricsFile();
 
-  void writeMetricsFile(char *opName, double metric[4]);
+  void writeMetricsFile(const char *opName, double *metric);
 
   void updateMergeMetrics(double area, double leakPower);
 
-  void updateSplitMetrics(double area, double leakPower);
+  void updateSplitMetrics(double metric[4]);
 
   void updateACTNCpMetrics(double area, double leakPower);
 
@@ -44,15 +50,35 @@ class Metrics {
 
   unsigned getEquivalentBW(unsigned oriBW);
 
-  double *getCopyMetric(unsigned N, unsigned bitwidth);
+  double *getOrGenCopyMetric(unsigned bitwidth, unsigned numOut);
 
-  double *getMSMetric(const char *procName,
+  double *getSinkMetric(unsigned bitwidth);
+
+  double *getOrGenInitMetric(unsigned bitwidth);
+
+  double *getOrGenFUMetric(const char *instName,
+                           StringMap<unsigned> &inBW,
+                           StringMap<unsigned> &hiddenBW,
+                           Map<const char *, Expr *> &exprMap,
+                           Map<Expr *, Expr *> &hiddenExprs,
+                           Map<int, int> &outRecord,
+                           UIntVec &outWidthList);
+
+  double *getSourceMetric(const char *instance, unsigned int bitwidth);
+
+  double *getMSMetric(const char *instance,
+                      const char *procName,
                       unsigned guardBW,
-                      unsigned inBW);
+                      unsigned inBW,
+                      bool actnCp,
+                      bool actnDp);
 
-  double *getArbiterMetric(unsigned numInputs,
+  double *getArbiterMetric(const char *instance,
+                           unsigned numInputs,
                            unsigned inBW,
-                           unsigned coutBW);
+                           unsigned coutBW,
+                           bool actnCp,
+                           bool actnDp);
 
  private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
@@ -101,6 +127,10 @@ class Metrics {
   void printCopyStatistics(FILE *statisticsFP);
 
   void printStatistics();
+
+  double getArea(double metric[4]);
+
+  double getLP(double metric[4]);
 };
 
 #endif //DFLOWMAP_METRICS_H

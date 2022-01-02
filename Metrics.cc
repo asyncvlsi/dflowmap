@@ -27,7 +27,7 @@ double *Metrics::getOpMetric(const char *opName) {
   unsigned opLen = strlen(opName);
   char *normalizedOp = new char[opLen + 1];
   normalizedOp[0] = '\0';
-  getNormalizedOpName(opName, normalizedOp);
+  getNormInstanceName(opName);
   if (debug_verbose) {
     printf("get op metric for %s, norm name: %s\n", opName, normalizedOp);
   }
@@ -42,6 +42,22 @@ double *Metrics::getOpMetric(const char *opName) {
   return nullptr;
 }
 
+double Metrics::getArea(double metric[4]) {
+  if (!metric) {
+    printf("Try to extract area for null metric!\n");
+    exit(-1);
+  }
+  return metric[3];
+}
+
+double Metrics::getLP(double metric[4]) {
+  if (!metric) {
+    printf("Try to extract LP for null metric!\n");
+    exit(-1);
+  }
+  return metric[0];
+}
+
 void Metrics::printOpMetrics() {
   printf("Info in opMetrics:\n");
   for (auto &opMetricsIt : opMetrics) {
@@ -50,7 +66,7 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::writeMetricsFile(char *opName, double metric[4]) {
+void Metrics::writeMetricsFile(const char *opName, double *metric) {
   if (debug_verbose) {
     printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
   }
@@ -116,59 +132,339 @@ unsigned Metrics::getEquivalentBW(unsigned oriBW) {
   }
 }
 
-double *Metrics::getCopyMetric(unsigned N, unsigned bitwidth) {
-  char *equivInstance = new char[1500];
-  int equivN = int(ceil(log2(N))) - 1;
-  if (equivN < 1) {
-    equivN = 1;
+double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
+  updateCopyStatistics(bitwidth, numOut);
+  char *instName = new char[1500];
+  sprintf(instName, "copy<%u,%u>", bitwidth, numOut);
+  double *metric = getOpMetric(instName);
+  if (!metric && LOGIC_OPTIMIZER) {
+    char *equivInstance = new char[1500];
+    int equivN = int(ceil(log2(numOut))) - 1;
+    if (equivN < 1) {
+      equivN = 1;
+    }
+    unsigned equivBW = getEquivalentBW(bitwidth);
+    if (debug_verbose) {
+      printf(
+          "We are handling copy_%u_%u, and we are using mapping it to %d "
+          "copy_%u_2_\n", bitwidth, numOut, equivN, equivBW);
+    }
+    sprintf(equivInstance, "copy<%u,2>", equivBW);
+    double *equivMetric = getOpMetric(equivInstance);
+    if (!equivMetric) {
+      printf("Missing metrics for copy %s\n", equivInstance);
+      exit(-1);
+    }
+    if (equivN == 1) {
+      metric = equivMetric;
+    } else {
+      metric = new double[4];
+      metric[0] = equivN * equivMetric[0];
+      metric[1] = equivN * equivMetric[1];
+      metric[2] = equivN * equivMetric[2];
+      metric[3] = equivN * equivMetric[3];
+    }
+    const char *normInstance = getNormInstanceName(instName);
+    updateMetrics(normInstance, metric);
+    writeMetricsFile(normInstance, metric);
   }
-  unsigned equivBW = getEquivalentBW(bitwidth);
-  if (debug_verbose) {
-    printf(
-        "We are handling copy_%u_%u, and we are using mapping it to %d "
-        "copy_%u_2_\n", bitwidth, N, equivN, equivBW);
+  if (!metric) {
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instName, actnCp, actnDp, metric);
   }
-  sprintf(equivInstance, "copy<%u,2>", equivBW);
-  double *equivMetric = getOpMetric(equivInstance);
-  if (!equivMetric) {
-    printf("Missing metrics for copy %s\n", equivInstance);
+
+  return metric;
+}
+
+double *Metrics::getSinkMetric(unsigned bitwidth) {
+  char *instance = new char[1500];
+  sprintf(instance, "sink<%u>", bitwidth);
+  char *unitInstance = new char[1500];
+  sprintf(unitInstance, "sink_1_");
+  double *metric = getOpMetric(unitInstance);
+  if (!metric && LOGIC_OPTIMIZER) {
+    printf("We fail to find metric for %s!\n", instance);
     exit(-1);
   }
-  double *metric;
-  if (equivN == 1) {
-    metric = equivMetric;
-  } else {
-    metric = new double[4];
-    metric[0] = equivN * equivMetric[0];
-    metric[1] = equivN * equivMetric[1];
-    metric[2] = equivN * equivMetric[2];
-    metric[3] = equivN * equivMetric[3];
+  if (metric != nullptr) {
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instance, actnCp, actnDp, metric);
   }
   return metric;
 }
 
-double *Metrics::getMSMetric(const char *procName,
-                             unsigned guardBW,
-                             unsigned inBW) {
-  char *instance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(instance, "%s<%d,%d>", procName, guardBW, equivBW);
-  double *metric = getOpMetric(instance);
+double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
+
+  char *unitInstance = new char[8];
+  sprintf(unitInstance, "source1");
+  double *metric = getOpMetric(unitInstance);
+  if (!metric && LOGIC_OPTIMIZER) {
+    printf("We fail to find metric for %s!\n", instance);
+    exit(-1);
+  }
+  if (metric != nullptr) {
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instance, actnCp, actnDp, metric);
+  }
   return metric;
 }
 
-double *Metrics::getArbiterMetric(unsigned numInputs,
-                                  unsigned inBW,
-                                  unsigned coutBW) {
-  char *instance = new char[MAX_INSTANCE_LEN];
+double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
+  char *instName = new char[100];
+  sprintf(instName, "init%u", bitwidth);
+  double *metric = getOpMetric(instName);
+  if (metric != nullptr) {
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instName, actnCp, actnDp, metric);
+  }
+  return metric;
+}
+
+double *Metrics::getOrGenFUMetric(const char *instName,
+                                  StringMap<unsigned> &inBW,
+                                  StringMap<unsigned> &hiddenBW,
+                                  Map<const char *, Expr *> &exprMap,
+                                  Map<Expr *, Expr *> &hiddenExprs,
+                                  Map<int, int> &outRecord,
+                                  UIntVec &outWidthList) {
+  double *metric = getOpMetric(instName);
+  if (!metric) {
+#if LOGIC_OPTIMIZER
+    if (debug_verbose) {
+      printf("Will run logic optimizer for %s\n", instName);
+    }
+    /* Prepare in_expr_list */
+    list_t *in_expr_list = list_new();
+    iHashtable *in_expr_map = ihash_new(0);
+    iHashtable *in_width_map = ihash_new(0);
+    unsigned totalInBW = 0;
+    unsigned lowBWInPorts = 0;
+    unsigned highBWInPorts = 0;
+    for (auto &inBWIt : inBW) {
+      String inName = inBWIt.first;
+      unsigned bw = inBWIt.second;
+      totalInBW += bw;
+      if (bw >= 32) {
+        highBWInPorts++;
+      } else {
+        lowBWInPorts++;
+      }
+      char *inChar = new char[10240];
+      sprintf(inChar, "%s", inName.c_str());
+      if (debug_verbose) {
+        printf("inChar: %s\n", inChar);
+      }
+      Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
+      list_append(in_expr_list, inExpr);
+      ihash_bucket_t *b_expr, *b_width;
+      b_expr = ihash_add(in_expr_map, (long) inExpr);
+      b_expr->v = inChar;
+      b_width = ihash_add(in_width_map, (long) inExpr);
+      b_width->i = (int) bw;
+    }
+    /* Prepare hidden_expr_list */
+    list_t *hidden_expr_list = list_new();
+    list_t *hidden_expr_name_list = list_new();
+    iHashtable *out_width_map = ihash_new(0);
+    for (auto &hiddenBWIt : hiddenBW) {
+      String hiddenName = hiddenBWIt.first;
+      unsigned bw = hiddenBWIt.second;
+      char *hiddenChar = new char[1024];
+      sprintf(hiddenChar, "%s", hiddenName.c_str());
+      if (debug_verbose) {
+        printf("hiddenChar: %s\n", hiddenChar);
+      }
+      Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
+      ihash_bucket_t *b_expr2, *b_width2;
+      b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
+      b_expr2->v = hiddenChar;
+      b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
+      b_width2->i = (int) bw;
+      Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
+      list_append(hidden_expr_list, hiddenExpr);
+      list_append(hidden_expr_name_list, hiddenChar);
+      ihash_bucket_t *b_width = ihash_lookup(out_width_map, (long) hiddenExpr);
+      if (!b_width) {
+        b_width = ihash_add(out_width_map, (long) hiddenExpr);
+        b_width->i = (int) bw;
+      }
+    }
+    /* Prepare out_expr_list */
+    list_t *out_expr_list = list_new();
+    list_t *out_expr_name_list = list_new();
+    IntVec processedResIDs;
+    unsigned numOuts = outRecord.size();
+    for (int ii = 0; ii < numOuts; ii++) {
+      int resID = outRecord.find(ii)->second;
+      char *resChar = new char[1024];
+      sprintf(resChar, "res%d", resID);
+      if (debug_verbose) {
+        printf("resChar: %s\n", resChar);
+      }
+      Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
+      list_append(out_expr_list, resExpr);
+      char *outChar = new char[1024];
+      sprintf(outChar, "out%d", ii);
+      list_append(out_expr_name_list, outChar);
+      if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
+          != processedResIDs.end()) {
+        continue;
+      }
+      ihash_bucket_t *b_width;
+      b_width = ihash_add(out_width_map, (long) resExpr);
+      unsigned bw = outWidthList[ii];
+      b_width->i = (int) bw;
+      processedResIDs.push_back(resID);
+    }
+    auto optimizer = new ExternalExprOpt(genus, bd, false);
+    if (debug_verbose) {
+      listitem_t *li;
+      printf("in_expr_bundle:\n");
+      for (li = list_first (in_expr_list); li; li = list_next (li)) {
+        long key = (long) list_value(li);
+        char *val = (char *) ihash_lookup(in_expr_map, key)->v;
+        int bw = ihash_lookup(in_width_map, key)->i;
+        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+      }
+      printf("\nout_expr_bundle:\n");
+      for (li = list_first (out_expr_list); li; li = list_next (li)) {
+        long key = (long) list_value(li);
+        int bw = ihash_lookup(out_width_map, key)->i;
+        printf("key: %ld, bw: %d\n", key, bw);
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+      }
+      for (li = list_first (out_expr_name_list); li; li = list_next (li)) {
+        char *outName = (char *) list_value(li);
+        printf("outName: %s\n", outName);
+      }
+      printf("\nhidden expr:\n");
+      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
+        Expr *e = (Expr *) list_value (li);
+        print_expr(stdout, e);
+        printf("\n");
+        long key = (long) list_value(li);
+        int bw = ihash_lookup(out_width_map, key)->i;
+        printf("key: %ld, bw: %d\n", key, bw);
+      }
+      printf("\n");
+    }
+    const char *normalizedOp = getNormInstanceName(instName);
+    char *optimizerProcName = new char[1000];
+    sprintf(optimizerProcName, "op");
+    if (debug_verbose) {
+      printf("Run logic optimizer for %s\n", optimizerProcName);
+    }
+    ExprBlockInfo
+        *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
+                                            in_expr_map,
+                                            in_width_map,
+                                            out_expr_list, out_expr_name_list,
+                                            out_width_map,
+                                            hidden_expr_list,
+                                            hidden_expr_name_list);
+    if (debug_verbose) {
+      printf(
+          "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
+          "s\n",
+          optimizerProcName,
+          info->area,
+          info->power_typ_dynamic,
+          info->power_typ_static,
+          info->delay_typ);
+    }
+    double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
+    double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
+    double delay = info->delay_typ * 1e12; // Delay (ps)
+    double area = info->area * 1e12;  // AREA (um^2)
+    /* adjust perf number by adding latch, etc. */
+    double *latchMetric = getOpMetric("latch1");
+    if (latchMetric == nullptr) {
+      printf("We could not find metric for latch1!\n");
+      exit(-1);
+    }
+    //TODO
+    area = area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
+        + highBWInPorts * 2.86 + delay / 500 * 1.43;
+    leakpower = leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
+        + highBWInPorts * 5.36 + delay / 500 * 1.38;
+    energy = energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
+        + highBWInPorts * 20.19 + delay / 500 * 28.544;
+    double *twoToOneMetric = getOpMetric("twoToOne");
+    if (twoToOneMetric == nullptr) {
+      printf("We could not find metric for 2-in-1-out!\n");
+      exit(-1);
+    }
+    delay = delay + twoToOneMetric[2] + latchMetric[2];
+    /* get the final metric */
+    metric = new double[4];
+    metric[0] = leakpower;
+    metric[1] = energy;
+    metric[2] = delay;
+    metric[3] = area;
+    updateMetrics(normalizedOp, metric);
+    writeMetricsFile(normalizedOp, metric);
+#endif
+  }
+  if (metric != nullptr) {
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instName, actnCp, actnDp, metric);
+  }
+  return metric;
+}
+
+double *Metrics::getMSMetric(const char *instance,
+                             const char *procName,
+                             unsigned guardBW,
+                             unsigned inBW,
+                             bool actnCp,
+                             bool actnDp) {
+  char *equivInstance = new char[MAX_INSTANCE_LEN];
   unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(instance,
+  sprintf(equivInstance, "%s<%d,%d>", procName, guardBW, equivBW);
+  double *metric = getOpMetric(equivInstance);
+  if (metric) {
+    updateStatistics(instance, actnCp, actnDp, metric);
+    updateSplitMetrics(metric);
+  } else if (LOGIC_OPTIMIZER) {
+    printf("We could not find metrics for the SPLIT (%s, %s)!\n",
+           equivInstance, instance);
+    exit(-1);
+  }
+  return metric;
+}
+
+double *Metrics::getArbiterMetric(const char *instance,
+                                  unsigned numInputs,
+                                  unsigned inBW,
+                                  unsigned coutBW,
+                                  bool actnCp,
+                                  bool actnDp) {
+  char *equivInstance = new char[MAX_INSTANCE_LEN];
+  unsigned equivBW = getEquivalentBW(inBW);
+  sprintf(equivInstance,
           "%s_%d<%d,%d>",
           Constant::MERGE_PREFIX,
           numInputs,
           coutBW,
           equivBW);
-  double *metric = getOpMetric(instance);
+  double *metric = getOpMetric(equivInstance);
+  if (metric) {
+    updateStatistics(instance, actnCp, actnDp, metric);
+    updateSplitMetrics(metric);
+  } else if (LOGIC_OPTIMIZER) {
+    printf("We could not find metrics for the ARBITER %s!\n", equivInstance);
+    exit(-1);
+  }
   return metric;
 }
 
@@ -248,19 +544,24 @@ void Metrics::updateMergeMetrics(double area, double leakPower) {
   mergeLeakPower += leakPower;
 }
 
-void Metrics::updateSplitMetrics(double area, double leakPower) {
+void Metrics::updateSplitMetrics(double metric[4]) {
+  double area = getArea(metric);
+  double leakPower = getLP(metric);
   splitArea += area;
   splitLeakPower += leakPower;
 }
 
-void Metrics::updateStatistics(const char *instance,
-                               double area,
-                               double leakPower) {
+void Metrics::updateStatistics(const char *instName,
+                               bool actnCp,
+                               bool actnDp,
+                               double metric[4]) {
+  double area = getArea(metric);
+  double leakPower = getLP(metric);
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
   for (auto &areaStatisticsIt : areaStatistics) {
-    if (!strcmp(areaStatisticsIt.first, instance)) {
+    if (!strcmp(areaStatisticsIt.first, instName)) {
       areaStatisticsIt.second += area;
       exist = true;
     }
@@ -268,7 +569,7 @@ void Metrics::updateStatistics(const char *instance,
   if (exist) {
     bool foundLP = false;
     for (auto &leakpowerStatisticsIt : leakpowerStatistics) {
-      if (!strcmp(leakpowerStatisticsIt.first, instance)) {
+      if (!strcmp(leakpowerStatisticsIt.first, instName)) {
         leakpowerStatisticsIt.second += leakPower;
         foundLP = true;
         break;
@@ -277,22 +578,27 @@ void Metrics::updateStatistics(const char *instance,
     if (!foundLP) {
       printf(
           "We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
-          instance);
+          instName);
       exit(-1);
     }
     for (auto &instanceCntIt : instanceCnt) {
-      if (!strcmp(instanceCntIt.first, instance)) {
+      if (!strcmp(instanceCntIt.first, instName)) {
         instanceCntIt.second += 1;
         return;
       }
     }
     printf("We could find %s in areaStatistics, but not in instanceCnt!\n",
-           instance);
+           instName);
     exit(-1);
   } else {
-    areaStatistics.insert(GenPair(instance, area));
-    leakpowerStatistics.insert(GenPair(instance, leakPower));
-    instanceCnt.insert(GenPair(instance, 1));
+    areaStatistics.insert(GenPair(instName, area));
+    leakpowerStatistics.insert(GenPair(instName, leakPower));
+    instanceCnt.insert(GenPair(instName, 1));
+  }
+  if (actnCp) {
+    updateACTNCpMetrics(area, leakPower);
+  } else if (actnDp) {
+    updateACTNDpMetrics(area, leakPower);
   }
 }
 

@@ -30,7 +30,7 @@
 #include <act/lang.h>
 #include <act/types.h>
 #include <algorithm>
-#include "ChpProcGenerator.h"
+#include "ProcGenerator.h"
 #include "Metrics.h"
 
 int debug_verbose;
@@ -43,7 +43,7 @@ static void usage(char *name) {
   exit(1);
 }
 
-void printCustomNamespace(ChpProcGenerator *chpGenerator, ActNamespace *ns,
+void printCustomNamespace(ProcGenerator *chpGenerator, ActNamespace *ns,
                           FILE *resFp, FILE *libFp, FILE *confFp) {
   const char *nsName = ns->getName();
   fprintf(resFp, "namespace %s {\n", nsName);
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
-  auto chpProcGenerator = new ChpProcGenerator(metrics, resFp, libFp, confFp);
+  auto chpProcGenerator = new ProcGenerator(metrics, resFp, libFp, confFp);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      chpProcGenerator->handleProcess(p);
+      chpProcGenerator->handleProcess();
     }
   }
   fprintf(resFp, "main_test test;\n");

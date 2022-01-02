@@ -21,10 +21,9 @@
 EXE=dflowmap.$(EXT)
 
 TARGETS=$(EXE)
-#TARGETINCS=ChpGenerator.h Metrics.h ChpProcGenerator.h
-#TARGETINCSUBDIR=act
 
-OBJS=ChpLibGenerator.o main.o Metrics.o ChpProcGenerator.o Helper.o
+OBJS=ChpLibGenerator.o main.o Metrics.o ProcGenerator.o Helper.o
+	ChpCircuitGenerator.o ChpBackend.o
 
 SRCS=$(OBJS:.o=.cc)
 
