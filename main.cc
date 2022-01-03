@@ -43,7 +43,7 @@ static void usage(char *name) {
   exit(1);
 }
 
-void printCustomNamespace(ProcGenerator *chpGenerator, ActNamespace *ns,
+void printCustomNamespace(ChpLibGenerator *libGenerator, ActNamespace *ns,
                           FILE *resFp, FILE *libFp, FILE *confFp) {
   const char *nsName = ns->getName();
   fprintf(resFp, "namespace %s {\n", nsName);
@@ -53,14 +53,13 @@ void printCustomNamespace(ProcGenerator *chpGenerator, ActNamespace *ns,
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
-//    p->Print(libFp);
     if (p->isExpanded()) {
       p->PrintHeader(resFp, "defproc");
       fprintf(resFp, ";\n");
       p->Print(libFp);
       if (isMEM) {
         const char *memProcName = p->getName();
-        chpGenerator->genMemConfiguration(memProcName);
+        libGenerator->genMemConfiguration(memProcName);
         if (debug_verbose) {
           unsigned len = strlen(memProcName);
           char *memName = new char[len - 1];
@@ -173,13 +172,16 @@ int main(int argc, char **argv) {
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
 
-  auto chpProcGenerator = new ProcGenerator(metrics, resFp, libFp, confFp);
+  auto circuitGenerator = new ChpCircuitGenerator(resFp);
+  auto libGenerator = new ChpLibGenerator(libFp, confFp);
+  auto chpBackend = new ChpBackend(circuitGenerator, libGenerator);
+  auto chpProcGenerator = new ProcGenerator(metrics, chpBackend);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
     ActNamespace *n = *i;
     if (!n->isExported()) {
-      printCustomNamespace(chpProcGenerator, n, resFp, libFp, confFp);
+      printCustomNamespace(libGenerator, n, resFp, libFp, confFp);
     }
   }
 
@@ -200,7 +202,7 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      chpProcGenerator->handleProcess();
+      chpProcGenerator->handleProcess(p);
     }
   }
   fprintf(resFp, "main_test test;\n");

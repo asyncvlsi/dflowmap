@@ -10,6 +10,12 @@
 
 class ChpBackend {
  public:
+  ChpBackend(ChpCircuitGenerator *circuitGenerator,
+             ChpLibGenerator *libGenerator) {
+    this->circuitGenerator = circuitGenerator;
+    this->libGenerator = libGenerator;
+  }
+
   void createCopyProcs(const char *inName,
                        unsigned bw,
                        unsigned numOut,
@@ -26,7 +32,8 @@ class ChpBackend {
                    const char *instance,
                    double metric[4]);
 
-  void printFU(const char *instName,
+  void printFU(const char *procName,
+               const char *instName,
                StringVec &argList,
                UIntVec &argBWList,
                UIntVec &resBWList,
@@ -72,7 +79,7 @@ class ChpBackend {
                     CharPtrVec &inNameVec,
                     double *metric);
 
-  void printProcHeader(Process* p);
+  void printProcHeader(Process *p);
 
   void printProcEnding();
 

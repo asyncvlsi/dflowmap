@@ -245,7 +245,8 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr,
+  sprintf(curCal, "      res%d := (bool)%s ? %s : %s;\n", result_suffix, cStr,
+      lStr,
           rStr);
   strcat(calc, curCal);
   int cPrefix = std::atoi(cStr + 3);
@@ -1591,7 +1592,8 @@ void ProcGenerator::printDFlowFunc(const char *procName,
                                              hiddenExprs,
                                              outRecord,
                                              outBWList);
-  chpBackend->printFU(instName,
+  chpBackend->printFU(procName,
+                      instName,
                       argList,
                       argBWList,
                       resBWList,
@@ -2253,16 +2255,15 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   }
 }
 
-ProcGenerator::ProcGenerator(Process *p,
-                             Metrics *metrics,
+ProcGenerator::ProcGenerator(Metrics *metrics,
                              ChpBackend *chpBackend) {
-  this->p = p;
-  this->sc = p->CurScope();
   this->metrics = metrics;
   this->chpBackend = chpBackend;
 }
 
-void ProcGenerator::handleProcess() {
+void ProcGenerator::handleProcess(Process *proc) {
+  this->p = proc;
+  this->sc = p->CurScope();
   const char *pName = p->getName();
   if (debug_verbose) {
     printf("processing %s\n", pName);

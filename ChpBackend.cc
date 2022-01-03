@@ -38,7 +38,8 @@ void ChpBackend::printSource(const char *outName,
   libGenerator->createSource(instance, metric);
 }
 
-void ChpBackend::printFU(const char *instName,
+void ChpBackend::printFU(const char *procName,
+                         const char *instName,
                          StringVec &argList,
                          UIntVec &argBWList,
                          UIntVec &resBWList,
@@ -63,7 +64,7 @@ void ChpBackend::printFU(const char *instName,
                               buffMap);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
-  libGenerator->createFU(instName,
+  libGenerator->createFU(procName,
                          calc,
                          def,
                          numArgs,

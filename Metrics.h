@@ -28,7 +28,7 @@ class Metrics {
 
   void printOpMetrics();
 
-  double *getOpMetric(const char *op);
+  double *getOpMetric(const char *instance);
 
   int getInstanceCnt(const char *instance);
 

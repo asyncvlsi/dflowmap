@@ -19,25 +19,22 @@ void Metrics::updateMetrics(const char *op, double *metric) {
   opMetrics.insert(std::make_pair(op, metric));
 }
 
-double *Metrics::getOpMetric(const char *opName) {
-  if (opName == nullptr) {
-    printf("normalizedOp is NULL\n");
+double *Metrics::getOpMetric(const char *instance) {
+  if (instance == nullptr) {
+    printf("Try to get metric for null instance!\n");
     exit(-1);
   }
-  unsigned opLen = strlen(opName);
-  char *normalizedOp = new char[opLen + 1];
-  normalizedOp[0] = '\0';
-  getNormInstanceName(opName);
+  const char *normInstance = getNormInstanceName(instance);
   if (debug_verbose) {
-    printf("get op metric for %s, norm name: %s\n", opName, normalizedOp);
+    printf("get op metric for %s, norm name: %s\n", instance, normInstance);
   }
   for (auto &opMetricsIt : opMetrics) {
-    if (!strcmp(opMetricsIt.first, normalizedOp)) {
+    if (!strcmp(opMetricsIt.first, normInstance)) {
       return opMetricsIt.second;
     }
   }
   if (debug_verbose) {
-    printf("We don't have metric info for (`%s`,`%s')\n", opName, normalizedOp);
+    printf("We don't have metric info for (`%s`,`%s')\n", instance, normInstance);
   }
   return nullptr;
 }

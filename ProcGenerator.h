@@ -25,9 +25,9 @@
 
 class ProcGenerator {
  public:
-  ProcGenerator(Process *p, Metrics *metrics, ChpBackend *chpBackend);
+  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend);
 
-  void handleProcess();
+  void handleProcess(Process *p);
 
   const char *getActIdOrCopyName(ActId *actId);
 
@@ -224,8 +224,6 @@ class ProcGenerator {
 
   bool isOpUsed(ActId *actId);
 
-  void genMemConfiguration(const char *procName);
-
  private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
@@ -233,10 +231,10 @@ class ProcGenerator {
   Map<act_connection *, unsigned> opUses;
   /* copy operator, # of times it has already been used */
   Map<act_connection *, unsigned> copyUses;
-  Process *p;
-  Scope *sc;
   Metrics *metrics;
   ChpBackend *chpBackend;
+  Process *p;
+  Scope *sc;
 
   void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
 

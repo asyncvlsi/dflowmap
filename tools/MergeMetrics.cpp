@@ -45,8 +45,8 @@ void updateMetrics(const char *op, double *metric) {
         if (!exist) {
           diffOps.push_back(op);
         }
-        return;
       }
+      return;
     }
   }
   opMetrics.insert(std::make_pair(op, metric));
