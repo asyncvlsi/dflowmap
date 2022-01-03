@@ -245,9 +245,8 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := (bool)%s ? %s : %s;\n", result_suffix, cStr,
-      lStr,
-          rStr);
+  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
+          result_suffix, cStr, lStr, rStr);
   strcat(calc, curCal);
   int cPrefix = std::atoi(cStr + 3);
   int lPrefix = std::atoi(lStr + 3);
@@ -474,8 +473,24 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   char *newExpr = new char[100];
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
+  if (result_bw == 0) {
+    result_bw = getExprBW(type, lResBW, rResBW);
+    if (result_bw == 0) {
+      print_expr(stdout, expr);
+      printf("result_bw is 0!\n");
+      exit(-1);
+    }
+  }
+  resBWList.push_back(result_bw);
   char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+  bool binType = isBinType(type);
+  if (binType) {
+    sprintf(curCal, "      res%d := int(%s %s %s);\n",
+            result_suffix, lStr, op, rStr);
+  } else {
+    sprintf(curCal, "      res%d := %s %s %s;\n",
+            result_suffix, lStr, op, rStr);
+  }
   strcat(calc, curCal);
   if ((String(op) == "=") && (String(rStr) == "0")) {
     int cPrefix = std::atoi(lStr + 3);
@@ -503,15 +518,7 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
     printf(", both lResBW and rResBW are 0!\n");
     exit(-1);
   }
-  if (result_bw == 0) {
-    result_bw = getExprBW(type, lResBW, rResBW);
-    if (result_bw == 0) {
-      print_expr(stdout, expr);
-      printf("result_bw is 0!\n");
-      exit(-1);
-    }
-  }
-  resBWList.push_back(result_bw);
+
   if (debug_verbose) {
     printf("bin res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
@@ -1561,9 +1568,14 @@ void ProcGenerator::printDFlowFunc(const char *procName,
       printf("%s ", out.c_str());
     }
     printf("\n");
-    printf("initMap:\n");
+    printf("initMap: ");
     for (auto &initMapIt : initMap) {
       printf("(%u, %lu) ", initMapIt.first, initMapIt.second);
+    }
+    printf("\n");
+    printf("buffMap: ");
+    for (auto &buffMapIt : buffMap) {
+      printf("(%u, %lu) ", buffMapIt.first, buffMapIt.second);
     }
     printf("\n");
     printf("boolResSuffixs: ");

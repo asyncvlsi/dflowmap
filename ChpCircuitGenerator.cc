@@ -113,7 +113,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
     char *actualOut = new char[10240];
     const char *oriOut = outList[i].c_str();
     if (initMap.find(i) != initMap.end()) {
-      sprintf(actualOut, "%s_new", oriOut);
+      sprintf(actualOut, "%s_in", oriOut);
     } else if (buffMap.find(i) != buffMap.end()) {
       sprintf(actualOut, "%s_buf0", oriOut);
     } else {
@@ -178,7 +178,7 @@ void ChpCircuitGenerator::printArbiter(const char *outName,
   fprintf(resFp, "%s, %s);\n", outName, coutName);
 }
 
-void ChpCircuitGenerator::printProcHeader(Process* p) {
+void ChpCircuitGenerator::printProcHeader(Process *p) {
   p->PrintHeader(resFp, "defproc");
   fprintf(resFp, "\n{");
   p->CurScope()->Print(resFp);

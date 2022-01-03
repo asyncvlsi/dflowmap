@@ -29,4 +29,6 @@ Expr *getExprFromName(const char *name,
                       bool exitOnMissing,
                       int exprType);
 
+bool isBinType(int exprType);
+
 #endif //DFLOWMAP__HELPER_H_

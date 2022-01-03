@@ -54,8 +54,8 @@ int searchStringVec(StringVec &strVec, const char *str) {
   }
 }
 
-Expr * genExprFromStr(const char *str,
-                    int exprType) {
+Expr *genExprFromStr(const char *str,
+                     int exprType) {
   Expr *expr = new Expr;
   auto newLActId = ActId::parseId(str);
   expr->type = exprType;
@@ -63,7 +63,7 @@ Expr * genExprFromStr(const char *str,
   return expr;
 }
 
-Expr * genExprFromInt(unsigned long val) {
+Expr *genExprFromInt(unsigned long val) {
   Expr *expr = new Expr;
   expr->type = E_INT;
   expr->u.v = val;
@@ -92,4 +92,9 @@ Expr *getExprFromName(const char *name,
   }
   exprMap.insert(GenPair(name, newExpr));
   return newExpr;
+}
+
+bool isBinType(int exprType) {
+  return (exprType == E_LT) || (exprType == E_GT) || (exprType == E_LE)
+      || (exprType == E_GE) || (exprType == E_EQ) || (exprType == E_NE);
 }
