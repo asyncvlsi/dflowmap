@@ -1485,6 +1485,7 @@ void ProcGenerator::createINIT(Map<unsigned, unsigned long> &initMap,
     unsigned outBW = outWidthList[outID];
     unsigned long initVal = initMapIt.second;
     double *initMetric = metrics->getOrGenInitMetric(outBW);
+
     chpBackend->printInit(outName, outBW, initVal, initMetric);
   }
 }

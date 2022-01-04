@@ -337,18 +337,23 @@ void ChpLibGenerator::createSource(const char *instance, double *metric) {
 
 void ChpLibGenerator::createInit(const char *instance, double *metric) {
   if (!hasProcess("init")) {
-    fprintf(libFp, "template<pint V, W>\n");
-    fprintf(libFp,
-            "defproc init(chan?(int<W>)in; chan!(int<W>) out) {\n");
-    fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  chp {\n    out!V;\n");
-    fprintf(libFp, "    log(\"send initVal \", V);\n");
-    fprintf(libFp, "    *[in?x; out!x; log(\"send \", x)]\n  }\n}\n\n");
+    fprintf(libFp, R"(
+template<pint V, W>
+defproc init(chan?(int<W>)in; chan!(int<W>) out) {
+  int<W> x;
+  chp {
+    out!V;
+    log("send initVal ", V);
+    *[in?x; out!x; log("send ", x)]
+  }
+}
+
+    )");
   }
   createConf(instance, metric);
 }
 
-void ChpLibGenerator::createBuff(const char *instance, double *metric) {
+void ChpLibGenerator::createOneBuff(const char *instance, double *metric) {
   if (!hasProcess("onebuf")) {
     fprintf(libFp, R"(
 template<pint W>
@@ -358,6 +363,7 @@ defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
     *[in?x; out!x]
   }
 }
+
 )");
   }
   createConf(instance, metric);

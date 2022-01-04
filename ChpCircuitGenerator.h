@@ -13,14 +13,9 @@ class ChpCircuitGenerator {
  private:
   FILE *resFp;
  public:
-  ChpCircuitGenerator(FILE *resFp);
-  void printSink(const char *inName, unsigned bitwidth);
+  explicit ChpCircuitGenerator(FILE *resFp);
 
-//  void printInt(const char *out,
-//                const char *normalizedOut,
-//                unsigned long val,
-//                unsigned outWidth,
-//                const double metric[4]);
+  void printSink(const char *inName, unsigned bitwidth);
 
   void printCopy(const char *inputName,
                  unsigned int bw,
@@ -28,7 +23,14 @@ class ChpCircuitGenerator {
 
   void printEmptyLine();
 
-  void printInit(const char *outName, unsigned bitwidth, unsigned long initVal);
+  void printInit(const char *inName,
+                 const char *outName,
+                 unsigned bitwidth,
+                 unsigned long initVal);
+
+  void printBuff(const char *inName, const char *outName, unsigned bitwidth);
+
+  void printChannel(const char* chanName, unsigned bitwidth);
 
   void printSource(const char *instance, const char *outName);
 
@@ -64,7 +66,7 @@ class ChpCircuitGenerator {
                     int numIn,
                     CharPtrVec &inNameVec);
 
-  void printProcHeader(Process* p);
+  void printProcHeader(Process *p);
 
   void printProcEnding();
 };

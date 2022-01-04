@@ -53,22 +53,42 @@ void ChpCircuitGenerator::printEmptyLine() {
   fprintf(resFp, "\n");
 }
 
-void ChpCircuitGenerator::printInit(const char *outName,
+void ChpCircuitGenerator::printInit(const char *inName,
+                                    const char *outName,
                                     unsigned bitwidth,
                                     unsigned long initVal) {
-  char *inName = new char[4 + strlen(outName)];
-  sprintf(inName, "%s_in", outName);
-  fprintf(resFp, "chan(int<%u>) %s;\n", bitwidth, inName);
+//  char *inName = new char[4 + strlen(outName)];
+//  sprintf(inName, "%s_in", outName);
+//  fprintf(resFp, "chan(int<%u>) %s;\n", bitwidth, inName);
   fprintf(resFp,
-          "init<%lu,%u> %s_init(%s, %s);\n",
+          "init<%lu,%u> %s_inst(%s, %s);\n",
           initVal,
           bitwidth,
           outName,
           inName,
           outName);
   if (debug_verbose) {
-    printf("[init] %s_init\n", outName);
+    printf("[buff] %s_init\n", outName);
   }
+}
+
+void ChpCircuitGenerator::printBuff(const char *inName,
+                                    const char *outName,
+                                    unsigned bitwidth) {
+  fprintf(resFp,
+          "onebuf<%u> %s_inst(%s, %s);\n",
+          bitwidth,
+          outName,
+          inName,
+          outName);
+  if (debug_verbose) {
+    printf("[buff] %s_init\n", outName);
+  }
+}
+
+void ChpCircuitGenerator::printChannel(const char *chanName,
+                                       unsigned int bitwidth) {
+  fprintf(resFp, "chan(int<%u>) %s;\n", bitwidth, chanName);
 }
 
 void ChpCircuitGenerator::printSource(const char *instance,

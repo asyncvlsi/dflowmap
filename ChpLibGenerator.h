@@ -59,7 +59,7 @@ class ChpLibGenerator {
 
   void createInit(const char *instance, double *metric);
 
-  void createBuff(const char *instance, double *metric);
+  void createOneBuff(const char *instance, double *metric);
 
   void createSink(const char *instance, double *metric);
 

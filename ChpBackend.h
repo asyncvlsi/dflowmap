@@ -23,10 +23,20 @@ class ChpBackend {
 
   void printSink(const char *inName, unsigned bw, double metric[4]);
 
-  void printInit(const char *outName,
-                 unsigned int bitwidth,
-                 unsigned long initVal,
-                 double metric[4]);
+//  void printInit(const char *outName,
+//                 unsigned int bitwidth,
+//                 unsigned long initVal,
+//                 double metric[4]);
+
+  void printBuff(const char *inName,
+                 const char *outName,
+                 unsigned bw,
+                 unsigned numBuff,
+                 double metric[4],
+                 bool hasInitVal,
+                 unsigned long initVal = -1);
+
+  void printChannel(const char* chanName, unsigned bitwidth);
 
   void printSource(const char *outName,
                    const char *instance,
