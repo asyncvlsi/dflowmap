@@ -156,7 +156,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   }
   for (unsigned i = 0; i < numOuts; i++) {
     const char *oriOut = outList[i].c_str();
-    char *actualOut = new char[5 + strlen(oriOut)];
+    char *actualOut = new char[7 + strlen(oriOut)];
     if (hasInVector<unsigned>(buffOutIDs, i)) {
       sprintf(actualOut, "%s_bufIn", oriOut);
     } else {

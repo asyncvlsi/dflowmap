@@ -1993,7 +1993,7 @@ void ProcGenerator::collectBitwidthInfo() {
           print_expr(stdout, expr);
           printf(" is E_VAR!\n");
         }
-        char *subProc = new char[6];
+        char *subProc = new char[10];
         if (strlen(procName)) {
           sprintf(subProc, "_port");
         } else {
