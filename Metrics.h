@@ -56,6 +56,8 @@ class Metrics {
 
   double *getOrGenInitMetric(unsigned bitwidth);
 
+  double* getBuffMetric(unsigned nBuff, unsigned bw);
+
   double *getOrGenFUMetric(const char *instName,
                            StringMap<unsigned> &inBW,
                            StringMap<unsigned> &hiddenBW,

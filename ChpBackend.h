@@ -23,20 +23,9 @@ class ChpBackend {
 
   void printSink(const char *inName, unsigned bw, double metric[4]);
 
-//  void printInit(const char *outName,
-//                 unsigned int bitwidth,
-//                 unsigned long initVal,
-//                 double metric[4]);
+  void printBuff(Vector<BuffInfo> &buffInfos);
 
-  void printBuff(const char *inName,
-                 const char *outName,
-                 unsigned bw,
-                 unsigned numBuff,
-                 double metric[4],
-                 bool hasInitVal,
-                 unsigned long initVal = -1);
-
-  void printChannel(const char* chanName, unsigned bitwidth);
+  void printChannel(const char *chanName, unsigned bitwidth);
 
   void printSource(const char *outName,
                    const char *instance,
@@ -55,8 +44,8 @@ class ChpBackend {
                StringVec &normalizedOutList,
                StringVec &outList,
                Map<unsigned, unsigned long> &initMap,
-               Map<unsigned, unsigned long> &buffMap,
-               double *metric);
+               Vector<BuffInfo> &buffInfos,
+               double fuMetric[4]);
 
   void printSplit(const char *procName,
                   const char *splitName,

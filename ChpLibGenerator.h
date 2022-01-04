@@ -23,11 +23,12 @@ class ChpLibGenerator {
                 unsigned int numArgs,
                 unsigned int numOuts,
                 const char *instance,
-                double *metric,
+                double *fuMetric,
                 UIntVec &resBW,
                 UIntVec &outBW,
                 StringVec &outSendStr,
-                IntVec &outResSuffixs);
+                IntVec &outResSuffixs,
+                Vector<BuffInfo> &buffInfos);
 
   void createFULib(const char *procName,
                    const char *calc,
@@ -60,6 +61,8 @@ class ChpLibGenerator {
   void createInit(const char *instance, double *metric);
 
   void createOneBuff(const char *instance, double *metric);
+
+  void createBuff(Vector<BuffInfo> &buffInfos);
 
   void createSink(const char *instance, double *metric);
 

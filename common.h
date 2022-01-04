@@ -57,10 +57,21 @@ using Map = std::map<T1, T2>;
 template<class T>
 using StringMap = std::map<String, T>;
 
+template<class T>
+using Vector = std::vector<T>;
+
 template<class T1, class T2>
-std::pair<T1, T2> GenPair(T1 a, T2 b) {
-  return std::make_pair(a, b);
-}
+using Pair = std::pair<T1, T2>;
+
+typedef struct buffInfo {
+  unsigned outputID;
+  unsigned bw;
+  unsigned long nBuff;
+  unsigned long initVal;
+  const char* finalOutput;
+  bool hasInitVal;
+  double* metric;
+} BuffInfo;
 
 template<typename A, typename B>
 std::pair<B, A> flip_pair(const std::pair<A, B> &p) {

@@ -90,7 +90,7 @@ Expr *getExprFromName(const char *name,
   } else {
     newExpr = genExprFromStr(name, exprType);
   }
-  exprMap.insert(GenPair(name, newExpr));
+  exprMap.insert({name, newExpr});
   return newExpr;
 }
 

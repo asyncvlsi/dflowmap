@@ -131,9 +131,9 @@ unsigned Metrics::getEquivalentBW(unsigned oriBW) {
 
 double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   updateCopyStatistics(bitwidth, numOut);
-  char *instName = new char[1500];
-  sprintf(instName, "copy<%u,%u>", bitwidth, numOut);
-  double *metric = getOpMetric(instName);
+  char *instance = new char[1500];
+  sprintf(instance, "copy<%u,%u>", bitwidth, numOut);
+  double *metric = getOpMetric(instance);
   if (!metric && LOGIC_OPTIMIZER) {
     char *equivInstance = new char[1500];
     int equivN = int(ceil(log2(numOut))) - 1;
@@ -161,14 +161,14 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
       metric[2] = equivN * equivMetric[2];
       metric[3] = equivN * equivMetric[3];
     }
-    const char *normInstance = getNormInstanceName(instName);
+    const char *normInstance = getNormInstanceName(instance);
     updateMetrics(normInstance, metric);
     writeMetricsFile(normInstance, metric);
   }
   if (!metric) {
     bool actnCp = false;
     bool actnDp = false;
-    updateStatistics(instName, actnCp, actnDp, metric);
+    updateStatistics(instance, actnCp, actnDp, metric);
   }
 
   return metric;
@@ -210,29 +210,45 @@ double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
 }
 
 double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
-  char *instName = new char[100];
-  sprintf(instName, "init%u", bitwidth);
-  double *metric = getOpMetric(instName);
+  char *instance = new char[100];
+  sprintf(instance, "init%u", bitwidth);
+  double *metric = getOpMetric(instance);
   if (metric != nullptr) {
     bool actnCp = false;
     bool actnDp = false;
-    updateStatistics(instName, actnCp, actnDp, metric);
+    updateStatistics(instance, actnCp, actnDp, metric);
   }
   return metric;
 }
 
-double *Metrics::getOrGenFUMetric(const char *instName,
+double* Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
+  char *instance = new char[100];
+  sprintf(instance, "latch%u", bw);
+  double *metric = getOpMetric(instance);
+  if (metric) {
+    metric[0] = nBuff * metric[0];
+    metric[1] = nBuff * metric[1];
+    metric[2] = nBuff * metric[2];
+    metric[3] = nBuff * metric[3];
+    bool actnCp = false;
+    bool actnDp = false;
+    updateStatistics(instance, actnCp, actnDp, metric);
+  }
+  return metric;
+}
+
+double *Metrics::getOrGenFUMetric(const char *instance,
                                   StringMap<unsigned> &inBW,
                                   StringMap<unsigned> &hiddenBW,
                                   Map<const char *, Expr *> &exprMap,
                                   Map<Expr *, Expr *> &hiddenExprs,
                                   Map<int, int> &outRecord,
                                   UIntVec &outWidthList) {
-  double *metric = getOpMetric(instName);
+  double *metric = getOpMetric(instance);
   if (!metric) {
 #if LOGIC_OPTIMIZER
     if (debug_verbose) {
-      printf("Will run logic optimizer for %s\n", instName);
+      printf("Will run logic optimizer for %s\n", instance);
     }
     /* Prepare in_expr_list */
     list_t *in_expr_list = list_new();
@@ -354,7 +370,7 @@ double *Metrics::getOrGenFUMetric(const char *instName,
       }
       printf("\n");
     }
-    const char *normalizedOp = getNormInstanceName(instName);
+    const char *normalizedOp = getNormInstanceName(instance);
     char *optimizerProcName = new char[1000];
     sprintf(optimizerProcName, "op");
     if (debug_verbose) {
@@ -414,7 +430,7 @@ double *Metrics::getOrGenFUMetric(const char *instName,
   if (metric != nullptr) {
     bool actnCp = false;
     bool actnDp = false;
-    updateStatistics(instName, actnCp, actnDp, metric);
+    updateStatistics(instance, actnCp, actnDp, metric);
   }
   return metric;
 }
@@ -473,11 +489,11 @@ void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
     if (recordIt != record.end()) {
       recordIt->second++;
     } else {
-      record.insert(GenPair(numOutputs, 1));
+      record.insert({numOutputs, 1});
     }
   } else {
     Map<int, int> record = {{numOutputs, 1}};
-    copyStatistics.insert(GenPair(bitwidth, record));
+    copyStatistics.insert({bitwidth, record});
   }
 }
 
@@ -548,7 +564,7 @@ void Metrics::updateSplitMetrics(double metric[4]) {
   splitLeakPower += leakPower;
 }
 
-void Metrics::updateStatistics(const char *instName,
+void Metrics::updateStatistics(const char *instance,
                                bool actnCp,
                                bool actnDp,
                                double metric[4]) {
@@ -558,7 +574,7 @@ void Metrics::updateStatistics(const char *instName,
   totalLeakPowewr += leakPower;
   bool exist = false;
   for (auto &areaStatisticsIt : areaStatistics) {
-    if (!strcmp(areaStatisticsIt.first, instName)) {
+    if (!strcmp(areaStatisticsIt.first, instance)) {
       areaStatisticsIt.second += area;
       exist = true;
     }
@@ -566,7 +582,7 @@ void Metrics::updateStatistics(const char *instName,
   if (exist) {
     bool foundLP = false;
     for (auto &leakpowerStatisticsIt : leakpowerStatistics) {
-      if (!strcmp(leakpowerStatisticsIt.first, instName)) {
+      if (!strcmp(leakpowerStatisticsIt.first, instance)) {
         leakpowerStatisticsIt.second += leakPower;
         foundLP = true;
         break;
@@ -575,22 +591,22 @@ void Metrics::updateStatistics(const char *instName,
     if (!foundLP) {
       printf(
           "We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
-          instName);
+          instance);
       exit(-1);
     }
     for (auto &instanceCntIt : instanceCnt) {
-      if (!strcmp(instanceCntIt.first, instName)) {
+      if (!strcmp(instanceCntIt.first, instance)) {
         instanceCntIt.second += 1;
         return;
       }
     }
     printf("We could find %s in areaStatistics, but not in instanceCnt!\n",
-           instName);
+           instance);
     exit(-1);
   } else {
-    areaStatistics.insert(GenPair(instName, area));
-    leakpowerStatistics.insert(GenPair(instName, leakPower));
-    instanceCnt.insert(GenPair(instName, 1));
+    areaStatistics.insert({instance, area});
+    leakpowerStatistics.insert({instance, leakPower});
+    instanceCnt.insert({instance, 1});
   }
   if (actnCp) {
     updateACTNCpMetrics(area, leakPower);

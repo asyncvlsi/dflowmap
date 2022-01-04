@@ -31,4 +31,9 @@ Expr *getExprFromName(const char *name,
 
 bool isBinType(int exprType);
 
+template<class T>
+bool hasInVector(Vector<T> &vector, T &elem) {
+  return std::find(vector.begin(), vector.end(), elem) != vector.end();
+}
+
 #endif //DFLOWMAP__HELPER_H_

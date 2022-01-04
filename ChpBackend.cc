@@ -21,47 +21,9 @@ void ChpBackend::printSink(const char *inName, unsigned bw, double metric[4]) {
   libGenerator->createSink(instName, metric);
 }
 
-//void ChpBackend::printInit(const char *outName,
-//                           unsigned int bitwidth,
-//                           unsigned long initVal,
-//                           double metric[4]) {
-//  circuitGenerator->printInit(outName, bitwidth, initVal);
-//  char *instName = new char[100];
-//  sprintf(instName, "init%u", bitwidth);
-//  libGenerator->createInit(instName, metric);
-//}
-
-void ChpBackend::printBuff(const char *inName,
-                           const char *outName,
-                           unsigned bw,
-                           unsigned numBuff,
-                           double metric[4],
-                           bool hasInitVal,
-                           unsigned long initVal) {
-  unsigned numChan = numBuff - 1;
-  const char* prevInName = inName;
-  for (unsigned i = 0; i < numChan; i++) {
-    char* chanName = new char[strlen(outName) + 1024];
-    sprintf(chanName, "%s_buf%u", outName, i);
-    printChannel(chanName, bw);
-    circuitGenerator->printBuff(prevInName, chanName, bw);
-    prevInName = chanName;
-  }
-  if (hasInitVal) {
-    circuitGenerator->printInit(prevInName, outName, bw, initVal);
-  } else {
-    circuitGenerator->printBuff(prevInName, outName, bw);
-  }
-  if ((numChan > 0) || (!hasInitVal)) {
-    char* buffInstance = new char[1024];
-    sprintf(buffInstance, "onebuf<%u>", bw);
-    libGenerator->createOneBuff(buffInstance, metric);
-  }
-  if (hasInitVal) {
-    char* initInstance = new char[1024];
-    sprintf(initInstance, "init<%lu,%u>", initVal, bw);
-    libGenerator->createInit(initInstance, metric);
-  }
+void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
+  circuitGenerator->printBuff(buffInfos);
+  libGenerator->createBuff(buffInfos);
 }
 
 void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
@@ -88,8 +50,9 @@ void ChpBackend::printFU(const char *procName,
                          StringVec &normalizedOutList,
                          StringVec &outList,
                          Map<unsigned, unsigned long> &initMap,
-                         Map<unsigned, unsigned long> &buffMap,
-                         double *metric) {
+                         Vector<BuffInfo> &buffInfos,
+                         double fuMetric[4]) {
+  /* handle normal fu */
   circuitGenerator->printFunc(instName,
                               argList,
                               argBWList,
@@ -98,7 +61,7 @@ void ChpBackend::printFU(const char *procName,
                               normalizedOutList,
                               outList,
                               initMap,
-                              buffMap);
+                              buffInfos);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
   libGenerator->createFU(procName,
@@ -107,11 +70,12 @@ void ChpBackend::printFU(const char *procName,
                          numArgs,
                          numOuts,
                          instName,
-                         metric,
+                         fuMetric,
                          resBWList,
                          outBWList,
                          outSendStr,
-                         outResSuffixs);
+                         outResSuffixs,
+                         buffInfos);
 }
 
 void ChpBackend::printSplit(const char *procName,

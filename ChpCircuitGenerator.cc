@@ -72,9 +72,9 @@ void ChpCircuitGenerator::printInit(const char *inName,
   }
 }
 
-void ChpCircuitGenerator::printBuff(const char *inName,
-                                    const char *outName,
-                                    unsigned bitwidth) {
+void ChpCircuitGenerator::printOneBuff(const char *inName,
+                                       const char *outName,
+                                       unsigned bitwidth) {
   fprintf(resFp,
           "onebuf<%u> %s_inst(%s, %s);\n",
           bitwidth,
@@ -97,6 +97,30 @@ void ChpCircuitGenerator::printSource(const char *instance,
   fprintf(resFp, "%s %s_inst(%s);\n", instance, normOutName, outName);
 }
 
+void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
+  for (auto &buffInfo : buffInfos) {
+    const char *finalOutput = buffInfo.finalOutput;
+    unsigned bw = buffInfo.bw;
+    unsigned long nBuff = buffInfo.nBuff;
+    unsigned long initVal = buffInfo.initVal;
+    bool hasInitVal = buffInfo.hasInitVal;
+    char* prevInName =  new char[strlen(finalOutput) + 7];
+    sprintf(prevInName, "%s_bufIn", finalOutput);
+    for (unsigned i = 0; i < nBuff - 1; i++) {
+      char* chanName = new char[strlen(finalOutput) + 1024];
+      sprintf(chanName, "%s_buf%u", finalOutput, i);
+      printChannel(chanName, bw);
+      printOneBuff(prevInName, chanName, bw);
+      prevInName = chanName;
+    }
+    if (hasInitVal) {
+      printInit(prevInName, finalOutput, bw, initVal);
+    } else {
+      printOneBuff(prevInName, finalOutput, bw);
+    }
+  }
+}
+
 void ChpCircuitGenerator::printFunc(const char *instance,
                                     StringVec &argList,
                                     UIntVec &argBWList,
@@ -105,11 +129,9 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     StringVec &normalizedOutList,
                                     StringVec &outList,
                                     Map<unsigned, unsigned long> &initMap,
-                                    Map<unsigned, unsigned long> &buffMap) {
+                                    Vector<BuffInfo> &buffInfos) {
   fprintf(resFp, "%s ", instance);
-  if (debug_verbose) {
-    printf("[fu]: ");
-  }
+  printf("[fu]: ");
   for (auto &normalizedOut : normalizedOutList) {
     fprintf(resFp, "%s_", normalizedOut.c_str());
     if (debug_verbose) {
@@ -123,19 +145,20 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
-  int numOuts = outList.size();
+  unsigned numOuts = outList.size();
   if (numOuts < 1) {
     printf("No output is found!\n");
     exit(-1);
   }
-  int i = 0;
-  for (i = 0; i < numOuts; i++) {
-    char *actualOut = new char[10240];
+  Vector<unsigned> buffOutIDs;
+  for (auto &buffInfo : buffInfos) {
+    buffOutIDs.push_back(buffInfo.outputID);
+  }
+  for (unsigned i = 0; i < numOuts; i++) {
     const char *oriOut = outList[i].c_str();
-    if (initMap.find(i) != initMap.end()) {
-      sprintf(actualOut, "%s_in", oriOut);
-    } else if (buffMap.find(i) != buffMap.end()) {
-      sprintf(actualOut, "%s_buf0", oriOut);
+    char *actualOut = new char[5 + strlen(oriOut)];
+    if (hasInVector<unsigned>(buffOutIDs, i)) {
+      sprintf(actualOut, "%s_bufIn", oriOut);
     } else {
       sprintf(actualOut, "%s", oriOut);
     }
@@ -146,6 +169,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
       fprintf(resFp, ", ");
     }
   }
+//  printBuff(buffInfos);
 }
 
 void ChpCircuitGenerator::printSplit(const char *procName,

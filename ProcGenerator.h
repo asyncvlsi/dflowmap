@@ -179,7 +179,7 @@ class ProcGenerator {
                       StringVec &normalizedOutList,
                       StringVec &outList,
                       Map<unsigned, unsigned long> &initMap,
-                      Map<unsigned, unsigned long> &buffMap,
+                      Vector<BuffInfo> &buffInfos,
                       IntVec &boolRes,
                       Map<const char *, Expr *> &exprMap,
                       StringMap<unsigned> &inBW,
@@ -205,7 +205,7 @@ class ProcGenerator {
                        StringVec &normalizedOutList,
                        UIntVec &outWidthList,
                        Map<unsigned, unsigned long> &initMap,
-                       Map<unsigned, unsigned long> &buffMap,
+                       Vector<BuffInfo> &buffInfos,
                        IntVec &boolRes,
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
@@ -237,10 +237,6 @@ class ProcGenerator {
   Scope *sc;
 
   void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
-
-  void createINIT(Map<unsigned, unsigned long> &initMap,
-                  UIntVec &outWidthList,
-                  StringVec &outList);
 
   void createSink(const char *name, unsigned bitwidth);
 

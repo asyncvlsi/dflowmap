@@ -28,7 +28,9 @@ class ChpCircuitGenerator {
                  unsigned bitwidth,
                  unsigned long initVal);
 
-  void printBuff(const char *inName, const char *outName, unsigned bitwidth);
+  void printOneBuff(const char *inName, const char *outName, unsigned bitwidth);
+
+  void printBuff(Vector<BuffInfo> &buffInfos);
 
   void printChannel(const char* chanName, unsigned bitwidth);
 
@@ -42,7 +44,7 @@ class ChpCircuitGenerator {
                  StringVec &normalizedOutList,
                  StringVec &outList,
                  Map<unsigned, unsigned long> &initMap,
-                 Map<unsigned, unsigned long> &buffMap);
+                 Vector<BuffInfo> &buffInfos);
 
   void printSplit(const char *procName,
                   const char *splitName,

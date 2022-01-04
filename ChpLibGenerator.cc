@@ -100,11 +100,12 @@ void ChpLibGenerator::createFU(const char *procName,
                                unsigned int numArgs,
                                unsigned int numOuts,
                                const char *instance,
-                               double *metric,
+                               double *fuMetric,
                                UIntVec &resBW,
                                UIntVec &outBW,
                                StringVec &outSendStr,
-                               IntVec &outResSuffixs) {
+                               IntVec &outResSuffixs,
+                               Vector<BuffInfo> &buffInfos) {
   if (strlen(instance) < 5) {
     printf("Invalid instance name %s\n", instance);
     exit(-1);
@@ -131,10 +132,17 @@ void ChpLibGenerator::createFU(const char *procName,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-  createFULib(procName, calc, def, outSend,
+  createFULib(procName,
+              calc,
+              def,
+              outSend,
               numArgs,
-              numOuts, instance, metric, resBW,
+              numOuts,
+              instance,
+              fuMetric,
+              resBW,
               outBW);
+//  createBuff(buffInfos, buffMetric);
 }
 
 void ChpLibGenerator::createFULib(const char *procName,
@@ -367,6 +375,26 @@ defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
 )");
   }
   createConf(instance, metric);
+}
+
+void ChpLibGenerator::createBuff(Vector<BuffInfo> &buffInfos) {
+  for (auto &buffInfo : buffInfos) {
+    unsigned numBuff = buffInfo.nBuff;
+    unsigned bw = buffInfo.bw;
+    bool hasInitVal = buffInfo.hasInitVal;
+    double* metric = buffInfo.metric;
+    if ((numBuff > 1) || (!hasInitVal)) {
+      char *buffInstance = new char[1024];
+      sprintf(buffInstance, "onebuf<%u>", bw);
+      createOneBuff(buffInstance, metric);
+    }
+    if (hasInitVal) {
+      char *initInstance = new char[1024];
+      unsigned long initVal = buffInfo.initVal;
+      sprintf(initInstance, "init<%lu,%u>", initVal, bw);
+      createInit(initInstance, metric);
+    }
+  }
 }
 
 void ChpLibGenerator::createSink(const char *instance, double *metric) {
