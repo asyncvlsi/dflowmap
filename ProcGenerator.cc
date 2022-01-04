@@ -2080,7 +2080,7 @@ void ProcGenerator::collectBitwidthInfo() {
           hasInitVal = true;
         }
         double *buffMetric = metrics->getBuffMetric(numBuff, outWidth);
-        buffInfos.push_back({outID, outWidth, numBuff, initVal, outName,
+        buffInfos.push_back({outID, outWidth, numBuff, initVal, out,
                              hasInitVal, buffMetric});
       }
       if (debug_verbose) {
@@ -2240,6 +2240,7 @@ void ProcGenerator::collectBitwidthInfo() {
           }
         }
         for (auto &sink : sinkVec) {
+          chpBackend->printChannel(sink, outBW);
           createSink(sink, outBW);
         }
 

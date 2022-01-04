@@ -21,19 +21,6 @@ void ChpCircuitGenerator::printSink(const char *inName, unsigned bitwidth) {
   fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, inName);
 }
 
-//void ChpCircuitGenerator::printInt(const char *out,
-//                                   const char *normalizedOut,
-//                                   unsigned long val,
-//                                   unsigned outWidth,
-//                                   const double metric[4]) {
-//  fprintf(resFp,
-//          "source<%lu,%u> %s_inst(%s);\n",
-//          val,
-//          outWidth,
-//          normalizedOut,
-//          out);
-//}
-
 void ChpCircuitGenerator::printCopy(const char *inputName,
                                     unsigned int bw,
                                     unsigned int numOut) {
@@ -104,10 +91,10 @@ void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
     unsigned long nBuff = buffInfo.nBuff;
     unsigned long initVal = buffInfo.initVal;
     bool hasInitVal = buffInfo.hasInitVal;
-    char* prevInName =  new char[strlen(finalOutput) + 7];
+    char *prevInName = new char[strlen(finalOutput) + 7];
     sprintf(prevInName, "%s_bufIn", finalOutput);
     for (unsigned i = 0; i < nBuff - 1; i++) {
-      char* chanName = new char[strlen(finalOutput) + 1024];
+      char *chanName = new char[strlen(finalOutput) + 1024];
       sprintf(chanName, "%s_buf%u", finalOutput, i);
       printChannel(chanName, bw);
       printOneBuff(prevInName, chanName, bw);
@@ -130,12 +117,50 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     StringVec &outList,
                                     Map<unsigned, unsigned long> &initMap,
                                     Vector<BuffInfo> &buffInfos) {
+  /* create port for BUFF first */
+  //TODO: may not need to create the port! (if there is no func body!!!)
+  for (auto &buffInfo : buffInfos) {
+    const char *output = buffInfo.finalOutput;
+    char *actualOut = new char[7 + strlen(output)];
+    sprintf(actualOut, "%s_bufIn", output);
+    unsigned bw = buffInfo.bw;
+    printChannel(actualOut, bw);
+  }
+
+  Vector<unsigned> buffOutIDs;
+  for (auto &buffInfo : buffInfos) {
+    buffOutIDs.push_back(buffInfo.outputID);
+  }
+  unsigned numOuts = outList.size();
+  if (numOuts < 1) {
+    printf("No output is found!\n");
+    exit(-1);
+  }
+  Vector<const char*> outputVec;
+  Vector<const char*> normOutputVec;
+  for (unsigned i = 0; i < numOuts; i++) {
+    const char *oriOut = outList[i].c_str();
+    const char* normOut = getNormActIdName(oriOut);
+    char *actualOut = new char[7 + strlen(oriOut)];
+    char *actualNormOut = new char[7 + strlen(normOut)];
+    if (hasInVector<unsigned>(buffOutIDs, i)) {
+      sprintf(actualOut, "%s_bufIn", oriOut);
+      sprintf(actualNormOut, "%s_bufIn", normOut);
+    } else {
+      sprintf(actualOut, "%s", oriOut);
+      sprintf(actualNormOut, "%s", normOut);
+    }
+    outputVec.push_back(actualOut);
+    normOutputVec.push_back(actualNormOut);
+  }
   fprintf(resFp, "%s ", instance);
-  printf("[fu]: ");
-  for (auto &normalizedOut : normalizedOutList) {
-    fprintf(resFp, "%s_", normalizedOut.c_str());
+  if (debug_verbose) {
+    printf("[fu]: ");
+  }
+  for (auto &normOutput : normOutputVec) {
+    fprintf(resFp, "%s_", normOutput);
     if (debug_verbose) {
-      printf("%s_", normalizedOut.c_str());
+      printf("%s_", normOutput);
     }
   }
   fprintf(resFp, "inst(");
@@ -145,31 +170,15 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   for (auto &arg : argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
-  unsigned numOuts = outList.size();
-  if (numOuts < 1) {
-    printf("No output is found!\n");
-    exit(-1);
-  }
-  Vector<unsigned> buffOutIDs;
-  for (auto &buffInfo : buffInfos) {
-    buffOutIDs.push_back(buffInfo.outputID);
-  }
   for (unsigned i = 0; i < numOuts; i++) {
-    const char *oriOut = outList[i].c_str();
-    char *actualOut = new char[7 + strlen(oriOut)];
-    if (hasInVector<unsigned>(buffOutIDs, i)) {
-      sprintf(actualOut, "%s_bufIn", oriOut);
-    } else {
-      sprintf(actualOut, "%s", oriOut);
-    }
-    fprintf(resFp, "%s", actualOut);
+    const char* output = outputVec[i];
+    fprintf(resFp, "%s", output);
     if (i == (numOuts - 1)) {
       fprintf(resFp, ");\n");
     } else {
       fprintf(resFp, ", ");
     }
   }
-//  printBuff(buffInfos);
 }
 
 void ChpCircuitGenerator::printSplit(const char *procName,
