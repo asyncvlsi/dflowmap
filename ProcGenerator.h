@@ -62,8 +62,6 @@ class ProcGenerator {
                          Map<const char *, Expr *> &exprMap,
                          StringMap<unsigned> &inBW,
                          StringMap<unsigned> &hiddenBW,
-                         IntVec &queryResSuffixs,
-                         IntVec &queryResSuffixs2,
                          Map<Expr *, Expr *> &hiddenExprs);
 
   const char *EMIT_BIN(Expr *expr,
@@ -85,8 +83,6 @@ class ProcGenerator {
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,
-                       IntVec &queryResSuffixs,
-                       IntVec &queryResSuffixs2,
                        Map<Expr *, Expr *> &hiddenExprs);
 
   const char *EMIT_UNI(Expr *expr,
@@ -108,8 +104,6 @@ class ProcGenerator {
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,
-                       IntVec &queryResSuffixs,
-                       IntVec &queryResSuffixs2,
                        Map<Expr *, Expr *> &hiddenExprs);
 
   const char *printExpr(Expr *expr,
@@ -128,8 +122,6 @@ class ProcGenerator {
                         Map<const char *, Expr *> &exprMap,
                         StringMap<unsigned> &inBW,
                         StringMap<unsigned> &hiddenBW,
-                        IntVec &queryResSuffixs,
-                        IntVec &queryResSuffixs2,
                         Map<Expr *, Expr *> &hiddenExprs);
 
   unsigned getCopyUses(ActId *actId);
@@ -178,14 +170,11 @@ class ProcGenerator {
                       IntVec &outResSuffixs,
                       StringVec &normalizedOutList,
                       StringVec &outList,
-                      Map<unsigned, unsigned long> &initMap,
                       Vector<BuffInfo> &buffInfos,
                       IntVec &boolRes,
                       Map<const char *, Expr *> &exprMap,
                       StringMap<unsigned> &inBW,
                       StringMap<unsigned> &hiddenBW,
-                      IntVec &queryResSuffixs,
-                      IntVec &queryResSuffixs2,
                       Map<int, int> &outRecord,
                       Map<Expr *, Expr *> &hiddenExprs,
                       UIntVec &buffBWs);
@@ -204,14 +193,11 @@ class ProcGenerator {
                        StringVec &outList,
                        StringVec &normalizedOutList,
                        UIntVec &outWidthList,
-                       Map<unsigned, unsigned long> &initMap,
                        Vector<BuffInfo> &buffInfos,
                        IntVec &boolRes,
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,
-                       IntVec &queryResSuffixs,
-                       IntVec &queryResSuffixs2,
                        Map<int, int> &outRecord,
                        UIntVec &buffBWs,
                        Map<Expr *, Expr *> &hiddenExprs);

@@ -115,7 +115,6 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     UIntVec &outWidthList,
                                     StringVec &normalizedOutList,
                                     StringVec &outList,
-                                    Map<unsigned, unsigned long> &initMap,
                                     Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
   //TODO: may not need to create the port! (if there is no func body!!!)

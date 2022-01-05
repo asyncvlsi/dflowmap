@@ -43,7 +43,6 @@ class ChpBackend {
                IntVec &outResSuffixs,
                StringVec &normalizedOutList,
                StringVec &outList,
-               Map<unsigned, unsigned long> &initMap,
                Vector<BuffInfo> &buffInfos,
                double fuMetric[4]);
 

@@ -43,7 +43,6 @@ class ChpCircuitGenerator {
                  UIntVec &outWidthList,
                  StringVec &normalizedOutList,
                  StringVec &outList,
-                 Map<unsigned, unsigned long> &initMap,
                  Vector<BuffInfo> &buffInfos);
 
   void printSplit(const char *procName,

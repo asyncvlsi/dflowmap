@@ -49,7 +49,6 @@ void ChpBackend::printFU(const char *procName,
                          IntVec &outResSuffixs,
                          StringVec &normalizedOutList,
                          StringVec &outList,
-                         Map<unsigned, unsigned long> &initMap,
                          Vector<BuffInfo> &buffInfos,
                          double fuMetric[4]) {
   /* handle normal fu */
@@ -60,7 +59,6 @@ void ChpBackend::printFU(const char *procName,
                               outBWList,
                               normalizedOutList,
                               outList,
-                              initMap,
                               buffInfos);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();

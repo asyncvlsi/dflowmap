@@ -160,8 +160,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                         Map<const char *, Expr *> &exprMap,
                                         StringMap<unsigned> &inBW,
                                         StringMap<unsigned> &hiddenBW,
-                                        IntVec &queryResSuffixs,
-                                        IntVec &queryResSuffixs2,
                                         Map<Expr *, Expr *> &hiddenExprs) {
     Expr *cExpr = expr->u.e.l;
     Expr *lExpr = expr->u.e.r->u.e.l;
@@ -188,8 +186,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     if (cBW != 1) {
       print_expr(stdout, expr);
@@ -216,8 +212,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     bool rConst = false;
     char *rCalcStr = new char[1500];
@@ -238,8 +232,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     char *newExpr = new char[100];
     result_suffix++;
@@ -248,38 +240,6 @@ void ProcGenerator::collectBitwidthInfo() {
     sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
             result_suffix, cStr, lStr, rStr);
     strcat(calc, curCal);
-    int cPrefix = std::atoi(cStr + 3);
-    int lPrefix = std::atoi(lStr + 3);
-    int rPrefix = std::atoi(rStr + 3);
-    if (String(cStr).find("res") == 0) {
-      queryResSuffixs2.push_back(cPrefix);
-    }
-    if ((String(lStr).find("res") == 0) &&
-        ((String(rStr).find("x") == 0)
-            || (((String(rStr) <= "9")) && (String(rStr) >= "0"))
-        )
-        ) {
-      queryResSuffixs.push_back(cPrefix);
-    }
-    if (String(lStr).find("x") == 0) {
-      queryResSuffixs.push_back(rPrefix);
-    }
-    if (String(rStr).find("x") == 0) {
-      queryResSuffixs.push_back(lPrefix);
-    }
-    if ((lResBW > 1) && (String(rStr).find("res") == 0)) {
-      queryResSuffixs.push_back(rPrefix);
-    }
-    if ((rResBW > 1) && (String(lStr).find("res") == 0)) {
-      queryResSuffixs.push_back(lPrefix);
-    }
-
-    if (lExpr->type == E_INT) {
-      queryResSuffixs.push_back(rPrefix);
-    } else if (rExpr->type == E_INT) {
-      queryResSuffixs.push_back(lPrefix);
-    }
-
     if ((lResBW == 0) && (rResBW == 0)) {
       print_expr(stdout, expr);
       printf(", both lResBW and rResBW are 0!\n");
@@ -408,8 +368,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                       Map<const char *, Expr *> &exprMap,
                                       StringMap<unsigned> &inBW,
                                       StringMap<unsigned> &hiddenBW,
-                                      IntVec &queryResSuffixs,
-                                      IntVec &queryResSuffixs2,
                                       Map<Expr *, Expr *> &hiddenExprs) {
     Expr *lExpr = expr->u.e.l;
     Expr *rExpr = expr->u.e.r;
@@ -435,8 +393,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     bool rConst = false;
     char *rCalcStr = new char[1500];
@@ -457,8 +413,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     if (lConst && rConst) {
       print_expr(stdout, expr);
@@ -492,27 +446,6 @@ void ProcGenerator::collectBitwidthInfo() {
               result_suffix, lStr, op, rStr);
     }
     strcat(calc, curCal);
-    if ((String(op) == "=") && (String(rStr) == "0")) {
-      int cPrefix = std::atoi(lStr + 3);
-      queryResSuffixs.push_back(cPrefix);
-    }
-    if (String(lStr).find("res") == 0) {
-      int lPrefix = std::atoi(lStr + 3);
-      queryResSuffixs.push_back(lPrefix);
-    }
-    if (String(rStr).find("res") == 0) {
-      int rPrefix = std::atoi(rStr + 3);
-      queryResSuffixs.push_back(rPrefix);
-    }
-
-    if (lConst) {
-      int rPrefix = std::atoi(rStr + 3);
-      queryResSuffixs.push_back(rPrefix);
-    } else if (rConst) {
-      int lPrefix = std::atoi(lStr + 3);
-      queryResSuffixs.push_back(lPrefix);
-    }
-
     if ((lResBW == 0) && (rResBW == 0)) {
       print_expr(stdout, expr);
       printf(", both lResBW and rResBW are 0!\n");
@@ -619,8 +552,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                       Map<const char *, Expr *> &exprMap,
                                       StringMap<unsigned> &inBW,
                                       StringMap<unsigned> &hiddenBW,
-                                      IntVec &queryResSuffixs,
-                                      IntVec &queryResSuffixs2,
                                       Map<Expr *, Expr *> &hiddenExprs) {
     /* collect bitwidth info */
     Expr *lExpr = expr->u.e.l;
@@ -646,8 +577,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                  exprMap,
                                  inBW,
                                  hiddenBW,
-                                 queryResSuffixs,
-                                 queryResSuffixs2,
                                  hiddenExprs);
     char *val = new char[100];
     getCurProc(lStr, val, lConst);
@@ -723,8 +652,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                        Map<const char *, Expr *> &exprMap,
                                        StringMap<unsigned> &inBW,
                                        StringMap<unsigned> &hiddenBW,
-                                       IntVec &queryResSuffixs,
-                                       IntVec &queryResSuffixs2,
                                        Map<Expr *, Expr *> &hiddenExprs) {
     int type = expr->type;
     switch (type) {
@@ -797,8 +724,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_OR: {
@@ -821,8 +746,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_NOT: {
@@ -845,8 +768,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_PLUS: {
@@ -869,8 +790,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_MINUS: {
@@ -893,8 +812,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_MULT: {
@@ -917,8 +834,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_DIV: {
@@ -941,8 +856,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_MOD: {
@@ -965,8 +878,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_LSL: {
@@ -989,8 +900,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_LSR: {
@@ -1013,8 +922,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_ASR: {
@@ -1037,8 +944,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_UMINUS: {
@@ -1061,8 +966,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_XOR: {
@@ -1085,8 +988,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_LT: {
@@ -1109,8 +1010,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_GT: {
@@ -1133,8 +1032,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_LE: {
@@ -1157,8 +1054,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_GE: {
@@ -1181,8 +1076,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_EQ: {
@@ -1193,7 +1086,7 @@ void ProcGenerator::collectBitwidthInfo() {
                         resBWList,
                         result_suffix, result_bw, calcStr, boolRes,
                         exprMap, inBW,
-                        hiddenBW, queryResSuffixs, queryResSuffixs2,
+                        hiddenBW,
                         hiddenExprs);
       }
       case E_NE: {
@@ -1216,8 +1109,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_COMPLEMENT: {
@@ -1240,8 +1131,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         hiddenExprs);
       }
       case E_BUILTIN_INT: {
@@ -1275,8 +1164,6 @@ void ProcGenerator::collectBitwidthInfo() {
                          exprMap,
                          inBW,
                          hiddenBW,
-                         queryResSuffixs,
-                         queryResSuffixs2,
                          hiddenExprs);
       }
       case E_BUILTIN_BOOL: {
@@ -1298,8 +1185,6 @@ void ProcGenerator::collectBitwidthInfo() {
                          exprMap,
                          inBW,
                          hiddenBW,
-                         queryResSuffixs,
-                         queryResSuffixs2,
                          hiddenExprs);
       }
       case E_QUERY: {
@@ -1322,8 +1207,6 @@ void ProcGenerator::collectBitwidthInfo() {
                           exprMap,
                           inBW,
                           hiddenBW,
-                          queryResSuffixs,
-                          queryResSuffixs2,
                           hiddenExprs);
       }
       default: {
@@ -1768,14 +1651,11 @@ void ProcGenerator::collectBitwidthInfo() {
                                      IntVec &outResSuffixs,
                                      StringVec &normalizedOutList,
                                      StringVec &outList,
-                                     Map<unsigned, unsigned long> &initMap,
                                      Vector<BuffInfo> &buffInfos,
                                      IntVec &boolRes,
                                      Map<const char *, Expr *> &exprMap,
                                      StringMap<unsigned> &inBW,
                                      StringMap<unsigned> &hiddenBW,
-                                     IntVec &queryResSuffixs,
-                                     IntVec &queryResSuffixs2,
                                      Map<int, int> &outRecord,
                                      Map<Expr *, Expr *> &hiddenExprs,
                                      UIntVec &buffBWs) {
@@ -1821,11 +1701,6 @@ void ProcGenerator::collectBitwidthInfo() {
         printf("%s ", out.c_str());
       }
       printf("\n");
-      printf("initMap: ");
-      for (auto &initMapIt : initMap) {
-        printf("(%u, %lu) ", initMapIt.first, initMapIt.second);
-      }
-      printf("\n");
       printf("buffInfos: ");
       for (auto &buffInfo : buffInfos) {
         printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
@@ -1868,7 +1743,6 @@ void ProcGenerator::collectBitwidthInfo() {
                         outResSuffixs,
                         normalizedOutList,
                         outList,
-                        initMap,
                         buffInfos,
                         fuMetric);
     chpBackend->printBuff(buffInfos);
@@ -1888,14 +1762,11 @@ void ProcGenerator::collectBitwidthInfo() {
                                       StringVec &outList,
                                       StringVec &normalizedOutList,
                                       UIntVec &outWidthList,
-                                      Map<unsigned, unsigned long> &initMap,
                                       Vector<BuffInfo> &buffInfos,
                                       IntVec &boolRes,
                                       Map<const char *, Expr *> &exprMap,
                                       StringMap<unsigned> &inBW,
                                       StringMap<unsigned> &hiddenBW,
-                                      IntVec &queryResSuffixs,
-                                      IntVec &queryResSuffixs2,
                                       Map<int, int> &outRecord,
                                       UIntVec &buffBWs,
                                       Map<Expr *, Expr *> &hiddenExprs) {
@@ -1971,8 +1842,6 @@ void ProcGenerator::collectBitwidthInfo() {
                                       exprMap,
                                       inBW,
                                       hiddenBW,
-                                      queryResSuffixs,
-                                      queryResSuffixs2,
                                       hiddenExprs);
       if (constant) {
         print_expr(stdout, expr);
@@ -2065,12 +1934,7 @@ void ProcGenerator::collectBitwidthInfo() {
       unsigned outID = numOuts - 1;
       sprintf(outName, "out%u", outID);
       sprintf(outStr, "out%u!res%d", outID, result_suffix);
-      queryResSuffixs.push_back(result_suffix);
       outRecord.insert({outID, result_suffix});
-//      if (initExpr) {
-//        unsigned long initVal = initExpr->u.v;
-//        initMap.insert({(numOuts - 1), initVal});
-//      }
       if (nbufs) {
         unsigned long numBuff = nbufs->u.v;
         unsigned long initVal = -1;
@@ -2131,13 +1995,10 @@ void ProcGenerator::collectBitwidthInfo() {
         StringVec outList;
         StringVec normalizedOutList;
         UIntVec outWidthList;
-        Map<unsigned, unsigned long> initMap;
         Vector<BuffInfo> buffInfos;
         Map<const char *, Expr *> exprMap;
         StringMap<unsigned> inBW;
         StringMap<unsigned> hiddenBW;
-        IntVec queryResSuffixs;
-        IntVec queryResSuffixs2;
         Map<int, int> outRecord;
         Map<Expr *, Expr *> hiddenExprs;
         UIntVec buffBWs;
@@ -2155,14 +2016,11 @@ void ProcGenerator::collectBitwidthInfo() {
                         outList,
                         normalizedOutList,
                         outWidthList,
-                        initMap,
                         buffInfos,
                         boolResSuffixs,
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         outRecord,
                         buffBWs,
                         hiddenExprs);
@@ -2185,14 +2043,11 @@ void ProcGenerator::collectBitwidthInfo() {
                          outResSuffixs,
                          normalizedOutList,
                          outList,
-                         initMap,
                          buffInfos,
                          boolResSuffixs,
                          exprMap,
                          inBW,
                          hiddenBW,
-                         queryResSuffixs,
-                         queryResSuffixs2,
                          outRecord,
                          hiddenExprs,
                          buffBWs);
@@ -2437,13 +2292,10 @@ void ProcGenerator::collectBitwidthInfo() {
     StringVec outList;
     StringVec normalizedOutList;
     UIntVec outWidthList;
-    Map<unsigned, unsigned long> initMap;
     Vector<BuffInfo> buffInfos;
     Map<const char *, Expr *> exprMap;
     StringMap<unsigned> inBW;
     StringMap<unsigned> hiddenBW;
-    IntVec queryResSuffixs;
-    IntVec queryResSuffixs2;
     Map<int, int> outRecord;
     Map<Expr *, Expr *> hiddenExprs;
     unsigned elementCnt = 0;
@@ -2470,14 +2322,11 @@ void ProcGenerator::collectBitwidthInfo() {
                         outList,
                         normalizedOutList,
                         outWidthList,
-                        initMap,
                         buffInfos,
                         boolResSuffixs,
                         exprMap,
                         inBW,
                         hiddenBW,
-                        queryResSuffixs,
-                        queryResSuffixs2,
                         outRecord,
                         buffBWs,
                         hiddenExprs);
@@ -2515,14 +2364,11 @@ void ProcGenerator::collectBitwidthInfo() {
                      outResSuffixs,
                      normalizedOutList,
                      outList,
-                     initMap,
                      buffInfos,
                      boolResSuffixs,
                      exprMap,
                      inBW,
                      hiddenBW,
-                     queryResSuffixs,
-                     queryResSuffixs2,
                      outRecord,
                      hiddenExprs,
                      buffBWs);
