@@ -41,8 +41,6 @@ class ProcGenerator {
 
   const char *EMIT_QUERY(Expr *expr,
                          const char *sym,
-                         const char *op,
-                         int type,
                          char *procName,
                          char *calc,
                          StringVec &argList,

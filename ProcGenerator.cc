@@ -85,8 +85,6 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
 
 const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                       const char *sym,
-                                      const char *op,
-                                      int type,
                                       char *procName,
                                       char *calc,
                                       StringVec &argList,
@@ -145,23 +143,7 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-  char *newExpr = new char[100];
-  result_suffix++;
-  sprintf(newExpr, "res%d", result_suffix);
-  char *curCal = new char[300];
-  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
-          result_suffix, cStr, lStr, rStr);
-  strcat(calc, curCal);
-  if (result_bw == 0) {
-    print_expr(stdout, expr);
-    printf(": result_bw is 0!\n");
-    exit(-1);
-  }
-  resBWList.push_back(result_bw);
-  if (debug_verbose) {
-    printf("query res%d has bw %u\n", result_suffix, result_bw);
-    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
-  }
+  /* generate subProc name */
   char *cVal = new char[100];
   getCurProc(cStr, cVal);
   char *lVal = new char[100];
@@ -177,10 +159,26 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   char *subProcName = new char[1500];
   sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
   strcat(procName, subProcName);
+
+
+  char *finalExprName = new char[100];
+  result_suffix++;
+  sprintf(finalExprName, "res%d", result_suffix);
+
+  char *curCal = new char[300];
+  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
+          result_suffix, cStr, lStr, rStr);
+  strcat(calc, curCal);
+  if (result_bw == 0) {
+    print_expr(stdout, expr);
+    printf(": result_bw is 0!\n");
+    exit(-1);
+  }
+  resBWList.push_back(result_bw);
+
+
   if (debug_verbose) {
-    printf(
-        "\n\n\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-    printf("tri expr: ");
+    printf("[PERF] handle query expression for ");
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
     printf("arg list: ");
@@ -198,12 +196,10 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
       printf("%u ", bw2);
     }
     printf("\n");
+    printf("query res%d has bw %u\n", result_suffix, result_bw);
+    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   }
   /* create Expr */
-  if (debug_verbose) {
-    printf("[PERF] handle query expression for ");
-    print_expr(stdout, expr);
-  }
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
@@ -215,14 +211,14 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                      lType,
                                      rStr,
                                      rType,
-                                     newExpr,
+                                     finalExprName,
                                      exprType,
                                      bodyExprType,
                                      result_bw,
                                      exprMap,
                                      hiddenBW,
                                      hiddenExprs);
-  return newExpr;
+  return finalExprName;
 }
 
 const char *ProcGenerator::EMIT_BIN(Expr *expr,
@@ -246,7 +242,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  bool lConst = false;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -260,7 +255,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-  bool rConst = false;
   const char *rStr = printExpr(rExpr,
                                procName,
                                calc,
@@ -274,19 +268,25 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-  if (lConst && rConst) {
-    print_expr(stdout, expr);
-    printf(" has both const operands!\n");
-    printf("lExpr: ");
-    print_expr(stdout, lExpr);
-    printf(", rExpr: ");
-    print_expr(stdout, rExpr);
-    printf("\n");
-    exit(-1);
+  /* generate subProc name */
+  char *lVal = new char[100];
+  getCurProc(lStr, lVal);
+  char *rVal = new char[100];
+  getCurProc(rStr, rVal);
+  char *subProcName = new char[1500];
+  if (!strcmp(lStr, rStr)) {
+    sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
+  } else {
+    sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
   }
-  char *newExpr = new char[100];
+  strcat(procName, subProcName);
+
+
+  char *finalExprName = new char[100];
   result_suffix++;
-  sprintf(newExpr, "res%d", result_suffix);
+  sprintf(finalExprName, "res%d", result_suffix);
+
+
   if (result_bw == 0) {
     print_expr(stdout, expr);
     printf(": result_bw is 0!\n");
@@ -303,6 +303,9 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
             result_suffix, lStr, op, rStr);
   }
   strcat(calc, curCal);
+
+
+
   if (debug_verbose) {
     printf("[PERF] handle bin expression for ");
     print_expr(stdout, expr);
@@ -312,33 +315,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
     printf("\n");
     printf("bin res%d has bw %u\n", result_suffix, result_bw);
     printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-  }
-
-  int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
-  int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
-  int exprType = expr->type;
-  chpBackend->prepareBinExprForOpt(lStr,
-                                   lType,
-                                   rStr,
-                                   rType,
-                                   newExpr,
-                                   exprType,
-                                   result_bw,
-                                   exprMap,
-                                   hiddenBW,
-                                   hiddenExprs);
-  char *lVal = new char[100];
-  getCurProc(lStr, lVal);
-  char *rVal = new char[100];
-  getCurProc(rStr, rVal);
-  char *subProcName = new char[1500];
-  if (!strcmp(lStr, rStr)) {
-    sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
-  } else {
-    sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
-  }
-  strcat(procName, subProcName);
-  if (debug_verbose) {
     printf("binary expr: ");
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
@@ -359,7 +335,21 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
     }
     printf("\n");
   }
-  return newExpr;
+
+  int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
+  int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
+  int exprType = expr->type;
+  chpBackend->prepareBinExprForOpt(lStr,
+                                   lType,
+                                   rStr,
+                                   rType,
+                                   finalExprName,
+                                   exprType,
+                                   result_bw,
+                                   exprMap,
+                                   hiddenBW,
+                                   hiddenExprs);
+  return finalExprName;
 }
 
 const char *ProcGenerator::EMIT_UNI(Expr *expr,
@@ -904,8 +894,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
     case E_QUERY: {
       return EMIT_QUERY(expr,
                         "q",
-                        "?",
-                        type,
                         procName,
                         calc,
                         argList,
