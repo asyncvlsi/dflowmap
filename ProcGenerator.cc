@@ -83,7 +83,7 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
   exit(-1);
 }
 
-void ProcGenerator::getCurProc(const char *str, char *val, bool isConstant) {
+void ProcGenerator::getCurProc(const char *str, char *val) {
   char curProc[100];
   if (strstr(str, "res")) {
     sprintf(curProc, "r%s", str + 3);
@@ -153,8 +153,6 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                       UIntVec &resBWList,
                                       int &result_suffix,
                                       unsigned &result_bw,
-                                      char *calcStr,
-                                      IntVec &boolRes,
                                       Map<const char *, Expr *> &exprMap,
                                       StringMap<unsigned> &inBW,
                                       StringMap<unsigned> &hiddenBW,
@@ -165,8 +163,6 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  bool cConst = false;
-  char *cCalcStr = new char[1500];
   unsigned cBW = 1;
   const char *cStr = printExpr(cExpr,
                                procName,
@@ -177,22 +173,10 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                resBWList,
                                result_suffix,
                                cBW,
-                               cConst,
-                               cCalcStr,
-                               boolRes,
                                exprMap,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-//  if (cBW != 1) {
-//    print_expr(stdout, expr);
-//    printf(", cBW is %u\n!\n", cBW);
-//    exit(-1);
-//  }
-  boolRes.push_back(result_suffix);
-  bool lConst = false;
-  char *lCalcStr = new char[1500];
-//  unsigned lResBW = 0;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -202,16 +186,10 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                resBWList,
                                result_suffix,
                                result_bw,
-                               lConst,
-                               lCalcStr,
-                               boolRes,
                                exprMap,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-  bool rConst = false;
-  char *rCalcStr = new char[1500];
-//  unsigned rResBW = 0;
   const char *rStr = printExpr(rExpr,
                                procName,
                                calc,
@@ -221,9 +199,6 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                resBWList,
                                result_suffix,
                                result_bw,
-                               rConst,
-                               rCalcStr,
-                               boolRes,
                                exprMap,
                                inBW,
                                hiddenBW,
@@ -235,18 +210,10 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
           result_suffix, cStr, lStr, rStr);
   strcat(calc, curCal);
-//  if ((lResBW == 0) && (rResBW == 0)) {
-//    print_expr(stdout, expr);
-//    printf(", both lResBW and rResBW are 0!\n");
-//    exit(-1);
-//  }
   if (result_bw == 0) {
-//    result_bw = getExprBW(type, lResBW, rResBW);
-//    if (result_bw == 0) {
-      print_expr(stdout, expr);
-      printf(": result_bw is 0!\n");
-      exit(-1);
-//    }
+    print_expr(stdout, expr);
+    printf(": result_bw is 0!\n");
+    exit(-1);
   }
   resBWList.push_back(result_bw);
   if (debug_verbose) {
@@ -254,11 +221,11 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
     printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
   }
   char *cVal = new char[100];
-  getCurProc(cStr, cVal, cConst);
+  getCurProc(cStr, cVal);
   char *lVal = new char[100];
-  getCurProc(lStr, lVal, lConst);
+  getCurProc(lStr, lVal);
   char *rVal = new char[100];
-  getCurProc(rStr, rVal, rConst);
+  getCurProc(rStr, rVal);
   if (!strcmp(lStr, rStr)) {
     printf("This query expr has the same true/false branch!\n");
     print_expr(stdout, expr);
@@ -290,7 +257,6 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
     }
     printf("\n");
   }
-  sprintf(calcStr, "%s", newExpr);
   /* create Expr */
   if (debug_verbose) {
     printf("[PERF] handle query expression for ");
@@ -329,8 +295,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                     UIntVec &resBWList,
                                     int &result_suffix,
                                     unsigned &result_bw,
-                                    char *calcStr,
-                                    IntVec &boolRes,
                                     Map<const char *, Expr *> &exprMap,
                                     StringMap<unsigned> &inBW,
                                     StringMap<unsigned> &hiddenBW,
@@ -341,8 +305,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
     sprintf(procName, "func");
   }
   bool lConst = false;
-  char *lCalcStr = new char[1500];
-//  unsigned lResBW = 0;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -352,16 +314,11 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                resBWList,
                                result_suffix,
                                result_bw,
-                               lConst,
-                               lCalcStr,
-                               boolRes,
                                exprMap,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
   bool rConst = false;
-  char *rCalcStr = new char[1500];
-//  unsigned rResBW = 0;
   const char *rStr = printExpr(rExpr,
                                procName,
                                calc,
@@ -371,9 +328,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                resBWList,
                                result_suffix,
                                result_bw,
-                               rConst,
-                               rCalcStr,
-                               boolRes,
                                exprMap,
                                inBW,
                                hiddenBW,
@@ -392,12 +346,9 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   if (result_bw == 0) {
-//    result_bw = getExprBW(type, lResBW, rResBW);
-//    if (result_bw == 0) {
-      print_expr(stdout, expr);
-      printf(": result_bw is 0!\n");
-      exit(-1);
-//    }
+    print_expr(stdout, expr);
+    printf(": result_bw is 0!\n");
+    exit(-1);
   }
   resBWList.push_back(result_bw);
   char *curCal = new char[300];
@@ -410,12 +361,6 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
             result_suffix, lStr, op, rStr);
   }
   strcat(calc, curCal);
-//  if ((lResBW == 0) && (rResBW == 0)) {
-//    print_expr(stdout, expr);
-//    printf(", both lResBW and rResBW are 0!\n");
-//    exit(-1);
-//  }
-
   if (debug_verbose) {
     printf("[PERF] handle bin expression for ");
     print_expr(stdout, expr);
@@ -441,9 +386,9 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                    hiddenBW,
                                    hiddenExprs);
   char *lVal = new char[100];
-  getCurProc(lStr, lVal, lConst);
+  getCurProc(lStr, lVal);
   char *rVal = new char[100];
-  getCurProc(rStr, rVal, rConst);
+  getCurProc(rStr, rVal);
   char *subProcName = new char[1500];
   if (!strcmp(lStr, rStr)) {
     sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
@@ -472,14 +417,12 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
     }
     printf("\n");
   }
-  sprintf(calcStr, "%s", newExpr);
   return newExpr;
 }
 
 const char *ProcGenerator::EMIT_UNI(Expr *expr,
                                     const char *sym,
                                     const char *op,
-                                    int type,
                                     char *procName,
                                     char *calc,
                                     StringVec &argList,
@@ -488,8 +431,6 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
                                     UIntVec &resBWList,
                                     int &result_suffix,
                                     unsigned &result_bw,
-                                    char *calcStr,
-                                    IntVec &boolRes,
                                     Map<const char *, Expr *> &exprMap,
                                     StringMap<unsigned> &inBW,
                                     StringMap<unsigned> &hiddenBW,
@@ -499,62 +440,56 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  bool lConst;
-  char *lCalcStr = new char[1500];
-//  unsigned lResBW = 0;
-  const char *lStr = printExpr(lExpr,
-                               procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
-                               result_suffix,
-                               result_bw,
-                               lConst,
-                               lCalcStr,
-                               boolRes,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
+  const char *lExprName = printExpr(lExpr,
+                                    procName,
+                                    calc,
+                                    argList,
+                                    oriArgList,
+                                    argBWList,
+                                    resBWList,
+                                    result_suffix,
+                                    result_bw,
+                                    exprMap,
+                                    inBW,
+                                    hiddenBW,
+                                    hiddenExprs);
   /* generate subProc name */
   char *val = new char[100];
-  getCurProc(lStr, val, lConst);
+  getCurProc(lExprName, val);
   sprintf(procName, "%s_%s%s", procName, sym, val);
-
-
 
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-  char *curCal = new char[300];
-  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
-  if (result_bw == 0) {
-//    result_bw = getExprBW(type, lResBW);
-//    if (result_bw == 0) {
-      print_expr(stdout, expr);
-      printf(": result_bw is 0!\n");
-      exit(-1);
-//    }
-  }
-  resBWList.push_back(result_bw);
-  strcat(calc, curCal);
-  sprintf(calcStr, "%s", finalExprName);
+
+  chpBackend->handleUniExpr(op, lExprName, result_suffix,calc,result_bw,resBWList);
+
+
+//  char *curCal = new char[300];
+//  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lExprName);
+//  strcat(calc, curCal);
+//  if (result_bw == 0) {
+//    print_expr(stdout, expr);
+//    printf(": result_bw is 0!\n");
+//    exit(-1);
+//  }
+//  resBWList.push_back(result_bw);
+
   /* create Expr */
   if (debug_verbose) {
     printf("[PERF] handle uni expression for ");
     print_expr(stdout, expr);
     printf("uni res%d has bw %u\n", result_suffix, result_bw);
-    printf("      res%d := %s %s;\n", result_suffix, op, lStr);
+    printf("      res%d := %s %s;\n", result_suffix, op, lExprName);
     printf("unary expr: ");
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
   }
+
   /* prepare for the logic optimizer */
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
-  chpBackend->prepareUniExprForOpt(lStr,
+  chpBackend->prepareUniExprForOpt(lExprName,
                                    lType,
                                    finalExprName,
                                    exprType,
@@ -574,9 +509,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                                      UIntVec &resBWList,
                                      int &result_suffix,
                                      unsigned &result_bw,
-                                     bool &constant,
-                                     char *calcStr,
-                                     IntVec &boolRes,
                                      Map<const char *, Expr *> &exprMap,
                                      StringMap<unsigned> &inBW,
                                      StringMap<unsigned> &hiddenBW,
@@ -590,8 +522,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
       }
       unsigned long val = expr->u.v;
       const char *valStr = strdup(std::to_string(val).c_str());
-      sprintf(calcStr, "%s", valStr);
-      constant = true;
       if (result_bw == 0) {
         if (val == 0) {
           result_bw = 1;
@@ -618,11 +548,9 @@ const char *ProcGenerator::printExpr(Expr *expr,
           printf("oriVarName: %s, mappedVarName: %s\n", oriVarName,
                  mappedVarName);
         }
-        sprintf(calcStr, "%s_%d", oriVarName, numArgs);
         sprintf(curArg, "x%d", numArgs);
         argBWList.push_back(argBW);
       } else {
-        sprintf(calcStr, "%s_%d", oriVarName, idx);
         sprintf(curArg, "x%d", idx);
       }
       inBW.insert({curArg, argBW});
@@ -645,8 +573,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -665,8 +591,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -676,7 +600,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
       return EMIT_UNI(expr,
                       "not",
                       "~",
-                      type,
                       procName,
                       calc,
                       argList,
@@ -685,8 +608,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -705,8 +626,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -725,8 +644,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -745,8 +662,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -765,8 +680,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -785,8 +698,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -805,8 +716,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -825,8 +734,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -845,8 +752,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -856,7 +761,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
       return EMIT_UNI(expr,
                       "neg",
                       "-",
-                      type,
                       procName,
                       calc,
                       argList,
@@ -865,8 +769,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -885,8 +787,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -905,8 +805,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -925,8 +823,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -945,8 +841,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -965,21 +859,26 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
                       hiddenExprs);
     }
     case E_EQ: {
-      return EMIT_BIN(expr, "eq", "=", type, procName, calc,
+      return EMIT_BIN(expr,
+                      "eq",
+                      "=",
+                      type,
+                      procName,
+                      calc,
                       argList,
                       oriArgList,
                       argBWList,
                       resBWList,
-                      result_suffix, result_bw, calcStr, boolRes,
-                      exprMap, inBW,
+                      result_suffix,
+                      result_bw,
+                      exprMap,
+                      inBW,
                       hiddenBW,
                       hiddenExprs);
     }
@@ -996,8 +895,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -1007,7 +904,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
       return EMIT_UNI(expr,
                       "compl",
                       "~",
-                      type,
                       procName,
                       calc,
                       argList,
@@ -1016,8 +912,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                       resBWList,
                       result_suffix,
                       result_bw,
-                      calcStr,
-                      boolRes,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -1047,9 +941,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                        resBWList,
                        result_suffix,
                        result_bw,
-                       constant,
-                       calcStr,
-                       boolRes,
                        exprMap,
                        inBW,
                        hiddenBW,
@@ -1067,9 +958,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                        resBWList,
                        result_suffix,
                        result_bw,
-                       constant,
-                       calcStr,
-                       boolRes,
                        exprMap,
                        inBW,
                        hiddenBW,
@@ -1088,8 +976,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
                         resBWList,
                         result_suffix,
                         result_bw,
-                        calcStr,
-                        boolRes,
                         exprMap,
                         inBW,
                         hiddenBW,
@@ -1537,7 +1423,6 @@ void ProcGenerator::printDFlowFunc(const char *procName,
                                    StringVec &normalizedOutList,
                                    StringVec &outList,
                                    Vector<BuffInfo> &buffInfos,
-                                   IntVec &boolRes,
                                    Map<const char *, Expr *> &exprMap,
                                    StringMap<unsigned> &inBW,
                                    StringMap<unsigned> &hiddenBW,
@@ -1591,8 +1476,6 @@ void ProcGenerator::printDFlowFunc(const char *procName,
              buffInfo.initVal, buffInfo.hasInitVal);
     }
     printf("\n");
-    printf("boolResSuffixs: ");
-    printIntVec(boolRes);
   }
 
   char *instName = new char[MAX_INSTANCE_LEN];
@@ -1645,7 +1528,6 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
                                     StringVec &normalizedOutList,
                                     UIntVec &outWidthList,
                                     Vector<BuffInfo> &buffInfos,
-                                    IntVec &boolRes,
                                     Map<const char *, Expr *> &exprMap,
                                     StringMap<unsigned> &inBW,
                                     StringMap<unsigned> &hiddenBW,
@@ -1699,9 +1581,6 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
       exit(-1);
     }
   } else {
-    bool constant = false;
-    char *calcStr = new char[1500];
-    calcStr[0] = '\0';
     unsigned result_bw = outWidth;
     if (debug_verbose) {
       printf("Start to print expression ");
@@ -1717,18 +1596,10 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
                                     resBWList,
                                     result_suffix,
                                     result_bw,
-                                    constant,
-                                    calcStr,
-                                    boolRes,
                                     exprMap,
                                     inBW,
                                     hiddenBW,
                                     hiddenExprs);
-    if (constant) {
-      print_expr(stdout, expr);
-      printf("=> we should not process constant lhs here!\n");
-      exit(-1);
-    }
     /* check if the expression only has E_VAR. Note that it could be built-in int/bool, e.g., int(varName, bw). In
      * this case, it still only has E_VAR expression. */
     Expr *actualExpr = expr;
@@ -1910,7 +1781,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      boolResSuffixs,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -1930,7 +1800,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                        normalizedOutList,
                        outList,
                        buffInfos,
-                       boolResSuffixs,
                        exprMap,
                        inBW,
                        hiddenBW,
@@ -2208,7 +2077,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                       normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      boolResSuffixs,
                       exprMap,
                       inBW,
                       hiddenBW,
@@ -2249,7 +2117,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                    normalizedOutList,
                    outList,
                    buffInfos,
-                   boolResSuffixs,
                    exprMap,
                    inBW,
                    hiddenBW,

@@ -39,7 +39,7 @@ class ProcGenerator {
 
   unsigned getBitwidth(act_connection *actConnection);
 
-  void getCurProc(const char *str, char *val, bool isConstant);
+  void getCurProc(const char *str, char *val);
 
   unsigned getExprBW(int type, unsigned lBW, unsigned rBW = 0);
 
@@ -55,8 +55,6 @@ class ProcGenerator {
                          UIntVec &resBWList,
                          int &result_suffix,
                          unsigned &result_bw,
-                         char *calcStr,
-                         IntVec &boolRes,
                          Map<const char *, Expr *> &exprMap,
                          StringMap<unsigned> &inBW,
                          StringMap<unsigned> &hiddenBW,
@@ -74,8 +72,6 @@ class ProcGenerator {
                        UIntVec &resBWList,
                        int &result_suffix,
                        unsigned &result_bw,
-                       char *calcStr,
-                       IntVec &boolRes,
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,
@@ -84,7 +80,6 @@ class ProcGenerator {
   const char *EMIT_UNI(Expr *expr,
                        const char *sym,
                        const char *op,
-                       int type,
                        char *procName,
                        char *calc,
                        StringVec &argList,
@@ -93,8 +88,6 @@ class ProcGenerator {
                        UIntVec &resBWList,
                        int &result_suffix,
                        unsigned &result_bw,
-                       char *calcStr,
-                       IntVec &boolRes,
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,
@@ -109,9 +102,6 @@ class ProcGenerator {
                         UIntVec &resBWList,
                         int &result_suffix,
                         unsigned &result_bw,
-                        bool &constant,
-                        char *calcStr,
-                        IntVec &boolRes,
                         Map<const char *, Expr *> &exprMap,
                         StringMap<unsigned> &inBW,
                         StringMap<unsigned> &hiddenBW,
@@ -163,7 +153,6 @@ class ProcGenerator {
                       StringVec &normalizedOutList,
                       StringVec &outList,
                       Vector<BuffInfo> &buffInfos,
-                      IntVec &boolRes,
                       Map<const char *, Expr *> &exprMap,
                       StringMap<unsigned> &inBW,
                       StringMap<unsigned> &hiddenBW,
@@ -185,7 +174,6 @@ class ProcGenerator {
                        StringVec &normalizedOutList,
                        UIntVec &outWidthList,
                        Vector<BuffInfo> &buffInfos,
-                       IntVec &boolRes,
                        Map<const char *, Expr *> &exprMap,
                        StringMap<unsigned> &inBW,
                        StringMap<unsigned> &hiddenBW,

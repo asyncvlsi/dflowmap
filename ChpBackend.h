@@ -102,8 +102,8 @@ class ChpBackend {
     Expr *expr = new Expr;
     expr->type = expr_type;
     expr->u.e.l = cExpr;
-    Expr* body_expr = new Expr;
-    body_expr->type= body_expr_type;
+    Expr *body_expr = new Expr;
+    body_expr->type = body_expr_type;
     body_expr->u.e.l = lExpr;
     body_expr->u.e.r = rExpr;
     expr->u.e.r = body_expr;
@@ -168,6 +168,25 @@ class ChpBackend {
       print_expr(stdout, expr);
       printf(".\n");
     }
+  }
+
+  void handleUniExpr(const char *op,
+                            const char *exprName,
+                            const int result_suffix,
+                            char* calc,
+                            unsigned result_bw,
+                            UIntVec &resBWList) {
+    char *curCal = new char[128 + strlen(exprName)];
+    sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, exprName);
+    if (debug_verbose) {
+      printf("%s\n", curCal);
+    }
+    strcat(calc, curCal);
+    if (result_bw == 0) {
+      printf("for %s, result_bw is 0!\n", exprName);
+      exit(-1);
+    }
+    resBWList.push_back(result_bw);
   }
 
  private:
