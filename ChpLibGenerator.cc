@@ -96,7 +96,6 @@ void ChpLibGenerator::createConf(const char *instance, double *metric) {
 
 void ChpLibGenerator::createFU(const char *procName,
                                const char *calc,
-                               const char *def,
                                unsigned int numArgs,
                                unsigned int numOuts,
                                const char *instance,
@@ -134,7 +133,6 @@ void ChpLibGenerator::createFU(const char *procName,
   strcat(outSend, log);
   createFULib(procName,
               calc,
-              def,
               outSend,
               numArgs,
               numOuts,
@@ -147,7 +145,6 @@ void ChpLibGenerator::createFU(const char *procName,
 
 void ChpLibGenerator::createFULib(const char *procName,
                                   const char *calc,
-                                  const char *def,
                                   const char *outSend,
                                   unsigned int numArgs,
                                   unsigned int numOuts,
@@ -191,7 +188,6 @@ void ChpLibGenerator::createFULib(const char *procName,
       fprintf(libFp, "  int<%u> res%d;\n", resbw, i);
     }
     // generate CHP's actual code
-    fprintf(libFp, "%s", def);
     fprintf(libFp, "  chp {\n");
     fprintf(libFp, "    *[\n      ");
     for (i = 0; i < numArgs - 1; i++) {

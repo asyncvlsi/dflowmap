@@ -37,7 +37,6 @@ class ChpBackend {
                UIntVec &argBWList,
                UIntVec &resBWList,
                UIntVec &outBWList,
-               const char *def,
                const char *calc,
                StringVec &outSendStr,
                IntVec &outResSuffixs,

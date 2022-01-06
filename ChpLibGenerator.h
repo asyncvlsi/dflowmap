@@ -19,7 +19,6 @@ class ChpLibGenerator {
 
   void createFU(const char *procName,
                 const char *calc,
-                const char *def,
                 unsigned int numArgs,
                 unsigned int numOuts,
                 const char *instance,
@@ -32,7 +31,6 @@ class ChpLibGenerator {
 
   void createFULib(const char *procName,
                    const char *calc,
-                   const char *def,
                    const char *outSend,
                    unsigned int numArgs,
                    unsigned int numOuts,
