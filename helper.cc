@@ -98,3 +98,62 @@ bool isBinType(int exprType) {
   return (exprType == E_LT) || (exprType == E_GT) || (exprType == E_LE)
       || (exprType == E_GE) || (exprType == E_EQ) || (exprType == E_NE);
 }
+
+void getActIdName(Scope* sc, ActId *actId, char *buff, int sz) {
+  ActId *uid = actId->Canonical(sc)->toid();
+  uid->sPrint(buff, sz);
+  delete uid;
+}
+
+void getCurProc(const char *str, char *val) {
+  char curProc[100];
+  if (strstr(str, "res")) {
+    sprintf(curProc, "r%s", str + 3);
+  } else if (strstr(str, "x")) {
+    sprintf(curProc, "%s", str + 1);
+  } else {
+    sprintf(curProc, "c%s", str);
+  }
+  strcpy(val, curProc);
+}
+
+void getActConnectionName(act_connection *actConnection,
+                                         char *buff,
+                                         int sz) {
+  if (actConnection == nullptr) {
+    printf("Try to get the name of NULL act connection!\n");
+    exit(-1);
+  }
+  ActId *uid = actConnection->toid();
+  uid->sPrint(buff, sz);
+  delete uid;
+}
+
+void checkACTN(const char *channel,
+                              bool &actnCp,
+                              bool &actnDp) {
+  if (isActnCp(channel)) {
+    actnCp = true;
+  }
+  if (isActnDp(channel)) {
+    actnDp = true;
+  }
+  if (actnCp && actnDp) {
+    printf("%s is both actnCp and actnDp!\n", channel);
+    exit(-1);
+  }
+}
+
+void print_dflow(FILE *fp, list_t *dflow) {
+  listitem_t *li;
+  act_dataflow_element *e;
+
+  for (li = list_first (dflow); li; li = list_next (li)) {
+    e = (act_dataflow_element *) list_value (li);
+    dflow_print(fp, e);
+    if (list_next (li)) {
+      fprintf(fp, ";");
+    }
+    fprintf(fp, "\n");
+  }
+}

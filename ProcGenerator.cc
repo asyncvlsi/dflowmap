@@ -5,7 +5,7 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
   char *str = new char[10240];
   if (actId) {
     char *actName = new char[10240];
-    getActIdName(actId, actName, 10240);
+    getActIdName(sc, actId, actName, 10240);
     unsigned outUses = getOpUses(actId);
     if (outUses) {
       unsigned copyUse = getCopyUses(actId);
@@ -81,64 +81,6 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
   printf("We could not find bitwidth info for %s\n", varName);
   printBitwidthInfo();
   exit(-1);
-}
-
-void ProcGenerator::getCurProc(const char *str, char *val) {
-  char curProc[100];
-  if (strstr(str, "res")) {
-    sprintf(curProc, "r%s", str + 3);
-  } else if (strstr(str, "x")) {
-    sprintf(curProc, "%s", str + 1);
-  } else {
-    sprintf(curProc, "c%s", str);
-  }
-  strcpy(val, curProc);
-}
-
-unsigned ProcGenerator::getExprBW(int type, unsigned lBW, unsigned rBW) {
-  unsigned maxBW = lBW;
-  if (rBW > lBW) {
-    maxBW = rBW;
-  }
-  switch (type) {
-    case E_INT: {
-      printf("We shoudld not try to get expr bw for E_INT!\n");
-      exit(-1);
-    }
-    case E_VAR: {
-      printf("We shoudld not try to get expr bw for E_VAR!\n");
-      exit(-1);
-    }
-    case E_NE:
-    case E_EQ:
-    case E_GE:
-    case E_LE:
-    case E_GT:
-    case E_LT: {
-      return 1;
-    }
-    case E_AND:
-    case E_OR:
-    case E_XOR:
-    case E_PLUS:
-    case E_MINUS:
-    case E_MULT:
-    case E_MOD:
-    case E_LSR:
-    case E_ASR:
-    case E_DIV:
-    case E_LSL:
-    case E_NOT:
-    case E_UMINUS:
-    case E_COMPLEMENT:
-    case E_QUERY: {
-      return maxBW;
-    }
-    default: {
-      printf("Try to get expr bw for unknown type %d\n", type);
-      exit(-1);
-    }
-  }
 }
 
 const char *ProcGenerator::EMIT_QUERY(Expr *expr,
@@ -462,18 +404,12 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
 
-  chpBackend->handleUniExpr(op, lExprName, result_suffix,calc,result_bw,resBWList);
-
-
-//  char *curCal = new char[300];
-//  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lExprName);
-//  strcat(calc, curCal);
-//  if (result_bw == 0) {
-//    print_expr(stdout, expr);
-//    printf(": result_bw is 0!\n");
-//    exit(-1);
-//  }
-//  resBWList.push_back(result_bw);
+  chpBackend->handleUniExpr(op,
+                            lExprName,
+                            result_suffix,
+                            calc,
+                            result_bw,
+                            resBWList);
 
   /* create Expr */
   if (debug_verbose) {
@@ -532,32 +468,34 @@ const char *ProcGenerator::printExpr(Expr *expr,
       return valStr;
     }
     case E_VAR: {
-      int numArgs = argList.size();
       auto actId = (ActId *) expr->u.e.l;
       act_connection *actConnection = actId->Canonical(sc);
       unsigned argBW = getBitwidth(actConnection);
       char *oriVarName = new char[10240];
-      getActIdName(actId, oriVarName, 10240);
+      getActIdName(sc, actId, oriVarName, 10240);
+      const char *mappedVarName = getActIdOrCopyName(actId);
+      if (result_bw == 0) {
+        result_bw = argBW;
+      }
+      if (debug_verbose) {
+        printf("oriVarName: %s, mappedVarName: %s, res_bw: %u\n",
+               oriVarName, mappedVarName, result_bw);
+      }
+
       char *curArg = new char[10240];
       int idx = searchStringVec(oriArgList, oriVarName);
       if (idx == -1) {
+        int numArgs = argList.size();
         oriArgList.push_back(oriVarName);
-        const char *mappedVarName = getActIdOrCopyName(actId);
         argList.push_back(mappedVarName);
-        if (debug_verbose) {
-          printf("oriVarName: %s, mappedVarName: %s\n", oriVarName,
-                 mappedVarName);
-        }
+
         sprintf(curArg, "x%d", numArgs);
         argBWList.push_back(argBW);
       } else {
         sprintf(curArg, "x%d", idx);
       }
       inBW.insert({curArg, argBW});
-      if (result_bw == 0) {
-        result_bw = argBW;
-      }
-      getExprFromName(curArg, exprMap, false, E_VAR);
+
       return curArg;
     }
     case E_AND: {
@@ -994,24 +932,6 @@ const char *ProcGenerator::printExpr(Expr *expr,
   exit(-1);
 }
 
-void ProcGenerator::getActConnectionName(act_connection *actConnection,
-                                         char *buff,
-                                         int sz) {
-  if (actConnection == nullptr) {
-    printf("Try to get the name of NULL act connection!\n");
-    exit(-1);
-  }
-  ActId *uid = actConnection->toid();
-  uid->sPrint(buff, sz);
-  delete uid;
-}
-
-void ProcGenerator::getActIdName(ActId *actId, char *buff, int sz) {
-  ActId *uid = actId->Canonical(sc)->toid();
-  uid->sPrint(buff, sz);
-  delete uid;
-}
-
 unsigned ProcGenerator::getCopyUses(ActId *actId) {
   act_connection *actConnection = actId->Canonical(sc);
   auto copyUsesIt = copyUses.find(actConnection);
@@ -1139,7 +1059,7 @@ void ProcGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
     case E_VAR: {
       auto actId = (ActId *) expr->u.e.l;
       char *varName = new char[10240];
-      getActIdName(actId, varName, 10240);
+      getActIdName(sc, actId, varName, 10240);
       if (searchStringVec(recordedOps, varName) == -1) {
         updateOpUses(actId);
         recordedOps.push_back(varName);
@@ -1545,7 +1465,7 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
   /* handle right hand side */
   ActId *rhs = d->u.func.rhs;
   char out[10240];
-  getActIdName(rhs, out, 10240);
+  getActIdName(sc, rhs, out, 10240);
   const char *normalizedOut = getNormActIdName(out);
   unsigned outWidth = getActIdBW(rhs);
   if (debug_verbose) {
@@ -1717,21 +1637,6 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
   }
 }
 
-void ProcGenerator::checkACTN(const char *channel,
-                              bool &actnCp,
-                              bool &actnDp) {
-  if (isActnCp(channel)) {
-    actnCp = true;
-  }
-  if (isActnDp(channel)) {
-    actnDp = true;
-  }
-  if (actnCp && actnDp) {
-    printf("%s is both actnCp and actnDp!\n", channel);
-    exit(-1);
-  }
-}
-
 void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                                              unsigned &sinkCnt) {
   switch (d->t) {
@@ -1820,11 +1725,11 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       unsigned guardBW = getActIdBW(guard);
       char *splitName = new char[2000];
       char *inputName = new char[10240];
-      getActIdName(input, inputName, 10240);
+      getActIdName(sc, input, inputName, 10240);
       const char *normalizedInput = getNormActIdName(inputName);
       sprintf(splitName, "%s", normalizedInput);
       char *guardName = new char[10240];
-      getActIdName(guard, guardName, 10240);
+      getActIdName(sc, guard, guardName, 10240);
       const char *normalizedGuard = getNormActIdName(guardName);
       strcat(splitName, normalizedGuard);
       CharPtrVec sinkVec;
@@ -1842,7 +1747,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
           outNameVec.push_back(sinkName);
         } else {
           char *outName = new char[10240];
-          getActIdName(out, outName, 10240);
+          getActIdName(sc, out, outName, 10240);
           const char *normalizedOut = getNormActIdName(outName);
           strcat(splitName, normalizedOut);
           checkACTN(normalizedOut, actnCp, actnDp);
@@ -1887,7 +1792,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
     case ACT_DFLOW_MERGE: {
       ActId *output = d->u.splitmerge.single;
       char *outputName = new char[10240];
-      getActIdName(output, outputName, 10240);
+      getActIdName(sc, output, outputName, 10240);
       const char *normalizedOutput = getNormActIdName(outputName);
       bool actnCp = false;
       bool actnDp = false;
@@ -1939,7 +1844,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
     case ACT_DFLOW_ARBITER: {
       ActId *output = d->u.splitmerge.single;
       char *outputName = new char[10240];
-      getActIdName(output, outputName, 10240);
+      getActIdName(sc, output, outputName, 10240);
       const char *normalizedOutput = getNormActIdName(outputName);
       bool actnCp = false;
       bool actnDp = false;
@@ -1966,7 +1871,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       }
       ActId *cout = d->u.splitmerge.nondetctrl;
       char *coutName = new char[10240];
-      getActIdName(cout, coutName, 10240);
+      getActIdName(sc, cout, coutName, 10240);
 
       char *instance = new char[MAX_INSTANCE_LEN];
       sprintf(instance, "%s<%d,%d>", procName, outBW, coutBW);
@@ -1996,7 +1901,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
     case ACT_DFLOW_SINK: {
       ActId *input = d->u.sink.chan;
       char *inputName = new char[10240];
-      getActIdName(input, inputName, 10240);
+      getActIdName(sc, input, inputName, 10240);
       unsigned bw = getBitwidth(input->Canonical(sc));
       createSink(inputName, bw);
       if (debug_verbose) {
@@ -2008,20 +1913,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       printf("Unknown dataflow type %d\n", d->t);
       exit(-1);
     }
-  }
-}
-
-void ProcGenerator::print_dflow(FILE *fp, list_t *dflow) {
-  listitem_t *li;
-  act_dataflow_element *e;
-
-  for (li = list_first (dflow); li; li = list_next (li)) {
-    e = (act_dataflow_element *) list_value (li);
-    dflow_print(fp, e);
-    if (list_next (li)) {
-      fprintf(fp, ";");
-    }
-    fprintf(fp, "\n");
   }
 }
 

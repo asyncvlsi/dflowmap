@@ -39,10 +39,6 @@ class ProcGenerator {
 
   unsigned getBitwidth(act_connection *actConnection);
 
-  void getCurProc(const char *str, char *val);
-
-  unsigned getExprBW(int type, unsigned lBW, unsigned rBW = 0);
-
   const char *EMIT_QUERY(Expr *expr,
                          const char *sym,
                          const char *op,
@@ -119,10 +115,6 @@ class ProcGenerator {
 
   unsigned getOpUses(ActId *actId);
 
-  void getActConnectionName(act_connection *actConnection, char *buff, int sz);
-
-  void getActIdName(ActId *actId, char *buff, int sz);
-
   void collectUniOpUses(Expr *expr, StringVec &recordedOps);
 
   void collectBinOpUses(Expr *expr, StringVec &recordedOps);
@@ -183,8 +175,6 @@ class ProcGenerator {
 
   void handleNormalDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 
-  void print_dflow(FILE *fp, list_t *dflow);
-
   void handleDFlowCluster(list_t *dflow);
 
   bool isOpUsed(ActId *actId);
@@ -200,8 +190,6 @@ class ProcGenerator {
   ChpBackend *chpBackend;
   Process *p;
   Scope *sc;
-
-  void checkACTN(const char *channel, bool &actnCp, bool &actnDp);
 
   void createSink(const char *name, unsigned bitwidth);
 

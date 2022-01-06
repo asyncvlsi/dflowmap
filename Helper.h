@@ -1,5 +1,6 @@
 #ifndef DFLOWMAP__HELPER_H_
 #define DFLOWMAP__HELPER_H_
+#include <act/act.h>
 #include <cstring>
 #include "Constant.h"
 #include "common.h"
@@ -30,6 +31,16 @@ Expr *getExprFromName(const char *name,
                       int exprType);
 
 bool isBinType(int exprType);
+
+void getActIdName(Scope *sc, ActId *actId, char *buff, int sz);
+
+void getCurProc(const char *str, char *val);
+
+void getActConnectionName(act_connection *actConnection, char *buff, int sz);
+
+void checkACTN(const char *channel,bool &actnCp,bool &actnDp);
+
+void print_dflow(FILE *fp, list_t *dflow);
 
 template<class T>
 bool hasInVector(Vector<T> &vector, T &elem) {
