@@ -1921,8 +1921,16 @@ void ProcGenerator::collectBitwidthInfo() {
           hasInitVal = true;
         }
         double *buffMetric = metrics->getBuffMetric(numBuff, outWidth);
-        buffInfos.push_back({outID, outWidth, numBuff, initVal, out,
-                             hasInitVal, buffMetric});
+        BuffInfo buff_info;
+        buff_info.outputID = outID;
+        buff_info.bw = outWidth;
+        buff_info.nBuff = numBuff;
+        buff_info.initVal = initVal;
+        buff_info.finalOutput = new char[1 + strlen(out)];
+        sprintf(buff_info.finalOutput, "%s", out);
+        buff_info.hasInitVal = hasInitVal;
+        buff_info.metric = buffMetric;
+        buffInfos.push_back(buff_info);
       }
       if (debug_verbose) {
         printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);

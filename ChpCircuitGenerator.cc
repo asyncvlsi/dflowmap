@@ -120,7 +120,12 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   //TODO: may not need to create the port! (if there is no func body!!!)
   for (auto &buffInfo : buffInfos) {
     const char *output = buffInfo.finalOutput;
-    char *actualOut = new char[7 + strlen(output)];
+    if (!output) {
+      printf("Try to create BUFF for null output channel!\n");
+      exit(-1);
+    }
+    size_t len = strlen(output);
+    char *actualOut = new char[7 + len];
     sprintf(actualOut, "%s_bufIn", output);
     unsigned bw = buffInfo.bw;
     printChannel(actualOut, bw);

@@ -68,7 +68,7 @@ typedef struct buffInfo {
   unsigned bw;
   unsigned long nBuff;
   unsigned long initVal;
-  const char* finalOutput;
+  char* finalOutput;
   bool hasInitVal;
   double* metric;
 } BuffInfo;
