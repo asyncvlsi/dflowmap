@@ -167,7 +167,7 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   }
   bool cConst = false;
   char *cCalcStr = new char[1500];
-  unsigned cBW = 0;
+  unsigned cBW = 1;
   const char *cStr = printExpr(cExpr,
                                procName,
                                calc,
@@ -184,15 +184,15 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
-  if (cBW != 1) {
-    print_expr(stdout, expr);
-    printf(", cBW is %u\n!\n", cBW);
-    exit(-1);
-  }
+//  if (cBW != 1) {
+//    print_expr(stdout, expr);
+//    printf(", cBW is %u\n!\n", cBW);
+//    exit(-1);
+//  }
   boolRes.push_back(result_suffix);
   bool lConst = false;
   char *lCalcStr = new char[1500];
-  unsigned lResBW = 0;
+//  unsigned lResBW = 0;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -201,7 +201,7 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                argBWList,
                                resBWList,
                                result_suffix,
-                               lResBW,
+                               result_bw,
                                lConst,
                                lCalcStr,
                                boolRes,
@@ -211,7 +211,7 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                hiddenExprs);
   bool rConst = false;
   char *rCalcStr = new char[1500];
-  unsigned rResBW = 0;
+//  unsigned rResBW = 0;
   const char *rStr = printExpr(rExpr,
                                procName,
                                calc,
@@ -220,7 +220,7 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
                                argBWList,
                                resBWList,
                                result_suffix,
-                               rResBW,
+                               result_bw,
                                rConst,
                                rCalcStr,
                                boolRes,
@@ -235,18 +235,18 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
           result_suffix, cStr, lStr, rStr);
   strcat(calc, curCal);
-  if ((lResBW == 0) && (rResBW == 0)) {
-    print_expr(stdout, expr);
-    printf(", both lResBW and rResBW are 0!\n");
-    exit(-1);
-  }
+//  if ((lResBW == 0) && (rResBW == 0)) {
+//    print_expr(stdout, expr);
+//    printf(", both lResBW and rResBW are 0!\n");
+//    exit(-1);
+//  }
   if (result_bw == 0) {
-    result_bw = getExprBW(type, lResBW, rResBW);
-    if (result_bw == 0) {
+//    result_bw = getExprBW(type, lResBW, rResBW);
+//    if (result_bw == 0) {
       print_expr(stdout, expr);
-      printf("result_bw is 0!\n");
+      printf(": result_bw is 0!\n");
       exit(-1);
-    }
+//    }
   }
   resBWList.push_back(result_bw);
   if (debug_verbose) {
@@ -342,7 +342,7 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   }
   bool lConst = false;
   char *lCalcStr = new char[1500];
-  unsigned lResBW = 0;
+//  unsigned lResBW = 0;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -351,7 +351,7 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                argBWList,
                                resBWList,
                                result_suffix,
-                               lResBW,
+                               result_bw,
                                lConst,
                                lCalcStr,
                                boolRes,
@@ -361,7 +361,7 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                hiddenExprs);
   bool rConst = false;
   char *rCalcStr = new char[1500];
-  unsigned rResBW = 0;
+//  unsigned rResBW = 0;
   const char *rStr = printExpr(rExpr,
                                procName,
                                calc,
@@ -370,7 +370,7 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
                                argBWList,
                                resBWList,
                                result_suffix,
-                               rResBW,
+                               result_bw,
                                rConst,
                                rCalcStr,
                                boolRes,
@@ -392,12 +392,12 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   result_suffix++;
   sprintf(newExpr, "res%d", result_suffix);
   if (result_bw == 0) {
-    result_bw = getExprBW(type, lResBW, rResBW);
-    if (result_bw == 0) {
+//    result_bw = getExprBW(type, lResBW, rResBW);
+//    if (result_bw == 0) {
       print_expr(stdout, expr);
-      printf("result_bw is 0!\n");
+      printf(": result_bw is 0!\n");
       exit(-1);
-    }
+//    }
   }
   resBWList.push_back(result_bw);
   char *curCal = new char[300];
@@ -410,11 +410,11 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
             result_suffix, lStr, op, rStr);
   }
   strcat(calc, curCal);
-  if ((lResBW == 0) && (rResBW == 0)) {
-    print_expr(stdout, expr);
-    printf(", both lResBW and rResBW are 0!\n");
-    exit(-1);
-  }
+//  if ((lResBW == 0) && (rResBW == 0)) {
+//    print_expr(stdout, expr);
+//    printf(", both lResBW and rResBW are 0!\n");
+//    exit(-1);
+//  }
 
   if (debug_verbose) {
     printf("[PERF] handle bin expression for ");
@@ -501,7 +501,7 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
   }
   bool lConst;
   char *lCalcStr = new char[1500];
-  unsigned lResBW = 0;
+//  unsigned lResBW = 0;
   const char *lStr = printExpr(lExpr,
                                procName,
                                calc,
@@ -510,7 +510,7 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
                                argBWList,
                                resBWList,
                                result_suffix,
-                               lResBW,
+                               result_bw,
                                lConst,
                                lCalcStr,
                                boolRes,
@@ -518,21 +518,25 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
                                inBW,
                                hiddenBW,
                                hiddenExprs);
+  /* generate subProc name */
   char *val = new char[100];
   getCurProc(lStr, val, lConst);
   sprintf(procName, "%s_%s%s", procName, sym, val);
+
+
+
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
   char *curCal = new char[300];
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, lStr);
   if (result_bw == 0) {
-    result_bw = getExprBW(type, lResBW);
-    if (result_bw == 0) {
+//    result_bw = getExprBW(type, lResBW);
+//    if (result_bw == 0) {
       print_expr(stdout, expr);
-      printf("result_bw is 0!\n");
+      printf(": result_bw is 0!\n");
       exit(-1);
-    }
+//    }
   }
   resBWList.push_back(result_bw);
   strcat(calc, curCal);
@@ -547,7 +551,7 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
     print_expr(stdout, expr);
     printf("\ndflowmap generates calc: %s\n", calc);
   }
-
+  /* prepare for the logic optimizer */
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   chpBackend->prepareUniExprForOpt(lStr,
@@ -1861,6 +1865,12 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                                              unsigned &sinkCnt) {
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
+      if (debug_verbose) {
+        printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+        printf("Process normal dflow:\n");
+        dflow_print(stdout, d);
+        printf("\n");
+      }
       char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
       char *calc = new char[MAX_CALC_LEN];
@@ -1907,12 +1917,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       outRecord,
                       buffBWs,
                       hiddenExprs);
-      if (debug_verbose) {
-        printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-        printf("Process normal dflow:\n");
-        dflow_print(stdout, d);
-        printf("\n");
-      }
       if (strlen(calc) > 1) {
         printDFlowFunc(procName,
                        argList,
