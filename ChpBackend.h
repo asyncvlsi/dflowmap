@@ -82,6 +82,94 @@ class ChpBackend {
 
   void createChpBlock(Process *p);
 
+  void prepareQueryExprForOpt(const char *cexpr_name,
+                              int cexpr_type,
+                              const char *lexpr_name,
+                              int lexpr_type,
+                              const char *rexpr_name,
+                              int rexpr_type,
+                              const char *expr_name,
+                              int expr_type,
+                              int body_expr_type,
+                              unsigned bw,
+                              Map<const char *, Expr *> &exprMap,
+                              StringMap<unsigned> &hiddenBW,
+                              Map<Expr *, Expr *> &hiddenExprs) {
+    Expr *cExpr = getExprFromName(cexpr_name, exprMap, false, cexpr_type);
+    Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
+    Expr *rExpr = getExprFromName(rexpr_name, exprMap, false, rexpr_type);
+    Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
+    Expr *expr = new Expr;
+    expr->type = expr_type;
+    expr->u.e.l = cExpr;
+    Expr* body_expr = new Expr;
+    body_expr->type= body_expr_type;
+    body_expr->u.e.l = lExpr;
+    body_expr->u.e.r = rExpr;
+    expr->u.e.r = body_expr;
+    hiddenBW.insert({expr_name, bw});
+    hiddenExprs.insert({rhs, expr});
+    if (debug_verbose) {
+      printf("rhs: ");
+      print_expr(stdout, rhs);
+      printf(", resExpr: ");
+      print_expr(stdout, expr);
+      printf(".\n");
+    }
+  }
+
+  void prepareBinExprForOpt(const char *lexpr_name,
+                            int lexpr_type,
+                            const char *rexpr_name,
+                            int rexpr_type,
+                            const char *expr_name,
+                            int expr_type,
+                            unsigned bw,
+                            Map<const char *, Expr *> &exprMap,
+                            StringMap<unsigned> &hiddenBW,
+                            Map<Expr *, Expr *> &hiddenExprs) {
+    Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
+    Expr *rExpr = getExprFromName(rexpr_name, exprMap, false, rexpr_type);
+    Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
+    Expr *expr = new Expr;
+    expr->type = expr_type;
+    expr->u.e.l = lExpr;
+    expr->u.e.r = rExpr;
+    hiddenBW.insert({expr_name, bw});
+    hiddenExprs.insert({rhs, expr});
+    if (debug_verbose) {
+      printf("rhs: ");
+      print_expr(stdout, rhs);
+      printf(", resExpr: ");
+      print_expr(stdout, expr);
+      printf(".\n");
+    }
+  }
+
+  void prepareUniExprForOpt(const char *lexpr_name,
+                            int lexpr_type,
+                            const char *expr_name,
+                            int expr_type,
+                            unsigned bw,
+                            Map<const char *, Expr *> &exprMap,
+                            StringMap<unsigned> &hiddenBW,
+                            Map<Expr *, Expr *> &hiddenExprs) {
+    Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
+    Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
+    Expr *expr = new Expr;
+    expr->type = expr_type;
+    expr->u.e.l = lExpr;
+    hiddenBW.insert({expr_name, bw});
+    hiddenExprs.insert({rhs, expr});
+    if (debug_verbose) {
+      printf("rhs: ");
+      print_expr(stdout, rhs);
+      printf(", resExpr: ");
+      print_expr(stdout, expr);
+      printf(".\n");
+    }
+  }
+
  private:
   ChpCircuitGenerator *circuitGenerator;
   ChpLibGenerator *libGenerator;
