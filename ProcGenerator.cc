@@ -1,4 +1,3 @@
-#include <act/lang.h>
 #include "ProcGenerator.h"
 
 const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
