@@ -89,6 +89,11 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                       char *procName,
                                       int &result_suffix,
                                       unsigned &result_bw) {
+  if (debug_verbose) {
+    printf("handle query expression for ");
+    print_expr(stdout, expr);
+    printf("\n");
+  }
   Expr *cExpr = expr->u.e.l;
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
@@ -96,107 +101,63 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
     sprintf(procName, "func");
   }
   unsigned cBW = 1;
-  const char *cStr = printExpr(dflowGenerator,
-                               cExpr,
-                               procName,
-                               result_suffix,
-                               cBW);
-  const char *lStr = printExpr(dflowGenerator,
-                               lExpr,
-                               procName,
-                               result_suffix,
-                               result_bw);
-  const char *rStr = printExpr(dflowGenerator,
-                               rExpr,
-                               procName,
-                               result_suffix,
-                               result_bw);
-  /* generate subProc name */
-  char *cVal = new char[100];
-  getCurProc(cStr, cVal);
-  char *lVal = new char[100];
-  getCurProc(lStr, lVal);
-  char *rVal = new char[100];
-  getCurProc(rStr, rVal);
-  if (!strcmp(lStr, rStr)) {
-    printf("This query expr has the same true/false branch!\n");
-    print_expr(stdout, expr);
-    printf("!\n");
-    exit(-1);
+  const char *cexpr_name = printExpr(dflowGenerator,
+                                     cExpr,
+                                     procName,
+                                     result_suffix,
+                                     cBW);
+  const char *lexpr_name = printExpr(dflowGenerator,
+                                     lExpr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+  const char *rexpr_name = printExpr(dflowGenerator,
+                                     rExpr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+  {
+    /* generate subProc name */
+    char *cVal = new char[100];
+    getCurProc(cexpr_name, cVal);
+    char *lVal = new char[100];
+    getCurProc(lexpr_name, lVal);
+    char *rVal = new char[100];
+    getCurProc(rexpr_name, rVal);
+    if (!strcmp(lexpr_name, rexpr_name)) {
+      printf("This query expr has the same true/false branch!\n");
+      print_expr(stdout, expr);
+      printf("!\n");
+      exit(-1);
+    }
+    char *subProcName = new char[1500];
+    sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
+    strcat(procName, subProcName);
   }
-  char *subProcName = new char[1500];
-  sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
-  strcat(procName, subProcName);
-
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-
-  dflowGenerator->printQueryExpr(cStr, lStr, rStr, result_suffix, result_bw);
-
-//  char *curCal = new char[300];
-//  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
-//          result_suffix, cStr, lStr, rStr);
-//  strcat(calc, curCal);
-//  if (result_bw == 0) {
-//    print_expr(stdout, expr);
-//    printf(": result_bw is 0!\n");
-//    exit(-1);
-//  }
-//  resBWList.push_back(result_bw);
-
-
-//  if (debug_verbose) {
-//    printf("[PERF] handle query expression for ");
-//    print_expr(stdout, expr);
-//    printf("\ndflowmap generates calc: %s\n", calc);
-//    printf("arg list: ");
-//    for (auto &arg : argList) {
-//      printf("%s ", arg.c_str());
-//    }
-//    printf("\n");
-//    printf("arg bw list: ");
-//    for (auto &bw : argBWList) {
-//      printf("%u ", bw);
-//    }
-//    printf("\n");
-//    printf("res bw list: ");
-//    for (auto &bw2:resBWList) {
-//      printf("%u ", bw2);
-//    }
-//    printf("\n");
-//    printf("query res%d has bw %u\n", result_suffix, result_bw);
-//    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
-//  }
+  dflowGenerator->printQueryExpr(cexpr_name,
+                                 lexpr_name,
+                                 rexpr_name,
+                                 result_suffix,
+                                 result_bw);
   /* create Expr */
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   int bodyExprType = expr->u.e.r->type;
-  dflowGenerator->prepareQueryExprForOpt(cStr,
+  dflowGenerator->prepareQueryExprForOpt(cexpr_name,
                                          cType,
-                                         lStr,
+                                         lexpr_name,
                                          lType,
-                                         rStr,
+                                         rexpr_name,
                                          rType,
                                          finalExprName,
                                          exprType,
                                          bodyExprType,
                                          result_bw);
-//  chpBackend->prepareQueryExprForOpt(cStr,
-//                                     cType,
-//                                     lStr,
-//                                     lType,
-//                                     rStr,
-//                                     rType,
-//                                     finalExprName,
-//                                     exprType,
-//                                     bodyExprType,
-//                                     result_bw,
-//                                     exprMap,
-//                                     hiddenBW,
-//                                     hiddenExprs);
   return finalExprName;
 }
 
@@ -218,103 +179,49 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  const char *lStr = printExpr(dflowGenerator,
-                               lExpr,
-                               procName,
-                               result_suffix,
-                               result_bw);
-  const char *rStr = printExpr(dflowGenerator,
-                               rExpr,
-                               procName,
-                               result_suffix,
-                               result_bw);
-  /* generate subProc name */
-  char *lVal = new char[100];
-  getCurProc(lStr, lVal);
-  char *rVal = new char[100];
-  getCurProc(rStr, rVal);
-  char *subProcName = new char[1500];
-  if (!strcmp(lStr, rStr)) {
-    sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
-  } else {
-    sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+  const char *lexpr_name = printExpr(dflowGenerator,
+                                     lExpr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+  const char *rexpr_name = printExpr(dflowGenerator,
+                                     rExpr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+  {
+    /* generate subProc name */
+    char *lVal = new char[100];
+    getCurProc(lexpr_name, lVal);
+    char *rVal = new char[100];
+    getCurProc(rexpr_name, rVal);
+    char *subProcName = new char[1500];
+    if (!strcmp(lexpr_name, rexpr_name)) {
+      sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
+    } else {
+      sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
+    }
+    strcat(procName, subProcName);
   }
-  strcat(procName, subProcName);
-
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-
-  dflowGenerator->printBinExpr(op, lStr, rStr, type, result_suffix, result_bw);
-
-
-//  if (result_bw == 0) {
-//    print_expr(stdout, expr);
-//    printf(": result_bw is 0!\n");
-//    exit(-1);
-//  }
-//  resBWList.push_back(result_bw);
-//  char *curCal = new char[300];
-//  bool binType = isBinType(type);
-//  if (binType) {
-//    sprintf(curCal, "      res%d := int(%s %s %s);\n",
-//            result_suffix, lStr, op, rStr);
-//  } else {
-//    sprintf(curCal, "      res%d := %s %s %s;\n",
-//            result_suffix, lStr, op, rStr);
-//  }
-//  strcat(calc, curCal);
-
-//  if (debug_verbose) {
-//    printf("[PERF] handle bin expression for ");
-//    print_expr(stdout, expr);
-//    printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op,
-//           rStr);
-//    print_expr(stdout, expr);
-//    printf("\n");
-//    printf("bin res%d has bw %u\n", result_suffix, result_bw);
-//    printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-//    printf("binary expr: ");
-//    print_expr(stdout, expr);
-//    printf("\ndflowmap generates calc: %s\n", calc);
-//    printf("procName: %s\n", procName);
-//    printf("arg list: ");
-//    for (auto &arg : argList) {
-//      printf("%s ", arg.c_str());
-//    }
-//    printf("\n");
-//    printf("arg bw list: ");
-//    for (auto &bw : argBWList) {
-//      printf("%u ", bw);
-//    }
-//    printf("\n");
-//    printf("res bw list: ");
-//    for (auto &bw2:resBWList) {
-//      printf("%u ", bw2);
-//    }
-//    printf("\n");
-//  }
-
+  dflowGenerator->printBinExpr(op,
+                               lexpr_name,
+                               rexpr_name,
+                               type,
+                               result_suffix,
+                               result_bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
-  dflowGenerator->prepareBinExprForOpt(lStr,
+  dflowGenerator->prepareBinExprForOpt(lexpr_name,
                                        lType,
-                                       rStr,
+                                       rexpr_name,
                                        rType,
                                        finalExprName,
                                        exprType,
                                        result_bw);
-//  chpBackend->prepareBinExprForOpt(lStr,
-//                                   lType,
-//                                   rStr,
-//                                   rType,
-//                                   finalExprName,
-//                                   exprType,
-//                                   result_bw,
-//                                   exprMap,
-//                                   hiddenBW,
-//                                   hiddenExprs);
   return finalExprName;
 }
 
@@ -325,58 +232,37 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                     char *procName,
                                     int &result_suffix,
                                     unsigned &result_bw) {
-  /* collect bitwidth info */
+  if (debug_verbose) {
+    printf("Handle uni expr ");
+    print_expr(stdout, expr);
+    printf("\n");
+  }
   Expr *lExpr = expr->u.e.l;
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  const char *lExprName = printExpr(dflowGenerator,
-                                    lExpr,
-                                    procName,
-                                    result_suffix,
-                                    result_bw);
-  /* generate subProc name */
-  char *val = new char[100];
-  getCurProc(lExprName, val);
-  sprintf(procName, "%s_%s%s", procName, sym, val);
-
+  const char *lexpr_name = printExpr(dflowGenerator,
+                                     lExpr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+  {
+    /* generate subProc name */
+    char *val = new char[100];
+    getCurProc(lexpr_name, val);
+    sprintf(procName, "%s_%s%s", procName, sym, val);
+  }
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-  dflowGenerator->printUniExpr(op, lExprName, result_suffix, result_bw);
-//  chpBackend->handleUniExpr(op,
-//                            lExprName,
-//                            result_suffix,
-//                            calc,
-//                            result_bw,
-//                            resBWList);
-  /* create Expr */
-//  if (debug_verbose) {
-//    printf("[PERF] handle uni expression for ");
-//    print_expr(stdout, expr);
-//    printf("uni res%d has bw %u\n", result_suffix, result_bw);
-//    printf("      res%d := %s %s;\n", result_suffix, op, lExprName);
-//    printf("unary expr: ");
-//    print_expr(stdout, expr);
-//    printf("\ndflowmap generates calc: %s\n", calc);
-//  }
-
-  /* prepare for the logic optimizer */
+  dflowGenerator->printUniExpr(op, lexpr_name, result_suffix, result_bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
-  dflowGenerator->prepareUniExprForOpt(lExprName,
+  dflowGenerator->prepareUniExprForOpt(lexpr_name,
                                        lType,
                                        finalExprName,
                                        exprType,
                                        result_bw);
-//  chpBackend->prepareUniExprForOpt(lExprName,
-//                                   lType,
-//                                   finalExprName,
-//                                   exprType,
-//                                   result_bw,
-//                                   exprMap,
-//                                   hiddenBW,
-//                                   hiddenExprs);
   return finalExprName;
 }
 
@@ -418,22 +304,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                oriVarName, mappedVarName, result_bw);
       }
       return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
-
-//      char *curArg = new char[10240];
-//      int idx = searchStringVec(oriArgList, oriVarName);
-//      if (idx == -1) {
-//        int numArgs = argList.size();
-//        oriArgList.push_back(oriVarName);
-//        argList.push_back(mappedVarName);
-//
-//        sprintf(curArg, "x%d", numArgs);
-//        argBWList.push_back(argBW);
-//      } else {
-//        sprintf(curArg, "x%d", idx);
-//      }
-//      inBW.insert({curArg, argBW});
-//
-//      return curArg;
     }
     case E_AND: {
       return EMIT_BIN(dflowGenerator,
@@ -673,9 +543,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     default: {
       print_expr(stdout, expr);
       printf("\n");
-      printf(
-          "when printing expression, encounter unknown expression type %d\n",
-          type);
+      printf("when printing expression, encounter unknown expression type %d\n",
+             type);
       exit(-1);
     }
   }
@@ -1092,55 +961,38 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                                    Vector<BuffInfo> &buffInfos,
                                    Map<int, int> &outRecord,
                                    UIntVec &buffBWs) {
-//  if (debug_verbose) {
-//    printf("PRINT DFLOW FUNCTION\n");
-//    printf("size: %d\n", strlen(procName));
-//    printf("procName: %s\n", procName);
-//    printf("arg list:\n");
-//    for (auto &arg : argList) {
-//      printf("%s ", arg.c_str());
-//    }
-//    printf("\n");
-//    printf("arg bw list:\n");
-//    for (auto &bw : argBWList) {
-//      printf("%u ", bw);
-//    }
-//    printf("\n");
-//    printf("res bw list:\n");
-//    for (auto &resBW : resBWList) {
-//      printf("%u ", resBW);
-//    }
-//    printf("\n");
-//    printf("outWidthList:\n");
-//    for (auto &outWidth : outBWList) {
-//      printf("%u ", outWidth);
-//    }
-//    printf("\n");
-//    printf("calc: %s\n", calc);
-//    printf("result_suffix: %d\n", result_suffix);
-//    printf("outSendStr:\n");
-//    for (auto &outStr : outSendStr) {
-//      printf("%s\n", outStr.c_str());
-//    }
-//    printf("normalizedOutList:\n");
-//    for (auto &out : normalizedOutList) {
-//      printf("%s ", out.c_str());
-//    }
-//    printf("\n");
-//    printf("outList:\n");
-//    for (auto &out : outList) {
-//      printf("%s ", out.c_str());
-//    }
-//    printf("\n");
-//    printf("buffInfos: ");
-//    for (auto &buffInfo : buffInfos) {
-//      printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
-//             buffInfo.initVal, buffInfo.hasInitVal);
-//    }
-//    printf("\n");
-//  }
+  if (debug_verbose) {
+    printf("PRINT DFLOW FUNCTION\n");
+    printf("size: %d\n", strlen(procName));
+    printf("procName: %s\n", procName);
+    printf("outWidthList:\n");
+    for (auto &outWidth : outBWList) {
+      printf("%u ", outWidth);
+    }
+    printf("\n");
+    printf("outSendStr:\n");
+    for (auto &outStr : outSendStr) {
+      printf("%s\n", outStr.c_str());
+    }
+    printf("normalizedOutList:\n");
+    for (auto &out : normalizedOutList) {
+      printf("%s ", out.c_str());
+    }
+    printf("\n");
+    printf("outList:\n");
+    for (auto &out : outList) {
+      printf("%s ", out.c_str());
+    }
+    printf("\n");
+    printf("buffInfos: ");
+    for (auto &buffInfo : buffInfos) {
+      printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
+             buffInfo.initVal, buffInfo.hasInitVal);
+    }
+    printf("\n");
+    dflowGenerator->dump();
+  }
 //  calc[strlen(calc) - 2] = ';';
-
   const char *calc = dflowGenerator->getCalc();
   StringVec &argList = dflowGenerator->getArgList();
   UIntVec &argBWList = dflowGenerator->getArgBWList();
@@ -1279,21 +1131,9 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       strcat(procName, subProc);
       result_suffix++;
       dflowGenerator->printPort(exprStr, result_suffix, result_bw);
-
-
-//      resBWList.push_back(result_bw);
-//      char *subCalc = new char[1500];
-//      sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprStr);
-//      strcat(calc, subCalc);
-
       char *resName = new char[5];
       sprintf(resName, "res%d", result_suffix);
       dflowGenerator->preparePortForOpt(resName, exprStr, result_bw);
-
-//      Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
-//      Expr *xExpr = getExprFromName(exprStr, exprMap, false, E_VAR);
-//      hiddenBW.insert({resName, result_bw});
-//      hiddenExprs.insert({resRHS, xExpr});
     }
 
     if (initExpr) {
@@ -1303,40 +1143,19 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       strcat(procName, subProcName);
       buffBWs.push_back(result_bw);
     }
-//    if (debug_verbose) {
-//      printf(
-//          "___________________________________\n\n\n\n\n\nFor dataflow element: ");
-//      dflow_print(stdout, d);
-//      printf("\n___________________________________________\n");
-//      printf("procName: %s\n", procName);
-//      printf("arg list:\n");
-//      for (auto &arg : argList) {
-//        printf("%s ", arg.c_str());
-//      }
-//      printf("\n");
-//      printf("oriArgList:\n");
-//      for (auto &oriArg : oriArgList) {
-//        printf("%s ", oriArg.c_str());
-//      }
-//      printf("\n");
-//      printf("arg bw list:\n");
-//      for (auto &bw : argBWList) {
-//        printf("%u ", bw);
-//      }
-//      printf("\n");
-//      printf("res bw list:\n");
-//      for (auto &resBW : resBWList) {
-//        printf("%u ", resBW);
-//      }
-//      printf("\n");
-//      printf("out bw: %d\n", outWidth);
-//      printf("calc: %s\n", calc);
-//      printf("result_suffix: %d\n", result_suffix);
-//      printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
-//      printf("init expr: ");
-//      print_expr(stdout, initExpr);
-//      printf("\n");
-//    }
+    if (debug_verbose) {
+      printf("_________________________________\n\n\n\nFor dataflow element: ");
+      dflow_print(stdout, d);
+      printf("\n___________________________________________\n");
+      printf("procName: %s\n", procName);
+      printf("out bw: %d\n", outWidth);
+      printf("result_suffix: %d\n", result_suffix);
+      printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
+      printf("init expr: ");
+      print_expr(stdout, initExpr);
+      printf("\n");
+      dflowGenerator->dump();
+    }
     outList.push_back(out);
     normalizedOutList.push_back(normalizedOut);
     outWidthList.push_back(outWidth);
@@ -1368,9 +1187,6 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       buff_info.metric = buffMetric;
       buffInfos.push_back(buff_info);
     }
-    if (debug_verbose) {
-      printf("@@@@@@@@@@@@@@@@ generate %s\n", outStr);
-    }
     outSendStr.push_back(outStr);
     outResSuffixs.push_back(result_suffix);
     char outWidthStr[1024];
@@ -1391,8 +1207,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       }
       char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
-      char *calc = new char[MAX_CALC_LEN];
-      sprintf(calc, "\n");
       IntVec boolResSuffixs;
       char *def = new char[10240];
       def[0] = '\0';
@@ -1434,6 +1248,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       buffInfos,
                       outRecord,
                       buffBWs);
+      const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
         printDFlowFunc(dflowGenerator,
                        procName,
@@ -1589,7 +1404,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       } else if (actnDp) {
         printf("[actnDp]: %s_inst\n", normalizedOutput);
       }
-
       unsigned outBW = getActIdBW(output);
       int numInputs = d->u.splitmerge.nmulti;
       int coutBW = ceil(log2(numInputs));
@@ -1654,10 +1468,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   listitem_t *li;
   char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
   procName[0] = '\0';
-//  sprintf(procName, "func_");
-  char *calc = new char[MAX_CALC_LEN];
-  calc[0] = '\0';
-  sprintf(calc, "\n");
   IntVec boolResSuffixs;
   char *def = new char[10240];
   def[0] = '\0';
@@ -1729,6 +1539,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
     print_dflow(stdout, dflow);
     printf("\n");
   }
+  const char *calc = dflowGenerator->getCalc();
   if (strlen(calc) > 1) {
     printDFlowFunc(dflowGenerator,
                    procName,
@@ -1764,7 +1575,6 @@ void ProcGenerator::handleProcess(Process *proc) {
     printf("Process `%s': no dataflow body", p->getName());
     exit(-1);
   }
-
   chpBackend->printProcHeader(p);
   bitwidthMap.clear();
   opUses.clear();
