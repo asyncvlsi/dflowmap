@@ -22,7 +22,7 @@ EXE=dflowmap.$(EXT)
 
 TARGETS=$(EXE)
 
-OBJS=ChpLibGenerator.o main.o Metrics.o ProcGenerator.o Helper.o ChpCircuitGenerator.o ChpBackend.o
+OBJS=ChpLibGenerator.o main.o Metrics.o ProcGenerator.o Helper.o ChpCircuitGenerator.o ChpBackend.o DflowGenerator.o
 
 SRCS=$(OBJS:.o=.cc)
 

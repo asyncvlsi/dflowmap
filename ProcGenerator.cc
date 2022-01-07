@@ -83,20 +83,12 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
   exit(-1);
 }
 
-const char *ProcGenerator::EMIT_QUERY(Expr *expr,
+const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
+                                      Expr *expr,
                                       const char *sym,
                                       char *procName,
-                                      char *calc,
-                                      StringVec &argList,
-                                      StringVec &oriArgList,
-                                      UIntVec &argBWList,
-                                      UIntVec &resBWList,
                                       int &result_suffix,
-                                      unsigned &result_bw,
-                                      Map<const char *, Expr *> &exprMap,
-                                      StringMap<unsigned> &inBW,
-                                      StringMap<unsigned> &hiddenBW,
-                                      Map<Expr *, Expr *> &hiddenExprs) {
+                                      unsigned &result_bw) {
   Expr *cExpr = expr->u.e.l;
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
@@ -104,45 +96,21 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
     sprintf(procName, "func");
   }
   unsigned cBW = 1;
-  const char *cStr = printExpr(cExpr,
+  const char *cStr = printExpr(dflowGenerator,
+                               cExpr,
                                procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
                                result_suffix,
-                               cBW,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
-  const char *lStr = printExpr(lExpr,
+                               cBW);
+  const char *lStr = printExpr(dflowGenerator,
+                               lExpr,
                                procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
                                result_suffix,
-                               result_bw,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
-  const char *rStr = printExpr(rExpr,
+                               result_bw);
+  const char *rStr = printExpr(dflowGenerator,
+                               rExpr,
                                procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
                                result_suffix,
-                               result_bw,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
+                               result_bw);
   /* generate subProc name */
   char *cVal = new char[100];
   getCurProc(cStr, cVal);
@@ -160,114 +128,106 @@ const char *ProcGenerator::EMIT_QUERY(Expr *expr,
   sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
   strcat(procName, subProcName);
 
-
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
 
-  char *curCal = new char[300];
-  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
-          result_suffix, cStr, lStr, rStr);
-  strcat(calc, curCal);
-  if (result_bw == 0) {
-    print_expr(stdout, expr);
-    printf(": result_bw is 0!\n");
-    exit(-1);
-  }
-  resBWList.push_back(result_bw);
+  dflowGenerator->printQueryExpr(cStr, lStr, rStr, result_suffix, result_bw);
+
+//  char *curCal = new char[300];
+//  sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
+//          result_suffix, cStr, lStr, rStr);
+//  strcat(calc, curCal);
+//  if (result_bw == 0) {
+//    print_expr(stdout, expr);
+//    printf(": result_bw is 0!\n");
+//    exit(-1);
+//  }
+//  resBWList.push_back(result_bw);
 
 
-  if (debug_verbose) {
-    printf("[PERF] handle query expression for ");
-    print_expr(stdout, expr);
-    printf("\ndflowmap generates calc: %s\n", calc);
-    printf("arg list: ");
-    for (auto &arg : argList) {
-      printf("%s ", arg.c_str());
-    }
-    printf("\n");
-    printf("arg bw list: ");
-    for (auto &bw : argBWList) {
-      printf("%u ", bw);
-    }
-    printf("\n");
-    printf("res bw list: ");
-    for (auto &bw2:resBWList) {
-      printf("%u ", bw2);
-    }
-    printf("\n");
-    printf("query res%d has bw %u\n", result_suffix, result_bw);
-    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
-  }
+//  if (debug_verbose) {
+//    printf("[PERF] handle query expression for ");
+//    print_expr(stdout, expr);
+//    printf("\ndflowmap generates calc: %s\n", calc);
+//    printf("arg list: ");
+//    for (auto &arg : argList) {
+//      printf("%s ", arg.c_str());
+//    }
+//    printf("\n");
+//    printf("arg bw list: ");
+//    for (auto &bw : argBWList) {
+//      printf("%u ", bw);
+//    }
+//    printf("\n");
+//    printf("res bw list: ");
+//    for (auto &bw2:resBWList) {
+//      printf("%u ", bw2);
+//    }
+//    printf("\n");
+//    printf("query res%d has bw %u\n", result_suffix, result_bw);
+//    printf("      res%d := %s ? %s : %s;\n", result_suffix, cStr, lStr, rStr);
+//  }
   /* create Expr */
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   int bodyExprType = expr->u.e.r->type;
-  chpBackend->prepareQueryExprForOpt(cStr,
-                                     cType,
-                                     lStr,
-                                     lType,
-                                     rStr,
-                                     rType,
-                                     finalExprName,
-                                     exprType,
-                                     bodyExprType,
-                                     result_bw,
-                                     exprMap,
-                                     hiddenBW,
-                                     hiddenExprs);
+  dflowGenerator->prepareQueryExprForOpt(cStr,
+                                         cType,
+                                         lStr,
+                                         lType,
+                                         rStr,
+                                         rType,
+                                         finalExprName,
+                                         exprType,
+                                         bodyExprType,
+                                         result_bw);
+//  chpBackend->prepareQueryExprForOpt(cStr,
+//                                     cType,
+//                                     lStr,
+//                                     lType,
+//                                     rStr,
+//                                     rType,
+//                                     finalExprName,
+//                                     exprType,
+//                                     bodyExprType,
+//                                     result_bw,
+//                                     exprMap,
+//                                     hiddenBW,
+//                                     hiddenExprs);
   return finalExprName;
 }
 
-const char *ProcGenerator::EMIT_BIN(Expr *expr,
+const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
+                                    Expr *expr,
                                     const char *sym,
                                     const char *op,
                                     int type,
                                     char *procName,
-                                    char *calc,
-                                    StringVec &argList,
-                                    StringVec &oriArgList,
-                                    UIntVec &argBWList,
-                                    UIntVec &resBWList,
                                     int &result_suffix,
-                                    unsigned &result_bw,
-                                    Map<const char *, Expr *> &exprMap,
-                                    StringMap<unsigned> &inBW,
-                                    StringMap<unsigned> &hiddenBW,
-                                    Map<Expr *, Expr *> &hiddenExprs) {
+                                    unsigned &result_bw) {
+  if (debug_verbose) {
+    printf("Handle bin expr ");
+    print_expr(stdout, expr);
+    printf("\n");
+  }
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  const char *lStr = printExpr(lExpr,
+  const char *lStr = printExpr(dflowGenerator,
+                               lExpr,
                                procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
                                result_suffix,
-                               result_bw,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
-  const char *rStr = printExpr(rExpr,
+                               result_bw);
+  const char *rStr = printExpr(dflowGenerator,
+                               rExpr,
                                procName,
-                               calc,
-                               argList,
-                               oriArgList,
-                               argBWList,
-                               resBWList,
                                result_suffix,
-                               result_bw,
-                               exprMap,
-                               inBW,
-                               hiddenBW,
-                               hiddenExprs);
+                               result_bw);
   /* generate subProc name */
   char *lVal = new char[100];
   getCurProc(lStr, lVal);
@@ -281,110 +241,100 @@ const char *ProcGenerator::EMIT_BIN(Expr *expr,
   }
   strcat(procName, subProcName);
 
-
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
 
-
-  if (result_bw == 0) {
-    print_expr(stdout, expr);
-    printf(": result_bw is 0!\n");
-    exit(-1);
-  }
-  resBWList.push_back(result_bw);
-  char *curCal = new char[300];
-  bool binType = isBinType(type);
-  if (binType) {
-    sprintf(curCal, "      res%d := int(%s %s %s);\n",
-            result_suffix, lStr, op, rStr);
-  } else {
-    sprintf(curCal, "      res%d := %s %s %s;\n",
-            result_suffix, lStr, op, rStr);
-  }
-  strcat(calc, curCal);
+  dflowGenerator->printBinExpr(op, lStr, rStr, type, result_suffix, result_bw);
 
 
+//  if (result_bw == 0) {
+//    print_expr(stdout, expr);
+//    printf(": result_bw is 0!\n");
+//    exit(-1);
+//  }
+//  resBWList.push_back(result_bw);
+//  char *curCal = new char[300];
+//  bool binType = isBinType(type);
+//  if (binType) {
+//    sprintf(curCal, "      res%d := int(%s %s %s);\n",
+//            result_suffix, lStr, op, rStr);
+//  } else {
+//    sprintf(curCal, "      res%d := %s %s %s;\n",
+//            result_suffix, lStr, op, rStr);
+//  }
+//  strcat(calc, curCal);
 
-  if (debug_verbose) {
-    printf("[PERF] handle bin expression for ");
-    print_expr(stdout, expr);
-    printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op,
-           rStr);
-    print_expr(stdout, expr);
-    printf("\n");
-    printf("bin res%d has bw %u\n", result_suffix, result_bw);
-    printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
-    printf("binary expr: ");
-    print_expr(stdout, expr);
-    printf("\ndflowmap generates calc: %s\n", calc);
-    printf("procName: %s\n", procName);
-    printf("arg list: ");
-    for (auto &arg : argList) {
-      printf("%s ", arg.c_str());
-    }
-    printf("\n");
-    printf("arg bw list: ");
-    for (auto &bw : argBWList) {
-      printf("%u ", bw);
-    }
-    printf("\n");
-    printf("res bw list: ");
-    for (auto &bw2:resBWList) {
-      printf("%u ", bw2);
-    }
-    printf("\n");
-  }
+//  if (debug_verbose) {
+//    printf("[PERF] handle bin expression for ");
+//    print_expr(stdout, expr);
+//    printf("***************\nres%d := %s %s %s;\n", result_suffix, lStr, op,
+//           rStr);
+//    print_expr(stdout, expr);
+//    printf("\n");
+//    printf("bin res%d has bw %u\n", result_suffix, result_bw);
+//    printf("      res%d := %s %s %s;\n", result_suffix, lStr, op, rStr);
+//    printf("binary expr: ");
+//    print_expr(stdout, expr);
+//    printf("\ndflowmap generates calc: %s\n", calc);
+//    printf("procName: %s\n", procName);
+//    printf("arg list: ");
+//    for (auto &arg : argList) {
+//      printf("%s ", arg.c_str());
+//    }
+//    printf("\n");
+//    printf("arg bw list: ");
+//    for (auto &bw : argBWList) {
+//      printf("%u ", bw);
+//    }
+//    printf("\n");
+//    printf("res bw list: ");
+//    for (auto &bw2:resBWList) {
+//      printf("%u ", bw2);
+//    }
+//    printf("\n");
+//  }
 
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
-  chpBackend->prepareBinExprForOpt(lStr,
-                                   lType,
-                                   rStr,
-                                   rType,
-                                   finalExprName,
-                                   exprType,
-                                   result_bw,
-                                   exprMap,
-                                   hiddenBW,
-                                   hiddenExprs);
+  dflowGenerator->prepareBinExprForOpt(lStr,
+                                       lType,
+                                       rStr,
+                                       rType,
+                                       finalExprName,
+                                       exprType,
+                                       result_bw);
+//  chpBackend->prepareBinExprForOpt(lStr,
+//                                   lType,
+//                                   rStr,
+//                                   rType,
+//                                   finalExprName,
+//                                   exprType,
+//                                   result_bw,
+//                                   exprMap,
+//                                   hiddenBW,
+//                                   hiddenExprs);
   return finalExprName;
 }
 
-const char *ProcGenerator::EMIT_UNI(Expr *expr,
+const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
+                                    Expr *expr,
                                     const char *sym,
                                     const char *op,
                                     char *procName,
-                                    char *calc,
-                                    StringVec &argList,
-                                    StringVec &oriArgList,
-                                    UIntVec &argBWList,
-                                    UIntVec &resBWList,
                                     int &result_suffix,
-                                    unsigned &result_bw,
-                                    Map<const char *, Expr *> &exprMap,
-                                    StringMap<unsigned> &inBW,
-                                    StringMap<unsigned> &hiddenBW,
-                                    Map<Expr *, Expr *> &hiddenExprs) {
+                                    unsigned &result_bw) {
   /* collect bitwidth info */
   Expr *lExpr = expr->u.e.l;
   if (procName[0] == '\0') {
     sprintf(procName, "func");
   }
-  const char *lExprName = printExpr(lExpr,
+  const char *lExprName = printExpr(dflowGenerator,
+                                    lExpr,
                                     procName,
-                                    calc,
-                                    argList,
-                                    oriArgList,
-                                    argBWList,
-                                    resBWList,
                                     result_suffix,
-                                    result_bw,
-                                    exprMap,
-                                    inBW,
-                                    hiddenBW,
-                                    hiddenExprs);
+                                    result_bw);
   /* generate subProc name */
   char *val = new char[100];
   getCurProc(lExprName, val);
@@ -393,52 +343,48 @@ const char *ProcGenerator::EMIT_UNI(Expr *expr,
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-
-  chpBackend->handleUniExpr(op,
-                            lExprName,
-                            result_suffix,
-                            calc,
-                            result_bw,
-                            resBWList);
-
+  dflowGenerator->printUniExpr(op, lExprName, result_suffix, result_bw);
+//  chpBackend->handleUniExpr(op,
+//                            lExprName,
+//                            result_suffix,
+//                            calc,
+//                            result_bw,
+//                            resBWList);
   /* create Expr */
-  if (debug_verbose) {
-    printf("[PERF] handle uni expression for ");
-    print_expr(stdout, expr);
-    printf("uni res%d has bw %u\n", result_suffix, result_bw);
-    printf("      res%d := %s %s;\n", result_suffix, op, lExprName);
-    printf("unary expr: ");
-    print_expr(stdout, expr);
-    printf("\ndflowmap generates calc: %s\n", calc);
-  }
+//  if (debug_verbose) {
+//    printf("[PERF] handle uni expression for ");
+//    print_expr(stdout, expr);
+//    printf("uni res%d has bw %u\n", result_suffix, result_bw);
+//    printf("      res%d := %s %s;\n", result_suffix, op, lExprName);
+//    printf("unary expr: ");
+//    print_expr(stdout, expr);
+//    printf("\ndflowmap generates calc: %s\n", calc);
+//  }
 
   /* prepare for the logic optimizer */
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
-  chpBackend->prepareUniExprForOpt(lExprName,
-                                   lType,
-                                   finalExprName,
-                                   exprType,
-                                   result_bw,
-                                   exprMap,
-                                   hiddenBW,
-                                   hiddenExprs);
+  dflowGenerator->prepareUniExprForOpt(lExprName,
+                                       lType,
+                                       finalExprName,
+                                       exprType,
+                                       result_bw);
+//  chpBackend->prepareUniExprForOpt(lExprName,
+//                                   lType,
+//                                   finalExprName,
+//                                   exprType,
+//                                   result_bw,
+//                                   exprMap,
+//                                   hiddenBW,
+//                                   hiddenExprs);
   return finalExprName;
 }
 
-const char *ProcGenerator::printExpr(Expr *expr,
+const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
+                                     Expr *expr,
                                      char *procName,
-                                     char *calc,
-                                     StringVec &argList,
-                                     StringVec &oriArgList,
-                                     UIntVec &argBWList,
-                                     UIntVec &resBWList,
                                      int &result_suffix,
-                                     unsigned &result_bw,
-                                     Map<const char *, Expr *> &exprMap,
-                                     StringMap<unsigned> &inBW,
-                                     StringMap<unsigned> &hiddenBW,
-                                     Map<Expr *, Expr *> &hiddenExprs) {
+                                     unsigned &result_bw) {
   int type = expr->type;
   switch (type) {
     case E_INT: {
@@ -471,379 +417,220 @@ const char *ProcGenerator::printExpr(Expr *expr,
         printf("oriVarName: %s, mappedVarName: %s, res_bw: %u\n",
                oriVarName, mappedVarName, result_bw);
       }
+      return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
 
-      char *curArg = new char[10240];
-      int idx = searchStringVec(oriArgList, oriVarName);
-      if (idx == -1) {
-        int numArgs = argList.size();
-        oriArgList.push_back(oriVarName);
-        argList.push_back(mappedVarName);
-
-        sprintf(curArg, "x%d", numArgs);
-        argBWList.push_back(argBW);
-      } else {
-        sprintf(curArg, "x%d", idx);
-      }
-      inBW.insert({curArg, argBW});
-
-      return curArg;
+//      char *curArg = new char[10240];
+//      int idx = searchStringVec(oriArgList, oriVarName);
+//      if (idx == -1) {
+//        int numArgs = argList.size();
+//        oriArgList.push_back(oriVarName);
+//        argList.push_back(mappedVarName);
+//
+//        sprintf(curArg, "x%d", numArgs);
+//        argBWList.push_back(argBW);
+//      } else {
+//        sprintf(curArg, "x%d", idx);
+//      }
+//      inBW.insert({curArg, argBW});
+//
+//      return curArg;
     }
     case E_AND: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "and",
                       "&",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_OR: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "or",
                       "|",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_NOT: {
-      return EMIT_UNI(expr,
+      return EMIT_UNI(dflowGenerator,
+                      expr,
                       "not",
                       "~",
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_PLUS: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "add",
                       "+",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_MINUS: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "minus",
                       "-",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_MULT: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "mul",
                       "*",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_DIV: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "div",
                       "/",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_MOD: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "mod",
                       "%",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_LSL: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "lsl",
                       "<<",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_LSR: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "lsr",
                       ">>",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_ASR: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "asr",
                       ">>>",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_UMINUS: {
-      return EMIT_UNI(expr,
+      return EMIT_UNI(dflowGenerator,
+                      expr,
                       "neg",
                       "-",
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_XOR: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "xor",
                       "^",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_LT: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "lt",
                       "<",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_GT: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "gt",
                       ">",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_LE: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "le",
                       "<=",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_GE: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "ge",
                       ">=",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_EQ: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "eq",
                       "=",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_NE: {
-      return EMIT_BIN(expr,
+      return EMIT_BIN(dflowGenerator,
+                      expr,
                       "ne",
                       "!=",
                       type,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_COMPLEMENT: {
-      return EMIT_UNI(expr,
+      return EMIT_UNI(dflowGenerator,
+                      expr,
                       "compl",
                       "~",
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
-                      result_bw,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
-                      hiddenExprs);
+                      result_bw);
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
@@ -860,52 +647,28 @@ const char *ProcGenerator::printExpr(Expr *expr,
         print_expr(stdout, lExpr);
         printf(", result_bw: %u\n", result_bw);
       }
-      return printExpr(lExpr,
+      return printExpr(dflowGenerator,
+                       lExpr,
                        procName,
-                       calc,
-                       argList,
-                       oriArgList,
-                       argBWList,
-                       resBWList,
                        result_suffix,
-                       result_bw,
-                       exprMap,
-                       inBW,
-                       hiddenBW,
-                       hiddenExprs);
+                       result_bw);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       result_bw = 1;
-      return printExpr(lExpr,
+      return printExpr(dflowGenerator,
+                       lExpr,
                        procName,
-                       calc,
-                       argList,
-                       oriArgList,
-                       argBWList,
-                       resBWList,
                        result_suffix,
-                       result_bw,
-                       exprMap,
-                       inBW,
-                       hiddenBW,
-                       hiddenExprs);
+                       result_bw);
     }
     case E_QUERY: {
-      return EMIT_QUERY(expr,
+      return EMIT_QUERY(dflowGenerator,
+                        expr,
                         "q",
                         procName,
-                        calc,
-                        argList,
-                        oriArgList,
-                        argBWList,
-                        resBWList,
                         result_suffix,
-                        result_bw,
-                        exprMap,
-                        inBW,
-                        hiddenBW,
-                        hiddenExprs);
+                        result_bw);
     }
     default: {
       print_expr(stdout, expr);
@@ -1319,75 +1082,76 @@ void ProcGenerator::createSource(const char *outName,
   chpBackend->printSource(outName, instance, metric);
 }
 
-void ProcGenerator::printDFlowFunc(const char *procName,
-                                   StringVec &argList,
-                                   UIntVec &argBWList,
-                                   UIntVec &resBWList,
+void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
+                                   const char *procName,
                                    UIntVec &outBWList,
-                                   char *calc,
-                                   int result_suffix,
                                    StringVec &outSendStr,
                                    IntVec &outResSuffixs,
                                    StringVec &normalizedOutList,
                                    StringVec &outList,
                                    Vector<BuffInfo> &buffInfos,
-                                   Map<const char *, Expr *> &exprMap,
-                                   StringMap<unsigned> &inBW,
-                                   StringMap<unsigned> &hiddenBW,
                                    Map<int, int> &outRecord,
-                                   Map<Expr *, Expr *> &hiddenExprs,
                                    UIntVec &buffBWs) {
-  calc[strlen(calc) - 2] = ';';
-  if (debug_verbose) {
-    printf("PRINT DFLOW FUNCTION\n");
-    printf("size: %d\n", strlen(procName));
-    printf("procName: %s\n", procName);
-    printf("arg list:\n");
-    for (auto &arg : argList) {
-      printf("%s ", arg.c_str());
-    }
-    printf("\n");
-    printf("arg bw list:\n");
-    for (auto &bw : argBWList) {
-      printf("%u ", bw);
-    }
-    printf("\n");
-    printf("res bw list:\n");
-    for (auto &resBW : resBWList) {
-      printf("%u ", resBW);
-    }
-    printf("\n");
-    printf("outWidthList:\n");
-    for (auto &outWidth : outBWList) {
-      printf("%u ", outWidth);
-    }
-    printf("\n");
-    printf("calc: %s\n", calc);
-    printf("result_suffix: %d\n", result_suffix);
-    printf("outSendStr:\n");
-    for (auto &outStr : outSendStr) {
-      printf("%s\n", outStr.c_str());
-    }
-    printf("normalizedOutList:\n");
-    for (auto &out : normalizedOutList) {
-      printf("%s ", out.c_str());
-    }
-    printf("\n");
-    printf("outList:\n");
-    for (auto &out : outList) {
-      printf("%s ", out.c_str());
-    }
-    printf("\n");
-    printf("buffInfos: ");
-    for (auto &buffInfo : buffInfos) {
-      printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
-             buffInfo.initVal, buffInfo.hasInitVal);
-    }
-    printf("\n");
-  }
+//  if (debug_verbose) {
+//    printf("PRINT DFLOW FUNCTION\n");
+//    printf("size: %d\n", strlen(procName));
+//    printf("procName: %s\n", procName);
+//    printf("arg list:\n");
+//    for (auto &arg : argList) {
+//      printf("%s ", arg.c_str());
+//    }
+//    printf("\n");
+//    printf("arg bw list:\n");
+//    for (auto &bw : argBWList) {
+//      printf("%u ", bw);
+//    }
+//    printf("\n");
+//    printf("res bw list:\n");
+//    for (auto &resBW : resBWList) {
+//      printf("%u ", resBW);
+//    }
+//    printf("\n");
+//    printf("outWidthList:\n");
+//    for (auto &outWidth : outBWList) {
+//      printf("%u ", outWidth);
+//    }
+//    printf("\n");
+//    printf("calc: %s\n", calc);
+//    printf("result_suffix: %d\n", result_suffix);
+//    printf("outSendStr:\n");
+//    for (auto &outStr : outSendStr) {
+//      printf("%s\n", outStr.c_str());
+//    }
+//    printf("normalizedOutList:\n");
+//    for (auto &out : normalizedOutList) {
+//      printf("%s ", out.c_str());
+//    }
+//    printf("\n");
+//    printf("outList:\n");
+//    for (auto &out : outList) {
+//      printf("%s ", out.c_str());
+//    }
+//    printf("\n");
+//    printf("buffInfos: ");
+//    for (auto &buffInfo : buffInfos) {
+//      printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
+//             buffInfo.initVal, buffInfo.hasInitVal);
+//    }
+//    printf("\n");
+//  }
+//  calc[strlen(calc) - 2] = ';';
 
-  char *instName = new char[MAX_INSTANCE_LEN];
-  sprintf(instName, "%s<", procName);
+  const char *calc = dflowGenerator->getCalc();
+  StringVec &argList = dflowGenerator->getArgList();
+  UIntVec &argBWList = dflowGenerator->getArgBWList();
+  UIntVec &resBWList = dflowGenerator->getResBWList();
+  Map<const char *, Expr *> &exprMap = dflowGenerator->getExprMap();
+  StringMap<unsigned> &inBW = dflowGenerator->getInBW();
+  StringMap<unsigned> &hiddenBW = dflowGenerator->getHiddenBWs();
+  Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
+
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<", procName);
   int numArgs = argList.size();
   int i = 0;
   for (; i < numArgs; i++) {
@@ -1397,9 +1161,9 @@ void ProcGenerator::printDFlowFunc(const char *procName,
     } else {
       sprintf(subInstance, "%u,", argBWList[i]);
     }
-    strcat(instName, subInstance);
+    strcat(instance, subInstance);
   }
-  double *fuMetric = metrics->getOrGenFUMetric(instName,
+  double *fuMetric = metrics->getOrGenFUMetric(instance,
                                                inBW,
                                                hiddenBW,
                                                exprMap,
@@ -1407,7 +1171,7 @@ void ProcGenerator::printDFlowFunc(const char *procName,
                                                outRecord,
                                                outBWList);
   chpBackend->printFU(procName,
-                      instName,
+                      instance,
                       argList,
                       argBWList,
                       resBWList,
@@ -1422,13 +1186,9 @@ void ProcGenerator::printDFlowFunc(const char *procName,
   chpBackend->printBuff(buffInfos);
 }
 
-void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
+void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
+                                    act_dataflow_element *d,
                                     char *procName,
-                                    char *calc,
-                                    StringVec &argList,
-                                    StringVec &oriArgList,
-                                    UIntVec &argBWList,
-                                    UIntVec &resBWList,
                                     int &result_suffix,
                                     StringVec &outSendStr,
                                     IntVec &outResSuffixs,
@@ -1436,12 +1196,8 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
                                     StringVec &normalizedOutList,
                                     UIntVec &outWidthList,
                                     Vector<BuffInfo> &buffInfos,
-                                    Map<const char *, Expr *> &exprMap,
-                                    StringMap<unsigned> &inBW,
-                                    StringMap<unsigned> &hiddenBW,
                                     Map<int, int> &outRecord,
-                                    UIntVec &buffBWs,
-                                    Map<Expr *, Expr *> &hiddenExprs) {
+                                    UIntVec &buffBWs) {
   if (d->t != ACT_DFLOW_FUNC) {
     dflow_print(stdout, d);
     printf("This is not dflow_func!\n");
@@ -1495,19 +1251,11 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
       print_expr(stdout, expr);
       printf(", its type: %d\n", expr->type);
     }
-    const char *exprStr = printExpr(expr,
+    const char *exprStr = printExpr(dflowGenerator,
+                                    expr,
                                     procName,
-                                    calc,
-                                    argList,
-                                    oriArgList,
-                                    argBWList,
-                                    resBWList,
                                     result_suffix,
-                                    result_bw,
-                                    exprMap,
-                                    inBW,
-                                    hiddenBW,
-                                    hiddenExprs);
+                                    result_bw);
     /* check if the expression only has E_VAR. Note that it could be built-in int/bool, e.g., int(varName, bw). In
      * this case, it still only has E_VAR expression. */
     Expr *actualExpr = expr;
@@ -1530,16 +1278,22 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
       }
       strcat(procName, subProc);
       result_suffix++;
-      resBWList.push_back(result_bw);
-      char *subCalc = new char[1500];
-      sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprStr);
-      strcat(calc, subCalc);
+      dflowGenerator->printPort(exprStr, result_suffix, result_bw);
+
+
+//      resBWList.push_back(result_bw);
+//      char *subCalc = new char[1500];
+//      sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprStr);
+//      strcat(calc, subCalc);
+
       char *resName = new char[5];
       sprintf(resName, "res%d", result_suffix);
-      Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
-      Expr *xExpr = getExprFromName(exprStr, exprMap, false, E_VAR);
-      hiddenBW.insert({resName, result_bw});
-      hiddenExprs.insert({resRHS, xExpr});
+      dflowGenerator->preparePortForOpt(resName, exprStr, result_bw);
+
+//      Expr *resRHS = getExprFromName(resName, exprMap, false, E_VAR);
+//      Expr *xExpr = getExprFromName(exprStr, exprMap, false, E_VAR);
+//      hiddenBW.insert({resName, result_bw});
+//      hiddenExprs.insert({resRHS, xExpr});
     }
 
     if (initExpr) {
@@ -1549,40 +1303,40 @@ void ProcGenerator::handleDFlowFunc(act_dataflow_element *d,
       strcat(procName, subProcName);
       buffBWs.push_back(result_bw);
     }
-    if (debug_verbose) {
-      printf(
-          "___________________________________\n\n\n\n\n\nFor dataflow element: ");
-      dflow_print(stdout, d);
-      printf("\n___________________________________________\n");
-      printf("procName: %s\n", procName);
-      printf("arg list:\n");
-      for (auto &arg : argList) {
-        printf("%s ", arg.c_str());
-      }
-      printf("\n");
-      printf("oriArgList:\n");
-      for (auto &oriArg : oriArgList) {
-        printf("%s ", oriArg.c_str());
-      }
-      printf("\n");
-      printf("arg bw list:\n");
-      for (auto &bw : argBWList) {
-        printf("%u ", bw);
-      }
-      printf("\n");
-      printf("res bw list:\n");
-      for (auto &resBW : resBWList) {
-        printf("%u ", resBW);
-      }
-      printf("\n");
-      printf("out bw: %d\n", outWidth);
-      printf("calc: %s\n", calc);
-      printf("result_suffix: %d\n", result_suffix);
-      printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
-      printf("init expr: ");
-      print_expr(stdout, initExpr);
-      printf("\n");
-    }
+//    if (debug_verbose) {
+//      printf(
+//          "___________________________________\n\n\n\n\n\nFor dataflow element: ");
+//      dflow_print(stdout, d);
+//      printf("\n___________________________________________\n");
+//      printf("procName: %s\n", procName);
+//      printf("arg list:\n");
+//      for (auto &arg : argList) {
+//        printf("%s ", arg.c_str());
+//      }
+//      printf("\n");
+//      printf("oriArgList:\n");
+//      for (auto &oriArg : oriArgList) {
+//        printf("%s ", oriArg.c_str());
+//      }
+//      printf("\n");
+//      printf("arg bw list:\n");
+//      for (auto &bw : argBWList) {
+//        printf("%u ", bw);
+//      }
+//      printf("\n");
+//      printf("res bw list:\n");
+//      for (auto &resBW : resBWList) {
+//        printf("%u ", resBW);
+//      }
+//      printf("\n");
+//      printf("out bw: %d\n", outWidth);
+//      printf("calc: %s\n", calc);
+//      printf("result_suffix: %d\n", result_suffix);
+//      printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
+//      printf("init expr: ");
+//      print_expr(stdout, initExpr);
+//      printf("\n");
+//    }
     outList.push_back(out);
     normalizedOutList.push_back(normalizedOut);
     outWidthList.push_back(outWidth);
@@ -1660,13 +1414,17 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       Map<int, int> outRecord;
       Map<Expr *, Expr *> hiddenExprs;
       UIntVec buffBWs;
-      handleDFlowFunc(d,
+      auto dflowGenerator = new DflowGenerator(argList,
+                                               oriArgList,
+                                               argBWList,
+                                               resBWList,
+                                               exprMap,
+                                               inBW,
+                                               hiddenBW,
+                                               hiddenExprs);
+      handleDFlowFunc(dflowGenerator,
+                      d,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
                       outSendStr,
                       outResSuffixs,
@@ -1674,30 +1432,18 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
                       outRecord,
-                      buffBWs,
-                      hiddenExprs);
+                      buffBWs);
       if (strlen(calc) > 1) {
-        printDFlowFunc(procName,
-                       argList,
-                       argBWList,
-                       resBWList,
+        printDFlowFunc(dflowGenerator,
+                       procName,
                        outWidthList,
-                       calc,
-                       result_suffix,
                        outSendStr,
                        outResSuffixs,
                        normalizedOutList,
                        outList,
                        buffInfos,
-                       exprMap,
-                       inBW,
-                       hiddenBW,
                        outRecord,
-                       hiddenExprs,
                        buffBWs);
       }
       break;
@@ -1934,6 +1680,14 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   Map<Expr *, Expr *> hiddenExprs;
   unsigned elementCnt = 0;
   UIntVec buffBWs;
+  auto dflowGenerator = new DflowGenerator(argList,
+                                           oriArgList,
+                                           argBWList,
+                                           resBWList,
+                                           exprMap,
+                                           inBW,
+                                           hiddenBW,
+                                           hiddenExprs);
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (debug_verbose) {
@@ -1942,13 +1696,9 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
       printf(", current proc name: %s\n", procName);
     }
     if (d->t == ACT_DFLOW_FUNC) {
-      handleDFlowFunc(d,
+      handleDFlowFunc(dflowGenerator,
+                      d,
                       procName,
-                      calc,
-                      argList,
-                      oriArgList,
-                      argBWList,
-                      resBWList,
                       result_suffix,
                       outSendStr,
                       outResSuffixs,
@@ -1956,12 +1706,8 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                       normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      exprMap,
-                      inBW,
-                      hiddenBW,
                       outRecord,
-                      buffBWs,
-                      hiddenExprs);
+                      buffBWs);
       char *subProc = new char[1024];
       sprintf(subProc, "_p%d", elementCnt);
       elementCnt++;
@@ -1984,23 +1730,15 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
     printf("\n");
   }
   if (strlen(calc) > 1) {
-    printDFlowFunc(procName,
-                   argList,
-                   argBWList,
-                   resBWList,
+    printDFlowFunc(dflowGenerator,
+                   procName,
                    outWidthList,
-                   calc,
-                   result_suffix,
                    outSendStr,
                    outResSuffixs,
                    normalizedOutList,
                    outList,
                    buffInfos,
-                   exprMap,
-                   inBW,
-                   hiddenBW,
                    outRecord,
-                   hiddenExprs,
                    buffBWs);
   }
 }

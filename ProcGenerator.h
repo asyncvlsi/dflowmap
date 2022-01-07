@@ -18,6 +18,7 @@
 #include "Metrics.h"
 #include "common.h"
 #include "Helper.h"
+#include "DflowGenerator.h"
 
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>
@@ -39,67 +40,35 @@ class ProcGenerator {
 
   unsigned getBitwidth(act_connection *actConnection);
 
-  const char *EMIT_QUERY(Expr *expr,
+  const char *EMIT_QUERY(DflowGenerator *dflowGenerator,
+                         Expr *expr,
                          const char *sym,
                          char *procName,
-                         char *calc,
-                         StringVec &argList,
-                         StringVec &oriArgList,
-                         UIntVec &argBWList,
-                         UIntVec &resBWList,
                          int &result_suffix,
-                         unsigned &result_bw,
-                         Map<const char *, Expr *> &exprMap,
-                         StringMap<unsigned> &inBW,
-                         StringMap<unsigned> &hiddenBW,
-                         Map<Expr *, Expr *> &hiddenExprs);
+                         unsigned &result_bw);
 
-  const char *EMIT_BIN(Expr *expr,
+  const char *EMIT_BIN(DflowGenerator *dflowGenerator,
+                       Expr *expr,
                        const char *sym,
                        const char *op,
                        int type,
                        char *procName,
-                       char *calc,
-                       StringVec &argList,
-                       StringVec &oriArgList,
-                       UIntVec &argBWList,
-                       UIntVec &resBWList,
                        int &result_suffix,
-                       unsigned &result_bw,
-                       Map<const char *, Expr *> &exprMap,
-                       StringMap<unsigned> &inBW,
-                       StringMap<unsigned> &hiddenBW,
-                       Map<Expr *, Expr *> &hiddenExprs);
+                       unsigned &result_bw);
 
-  const char *EMIT_UNI(Expr *expr,
+  const char *EMIT_UNI(DflowGenerator *dflowGenerator,
+                       Expr *expr,
                        const char *sym,
                        const char *op,
                        char *procName,
-                       char *calc,
-                       StringVec &argList,
-                       StringVec &oriArgList,
-                       UIntVec &argBWList,
-                       UIntVec &resBWList,
                        int &result_suffix,
-                       unsigned &result_bw,
-                       Map<const char *, Expr *> &exprMap,
-                       StringMap<unsigned> &inBW,
-                       StringMap<unsigned> &hiddenBW,
-                       Map<Expr *, Expr *> &hiddenExprs);
+                       unsigned &result_bw);
 
-  const char *printExpr(Expr *expr,
+  const char *printExpr(DflowGenerator *dflowGenerator,
+                        Expr *expr,
                         char *procName,
-                        char *calc,
-                        StringVec &argList,
-                        StringVec &oriArgList,
-                        UIntVec &argBWList,
-                        UIntVec &resBWList,
                         int &result_suffix,
-                        unsigned &result_bw,
-                        Map<const char *, Expr *> &exprMap,
-                        StringMap<unsigned> &inBW,
-                        StringMap<unsigned> &hiddenBW,
-                        Map<Expr *, Expr *> &hiddenExprs);
+                        unsigned &result_bw);
 
   unsigned getCopyUses(ActId *actId);
 
@@ -131,32 +100,20 @@ class ProcGenerator {
 
   void createCopyProcs();
 
-  void printDFlowFunc(const char *procName,
-                      StringVec &argList,
-                      UIntVec &argBWList,
-                      UIntVec &resBWList,
+  void printDFlowFunc(DflowGenerator *dflowGenerator,
+                      const char *procName,
                       UIntVec &outBWList,
-                      char *calc,
-                      int result_suffix,
                       StringVec &outSendStr,
                       IntVec &outResSuffixs,
                       StringVec &normalizedOutList,
                       StringVec &outList,
                       Vector<BuffInfo> &buffInfos,
-                      Map<const char *, Expr *> &exprMap,
-                      StringMap<unsigned> &inBW,
-                      StringMap<unsigned> &hiddenBW,
                       Map<int, int> &outRecord,
-                      Map<Expr *, Expr *> &hiddenExprs,
                       UIntVec &buffBWs);
 
-  void handleDFlowFunc(act_dataflow_element *d,
+  void handleDFlowFunc(DflowGenerator *dflowGenerator,
+                       act_dataflow_element *d,
                        char *procName,
-                       char *calc,
-                       StringVec &argList,
-                       StringVec &oriArgList,
-                       UIntVec &argBWList,
-                       UIntVec &resBWList,
                        int &result_suffix,
                        StringVec &outSendStr,
                        IntVec &outResSuffixs,
@@ -164,12 +121,8 @@ class ProcGenerator {
                        StringVec &normalizedOutList,
                        UIntVec &outWidthList,
                        Vector<BuffInfo> &buffInfos,
-                       Map<const char *, Expr *> &exprMap,
-                       StringMap<unsigned> &inBW,
-                       StringMap<unsigned> &hiddenBW,
                        Map<int, int> &outRecord,
-                       UIntVec &buffBWs,
-                       Map<Expr *, Expr *> &hiddenExprs);
+                       UIntVec &buffBWs);
 
   void handleNormalDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 
