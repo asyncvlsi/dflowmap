@@ -210,30 +210,30 @@ int main(int argc, char **argv) {
   fclose(resFp);
   fclose(confFp);
   metrics->dump();
-
-  /* print procCount info */
-  double totalDuplicatedArea = 0;
-  if (debug_verbose) {
-    printf("\n\n\n\nprocCount info:\n");
-  }
-  for (auto &procCountIt : procCount) {
-    unsigned count = procCountIt.second;
-    if (count > 1) {
-      const char *op = procCountIt.first;
-      double *metric = metrics->getOpMetric(op + 5);
-      if (!metric) {
-        exit(-1);
-      }
-      double area = metric[3];
-      if (debug_verbose) {
-        printf("(%s, %u, %f)\n", op, count, area);
-      }
-      totalDuplicatedArea += (double) (count - 1) * area;
-    }
-  }
-  if (debug_verbose) {
-    printf("\ntotalDuplicatedArea: %f\n", totalDuplicatedArea);
-  }
+//
+//  /* print procCount info */
+//  double totalDuplicatedArea = 0;
+//  if (debug_verbose) {
+//    printf("\n\n\n\nprocCount info:\n");
+//  }
+//  for (auto &procCountIt : procCount) {
+//    unsigned count = procCountIt.second;
+//    if (count > 1) {
+//      const char *op = procCountIt.first;
+//      double *metric = metrics->getOpMetric(op + 5);
+//      if (!metric) {
+//        exit(-1);
+//      }
+//      double area = metric[3];
+//      if (debug_verbose) {
+//        printf("(%s, %u, %f)\n", op, count, area);
+//      }
+//      totalDuplicatedArea += (double) (count - 1) * area;
+//    }
+//  }
+//  if (debug_verbose) {
+//    printf("\ntotalDuplicatedArea: %f\n", totalDuplicatedArea);
+//  }
 
   return 0;
 }

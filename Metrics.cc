@@ -1,22 +1,25 @@
 #include "Metrics.h"
 
-void Metrics::updateMetrics(const char *op, double *metric) {
+void Metrics::updateMetrics(const char *instance, double *metric) {
+  const char *normInstance = getNormInstanceName(instance);
   for (auto &opMetricsIt : opMetrics) {
-    if (!strcmp(opMetricsIt.first, op)) {
+    if (!strcmp(opMetricsIt.first, normInstance)) {
       if (debug_verbose) {
-        printf("We already have metric info for %s\n", op);
+        printf("We already have metric info for (%s, %s)\n",
+               instance, normInstance);
       }
       double *oldMetric = opMetricsIt.second;
       if ((oldMetric[0] != metric[0])
           || (oldMetric[1] != metric[1])
           || (oldMetric[2] != metric[2])
           || (oldMetric[3] != metric[3])) {
-        printf("We find different metric record for %s\n", op);
+        printf("We find different metric record for %s\n", normInstance);
         exit(-1);
       }
+      return;
     }
   }
-  opMetrics.insert(std::make_pair(op, metric));
+  opMetrics.insert(std::make_pair(normInstance, metric));
 }
 
 double *Metrics::getOpMetric(const char *instance) {
@@ -30,21 +33,16 @@ double *Metrics::getOpMetric(const char *instance) {
   }
   for (auto &opMetricsIt : opMetrics) {
     if (!strcmp(opMetricsIt.first, normInstance)) {
-      return opMetricsIt.second;
+      double *metric = opMetricsIt.second;
+      return metric;
     }
   }
   if (debug_verbose) {
-    printf("We don't have metric info for (`%s`,`%s')\n", instance, normInstance);
+    printf("We don't have metric info for (`%s`,`%s')\n",
+           instance,
+           normInstance);
   }
   return nullptr;
-}
-
-double Metrics::getArea(double metric[4]) {
-  if (!metric) {
-    printf("Try to extract area for null metric!\n");
-    exit(-1);
-  }
-  return metric[3];
 }
 
 double Metrics::getLP(double metric[4]) {
@@ -55,6 +53,30 @@ double Metrics::getLP(double metric[4]) {
   return metric[0];
 }
 
+double Metrics::getEnergy(double metric[4]) {
+  if (!metric) {
+    printf("Try to extract energy for null metric!\n");
+    exit(-1);
+  }
+  return metric[1];
+}
+
+double Metrics::getDelay(double metric[4]) {
+  if (!metric) {
+    printf("Try to extract delay for null metric!\n");
+    exit(-1);
+  }
+  return metric[2];
+}
+
+double Metrics::getArea(double metric[4]) {
+  if (!metric) {
+    printf("Try to extract area for null metric!\n");
+    exit(-1);
+  }
+  return metric[3];
+}
+
 void Metrics::printOpMetrics() {
   printf("Info in opMetrics:\n");
   for (auto &opMetricsIt : opMetrics) {
@@ -63,13 +85,14 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::writeMetricsFile(const char *opName, double *metric) {
+void Metrics::writeMetricsFile(const char *instance, double *metric) {
   if (debug_verbose) {
-    printf("Write %s perf to metric file: %s\n", opName, metricFilePath);
+    printf("Write %s perf to metric file: %s\n", instance, metricFilePath);
   }
+  const char *normInstance = getNormInstanceName(instance);
   std::ofstream metricFp;
   metricFp.open(metricFilePath, std::ios_base::app);
-  metricFp << opName << "  " << metric[0] << "  " << metric[1] << "  "
+  metricFp << normInstance << "  " << metric[0] << "  " << metric[1] << "  "
            << metric[2] << "  " << metric[3] << "\n";
   metricFp.close();
 }
@@ -221,11 +244,13 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
   return metric;
 }
 
-double* Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
+double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
   char *instance = new char[100];
   sprintf(instance, "latch%u", bw);
-  double *metric = getOpMetric(instance);
-  if (metric) {
+  double *uniMetric = getOpMetric(instance);
+  double *metric = nullptr;
+  if (uniMetric) {
+    metric = new double[4];
     metric[0] = nBuff * metric[0];
     metric[1] = nBuff * metric[1];
     metric[2] = nBuff * metric[2];
@@ -266,7 +291,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
       } else {
         lowBWInPorts++;
       }
-      char *inChar = new char[10240];
+      char *inChar = new char[strlen(inName.c_str()) + 1];
       sprintf(inChar, "%s", inName.c_str());
       if (debug_verbose) {
         printf("inChar: %s\n", inChar);
@@ -286,7 +311,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     for (auto &hiddenBWIt : hiddenBW) {
       String hiddenName = hiddenBWIt.first;
       unsigned bw = hiddenBWIt.second;
-      char *hiddenChar = new char[1024];
+      char *hiddenChar = new char[1 + strlen(hiddenName.c_str())];
       sprintf(hiddenChar, "%s", hiddenName.c_str());
       if (debug_verbose) {
         printf("hiddenChar: %s\n", hiddenChar);
@@ -313,14 +338,14 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     unsigned numOuts = outRecord.size();
     for (int ii = 0; ii < numOuts; ii++) {
       int resID = outRecord.find(ii)->second;
-      char *resChar = new char[1024];
+      char *resChar = new char[SHORT_STRING_LEN];
       sprintf(resChar, "res%d", resID);
       if (debug_verbose) {
         printf("resChar: %s\n", resChar);
       }
       Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
       list_append(out_expr_list, resExpr);
-      char *outChar = new char[1024];
+      char *outChar = new char[SHORT_STRING_LEN];
       sprintf(outChar, "out%d", ii);
       list_append(out_expr_name_list, outChar);
       if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
@@ -371,28 +396,27 @@ double *Metrics::getOrGenFUMetric(const char *instance,
       printf("\n");
     }
     const char *normalizedOp = getNormInstanceName(instance);
-    char *optimizerProcName = new char[1000];
-    sprintf(optimizerProcName, "op");
     if (debug_verbose) {
-      printf("Run logic optimizer for %s\n", optimizerProcName);
+      printf("Run logic optimizer for %s\n", normalizedOp);
     }
     ExprBlockInfo
-        *info = optimizer->run_external_opt(optimizerProcName, in_expr_list,
+        *info = optimizer->run_external_opt(normalizedOp,
+                                            in_expr_list,
                                             in_expr_map,
                                             in_width_map,
-                                            out_expr_list, out_expr_name_list,
+                                            out_expr_list,
+                                            out_expr_name_list,
                                             out_width_map,
                                             hidden_expr_list,
                                             hidden_expr_name_list);
     if (debug_verbose) {
-      printf(
-          "Generated block %s: Area: %e m2, Dyn Power: %e W, Leak Power: %e W, delay: %e "
-          "s\n",
-          optimizerProcName,
-          info->area,
-          info->power_typ_dynamic,
-          info->power_typ_static,
-          info->delay_typ);
+      printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
+             "Leak Power: %e W, delay: %e s\n",
+             normalizedOp,
+             info->area,
+             info->power_typ_dynamic,
+             info->power_typ_static,
+             info->delay_typ);
     }
     double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
     double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
@@ -400,23 +424,39 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     double area = info->area * 1e12;  // AREA (um^2)
     /* adjust perf number by adding latch, etc. */
     double *latchMetric = getOpMetric("latch1");
-    if (latchMetric == nullptr) {
-      printf("We could not find metric for latch1!\n");
-      exit(-1);
-    }
-    //TODO
-    area = area + totalInBW * latchMetric[3] + lowBWInPorts * 1.43
-        + highBWInPorts * 2.86 + delay / 500 * 1.43;
-    leakpower = leakpower + totalInBW * latchMetric[0] + lowBWInPorts * 0.15
-        + highBWInPorts * 5.36 + delay / 500 * 1.38;
-    energy = energy + totalInBW * latchMetric[1] + lowBWInPorts * 4.516
-        + highBWInPorts * 20.19 + delay / 500 * 28.544;
+    double *ebufMetric = getOpMetric("10ebuf");
+    double *pulseGenMetric = getOpMetric("pulseGen");
     double *twoToOneMetric = getOpMetric("twoToOne");
-    if (twoToOneMetric == nullptr) {
-      printf("We could not find metric for 2-in-1-out!\n");
+    double *hornMetric = getOpMetric("horn2");
+    if (!latchMetric || !ebufMetric || !pulseGenMetric || !twoToOneMetric
+        || !hornMetric) {
+      printf("No metric for the bundled-data control circuit!\n");
       exit(-1);
     }
-    delay = delay + twoToOneMetric[2] + latchMetric[2];
+    double latchLP = getLP(latchMetric);
+    double latchEnergy = getEnergy(latchMetric);
+    double latchDelay = getDelay(latchMetric);
+    double latchArea = getArea(latchMetric);
+    double ebufLP = getLP(ebufMetric);
+    double ebufEnergy = getEnergy(ebufMetric);
+    double ebufDelay = getDelay(ebufMetric);
+    double ebufArea = getArea(ebufMetric);
+    double pulseGenLP = getLP(pulseGenMetric);
+    double pulseGenEnergy = getEnergy(pulseGenMetric);
+    double pulseGenArea = getArea(pulseGenMetric);
+    double twoToOneDelay = getDelay(twoToOneMetric);
+    double hornLP = getLP(hornMetric);
+    double hornEnergy = getEnergy(hornMetric);
+    double hornArea = getArea(hornMetric);
+    area = area + totalInBW * latchArea + lowBWInPorts * pulseGenArea
+        + highBWInPorts * (pulseGenArea + hornArea)
+        + delay / ebufDelay * ebufArea;
+    leakpower = leakpower + totalInBW * latchLP + lowBWInPorts * pulseGenLP
+        + highBWInPorts * (pulseGenLP + hornLP) + delay / ebufDelay * ebufLP;
+    energy = energy + totalInBW * latchEnergy + lowBWInPorts * pulseGenEnergy
+        + highBWInPorts * (pulseGenEnergy + hornEnergy)
+        + delay / ebufDelay * ebufEnergy;
+    delay = delay + twoToOneDelay + latchDelay;
     /* get the final metric */
     metric = new double[4];
     metric[0] = leakpower;
@@ -435,49 +475,261 @@ double *Metrics::getOrGenFUMetric(const char *instance,
   return metric;
 }
 
-double *Metrics::getMSMetric(const char *instance,
-                             const char *procName,
-                             unsigned guardBW,
-                             unsigned inBW,
-                             bool actnCp,
-                             bool actnDp) {
-  char *equivInstance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(equivInstance, "%s<%d,%d>", procName, guardBW, equivBW);
-  double *metric = getOpMetric(equivInstance);
-  if (metric) {
-    updateStatistics(instance, actnCp, actnDp, metric);
-    updateSplitMetrics(metric);
-  } else if (LOGIC_OPTIMIZER) {
-    printf("We could not find metrics for the SPLIT (%s, %s)!\n",
-           equivInstance, instance);
-    exit(-1);
+double *Metrics::getOrGenMergeMetric(unsigned guardBW,
+                                     unsigned inBW,
+                                     unsigned numIn,
+                                     bool actnCp,
+                                     bool actnDp) {
+  if (!LOGIC_OPTIMIZER) {
+    return nullptr;
   }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  if (PIPELINE) {
+    sprintf(instance,
+            "pipe%s_%d<%d,%d>",
+            Constant::MERGE_PREFIX,
+            numIn,
+            guardBW,
+            inBW);
+  } else {
+    sprintf(instance,
+            "unpipe%s_%d<%d,%d>",
+            Constant::MERGE_PREFIX,
+            numIn,
+            guardBW,
+            inBW);
+  }
+  double *metric = getOpMetric(instance);
+  if (!metric) {
+    char *equivInstance = new char[MAX_INSTANCE_LEN];
+    unsigned equivBW = getEquivalentBW(inBW);
+    if (equivBW != inBW) {
+      if (PIPELINE) {
+        sprintf(equivInstance,
+                "pipe%s_%d<%d,%d>",
+                Constant::MERGE_PREFIX,
+                numIn,
+                guardBW,
+                equivBW);
+      } else {
+        sprintf(equivInstance,
+                "unpipe%s_%d<%d,%d>",
+                Constant::MERGE_PREFIX,
+                numIn,
+                guardBW,
+                equivBW);
+      }
+      metric = getOpMetric(equivInstance);
+    }
+    if (!metric) {
+      double *mergeCtrlMetric = getOpMetric("mergeControl");
+      double *muxMetric = getOpMetric("mux1");
+      double *decodeMetric = getOpMetric("decodeTwoToFour");
+      double mergeCtrlLP = getLP(mergeCtrlMetric);
+      double mergeCtrlEnergy = getEnergy(mergeCtrlMetric);
+      double mergeCtrlDelay = getDelay(mergeCtrlMetric);
+      double mergeCtrlArea = getArea(mergeCtrlMetric);
+      double muxLP = getLP(muxMetric);
+      double muxEnergy = getEnergy(muxMetric);
+      double muxArea = getArea(muxMetric);
+      double decodeLP = getLP(decodeMetric);
+      double decodeEnergy = getEnergy(decodeMetric);
+      double decodeDelay = getDelay(decodeMetric);
+      double decodeArea = getArea(decodeMetric);
+      double lp;
+      double energy;
+      double delay;
+      double area;
+      if (PIPELINE) {
+        double *latchMetric = getOpMetric("latch1");
+        double *hornMetric = getOpMetric("horn2");
+        double *pulseGenMetric = getOpMetric("pulseGen");
+        if (!latchMetric || !hornMetric || !pulseGenMetric || !decodeMetric
+            || !mergeCtrlMetric || !muxMetric) {
+          printf("No enough info to calculate metric for (%s, %s)!\n",
+                 equivInstance, instance);
+          exit(-1);
+        }
+        double latchLP = getLP(latchMetric);
+        double latchEnergy = getEnergy(latchMetric);
+        double latchArea = getArea(latchMetric);
+        double hornLP = getLP(hornMetric);
+        double hornEnergy = getEnergy(hornMetric);
+        double hornDelay = getDelay(hornMetric);
+        double hornArea = getArea(hornMetric);
+        double pulseGenLP = getLP(pulseGenMetric);
+        double pulseGenEnergy = getEnergy(pulseGenMetric);
+        double pulseGenDelay = getDelay(pulseGenMetric);
+        double pulseGenArea = getArea(pulseGenMetric);
+        double pulseLP;
+        double pulseEnergy;
+        double pulseDelay;
+        double pulseArea;
+        if (inBW < 32) {
+          pulseLP = pulseGenLP;
+          pulseEnergy = pulseGenEnergy;
+          pulseDelay = pulseGenDelay;
+          pulseArea = pulseGenArea;
+        } else {
+          pulseLP = pulseGenLP + hornLP;
+          pulseEnergy = pulseGenEnergy + hornEnergy;
+          pulseDelay = pulseGenDelay + hornDelay;
+          pulseArea = pulseGenArea + hornArea;
+        }
+        if (debug_verbose) {
+          printf("For %s, mergeCtrlArea: %f, latchArea: %f, decodeArea: %f, "
+                 "pulseArea: %f, muxArea: %f\n",
+                 instance,
+                 mergeCtrlArea,
+                 latchArea,
+                 decodeArea,
+                 pulseArea,
+                 muxArea);
+        }
+        lp = mergeCtrlLP + latchLP * guardBW + decodeLP
+            + numIn * (pulseLP + inBW * muxLP / 2) + inBW * latchLP;
+        energy = mergeCtrlEnergy + latchEnergy * guardBW + decodeEnergy
+            + pulseEnergy + inBW * muxEnergy / 2 + inBW * latchEnergy;
+        delay = mergeCtrlDelay + decodeDelay + pulseDelay;
+        area = mergeCtrlArea + latchArea * guardBW + decodeArea
+            + numIn * (pulseArea + inBW * muxArea / 2) + inBW * latchArea;
+      } else {
+        if (!decodeMetric || !mergeCtrlMetric || !muxMetric) {
+          printf("No enough info to calculate metric for (%s, %s)!\n",
+                 equivInstance, instance);
+          exit(-1);
+        }
+        if (debug_verbose) {
+          printf("For %s, mergeCtrlArea: %f, decodeArea: %f, muxArea: %f\n",
+                 instance,
+                 mergeCtrlArea,
+                 decodeArea,
+                 muxArea);
+        }
+        lp = mergeCtrlLP + decodeLP + numIn * (inBW * muxLP / 2);
+        energy = mergeCtrlEnergy + decodeEnergy + inBW * muxEnergy / 2;
+        delay = mergeCtrlDelay + decodeDelay;
+        area = mergeCtrlArea + decodeArea + numIn * (inBW * muxArea / 2);
+      }
+      metric = new double[4];
+      metric[0] = lp;
+      metric[1] = energy;
+      metric[2] = delay;
+      metric[3] = area;
+      updateMetrics(instance, metric);
+      writeMetricsFile(instance, metric);
+    }
+  }
+  updateStatistics(instance, actnCp, actnDp, metric);
+  updateMergeMetrics(metric);
   return metric;
 }
 
-double *Metrics::getArbiterMetric(const char *instance,
-                                  unsigned numInputs,
+double *Metrics::getOrGenSplitMetric(unsigned guardBW,
+                                     unsigned inBW,
+                                     unsigned numOut,
+                                     bool actnCp,
+                                     bool actnDp) {
+  if (!LOGIC_OPTIMIZER) {
+    return nullptr;
+  }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  if (PIPELINE) {
+    sprintf(instance,
+            "pipe%s_%d<%d,%d>",
+            Constant::SPLIT_PREFIX,
+            numOut,
+            guardBW,
+            inBW);
+  } else {
+    sprintf(instance,
+            "unpipe%s_%d<%d,%d>",
+            Constant::SPLIT_PREFIX,
+            numOut,
+            guardBW,
+            inBW);
+  }
+  double *metric = getOpMetric(instance);
+  if (!metric) {
+    char *equivInstance = new char[MAX_INSTANCE_LEN];
+    unsigned equivBW = getEquivalentBW(inBW);
+    if (PIPELINE) {
+      sprintf(equivInstance,
+              "pipe%s_%d<%d,%d>",
+              Constant::SPLIT_PREFIX,
+              numOut,
+              guardBW,
+              equivBW);
+    } else {
+      sprintf(equivInstance,
+              "unpipe%s_%d<%d,%d>",
+              Constant::SPLIT_PREFIX,
+              numOut,
+              guardBW,
+              equivBW);
+    }
+    metric = getOpMetric(equivInstance);
+    if (!metric) {
+      char *basicInstance = new char[MAX_INSTANCE_LEN];
+      if (PIPELINE) {
+        sprintf(basicInstance,
+                "pipe%s_2<1,%d>",
+                Constant::SPLIT_PREFIX,
+                equivBW);
+      } else {
+        sprintf(basicInstance,
+                "unpipe%s_2<1,%d>",
+                Constant::SPLIT_PREFIX,
+                equivBW);
+      }
+      double *basicMetric = getOpMetric(basicInstance);
+      double *decodeMetric = getOpMetric("decodeTwoToFour");
+      double *invMetric = getOpMetric("inv1");
+      if (!basicMetric || !decodeMetric || !invMetric) {
+        printf("No enough info to calculate metric for (%s, %s)!\n",
+               equivInstance, instance);
+        exit(-1);
+      }
+      double basicLP = getLP(basicMetric);
+      double basicEnergy = getEnergy(basicMetric);
+      double basicDelay = getDelay(basicMetric);
+      double basicArea = getArea(basicMetric);
+      double decodeLP = getLP(decodeMetric);
+      double decodeEnergy = getEnergy(decodeMetric);
+      double decodeDelay = getDelay(decodeMetric);
+      double decodeArea = getArea(decodeMetric);
+      double invLP = getLP(invMetric);
+      double invEnergy = getEnergy(invMetric);
+      double invDelay = getDelay(invMetric);
+      double invArea = getArea(invMetric);
+      double lp = basicLP + decodeLP + ceil((double) numOut / 2) * invLP;
+      double energy =
+          basicEnergy + decodeEnergy + +ceil((double) numOut / 2) * invEnergy;
+      double
+          delay =
+          basicDelay + decodeDelay + ceil((double) numOut / 2) * invDelay;
+      double
+          area = basicArea + decodeArea + ceil((double) numOut / 2) * invArea;
+      metric = new double[4];
+      metric[0] = lp;
+      metric[1] = energy;
+      metric[2] = delay;
+      metric[3] = area;
+      updateMetrics(instance, metric);
+      writeMetricsFile(instance, metric);
+    }
+  }
+  updateStatistics(instance, actnCp, actnDp, metric);
+  updateSplitMetrics(metric);
+  return metric;
+}
+
+double *Metrics::getArbiterMetric(unsigned numInputs,
                                   unsigned inBW,
                                   unsigned coutBW,
                                   bool actnCp,
                                   bool actnDp) {
-  char *equivInstance = new char[MAX_INSTANCE_LEN];
-  unsigned equivBW = getEquivalentBW(inBW);
-  sprintf(equivInstance,
-          "%s_%d<%d,%d>",
-          Constant::MERGE_PREFIX,
-          numInputs,
-          coutBW,
-          equivBW);
-  double *metric = getOpMetric(equivInstance);
-  if (metric) {
-    updateStatistics(instance, actnCp, actnDp, metric);
-    updateSplitMetrics(metric);
-  } else if (LOGIC_OPTIMIZER) {
-    printf("We could not find metrics for the ARBITER %s!\n", equivInstance);
-    exit(-1);
-  }
+  double *metric = getOrGenMergeMetric(coutBW, inBW, numInputs, actnCp, actnDp);
   return metric;
 }
 
@@ -552,7 +804,9 @@ void Metrics::updateACTNDpMetrics(double area, double leakPower) {
   actnDpLeakPower += leakPower;
 }
 
-void Metrics::updateMergeMetrics(double area, double leakPower) {
+void Metrics::updateMergeMetrics(double metric[4]) {
+  double area = getArea(metric);
+  double leakPower = getLP(metric);
   mergeArea += area;
   mergeLeakPower += leakPower;
 }

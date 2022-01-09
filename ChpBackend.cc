@@ -74,16 +74,22 @@ void ChpBackend::printFU(const char *procName,
                          buffInfos);
 }
 
-void ChpBackend::printSplit(const char *procName,
-                            const char *splitName,
+void ChpBackend::printSplit(const char *splitName,
                             const char *guardStr,
                             const char *inputStr,
                             unsigned guardBW,
                             unsigned outBW,
                             CharPtrVec &outNameVec,
-                            const char *instance,
                             int numOut,
                             double *metric) {
+  char *procName = new char[MAX_PROC_NAME_LEN];
+  if (PIPELINE) {
+    sprintf(procName, "pipe%s_%d", Constant::SPLIT_PREFIX, numOut);
+  } else {
+    sprintf(procName, "unpipe%s_%d", Constant::SPLIT_PREFIX, numOut);
+  }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, outBW);
   circuitGenerator->printSplit(procName,
                                splitName,
                                guardStr,
@@ -94,15 +100,21 @@ void ChpBackend::printSplit(const char *procName,
   libGenerator->createSplit(procName, instance, metric, numOut);
 }
 
-void ChpBackend::printMerge(const char *procName,
-                            const char *outName,
+void ChpBackend::printMerge(const char *outName,
                             const char *guardStr,
                             unsigned guardBW,
                             unsigned inBW,
                             CharPtrVec &inNameVec,
-                            const char *instance,
                             int numIn,
                             double *metric) {
+  char *procName = new char[MAX_PROC_NAME_LEN];
+  if (PIPELINE) {
+    sprintf(procName, "pipe%s_%d", Constant::MERGE_PREFIX, numIn);
+  } else {
+    sprintf(procName, "unpipe%s_%d", Constant::MERGE_PREFIX, numIn);
+  }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
   circuitGenerator->printMerge(procName,
                                outName,
                                guardStr,

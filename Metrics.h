@@ -17,7 +17,7 @@ class Metrics {
  public:
   Metrics(const char *metricFP, const char *statisticsFP);
 
-  void updateMetrics(const char *op, double *metric);
+  void updateMetrics(const char *instance, double *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
@@ -36,9 +36,9 @@ class Metrics {
 
   void readMetricsFile();
 
-  void writeMetricsFile(const char *opName, double *metric);
+  void writeMetricsFile(const char *instance, double *metric);
 
-  void updateMergeMetrics(double area, double leakPower);
+  void updateMergeMetrics(double metric[4]);
 
   void updateSplitMetrics(double metric[4]);
 
@@ -56,7 +56,7 @@ class Metrics {
 
   double *getOrGenInitMetric(unsigned bitwidth);
 
-  double* getBuffMetric(unsigned nBuff, unsigned bw);
+  double *getBuffMetric(unsigned nBuff, unsigned bw);
 
   double *getOrGenFUMetric(const char *instName,
                            StringMap<unsigned> &inBW,
@@ -68,15 +68,19 @@ class Metrics {
 
   double *getSourceMetric(const char *instance, unsigned int bitwidth);
 
-  double *getMSMetric(const char *instance,
-                      const char *procName,
-                      unsigned guardBW,
-                      unsigned inBW,
-                      bool actnCp,
-                      bool actnDp);
+  double *getOrGenMergeMetric(unsigned guardBW,
+                              unsigned inBW,
+                              unsigned numIn,
+                              bool actnCp,
+                              bool actnDp);
 
-  double *getArbiterMetric(const char *instance,
-                           unsigned numInputs,
+  double *getOrGenSplitMetric(unsigned guardBW,
+                              unsigned inBW,
+                              unsigned numOut,
+                              bool actnCp,
+                              bool actnDp);
+
+  double *getArbiterMetric(unsigned numInputs,
                            unsigned inBW,
                            unsigned coutBW,
                            bool actnCp,
@@ -133,6 +137,10 @@ class Metrics {
   double getArea(double metric[4]);
 
   double getLP(double metric[4]);
+
+  double getEnergy(double metric[4]);
+
+  double getDelay(double metric[4]);
 };
 
 #endif //DFLOWMAP_METRICS_H

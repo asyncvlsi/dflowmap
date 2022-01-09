@@ -45,26 +45,22 @@ class ChpBackend {
                Vector<BuffInfo> &buffInfos,
                double fuMetric[4]);
 
-  void printSplit(const char *procName,
-                  const char *splitName,
+  void printSplit(const char *splitName,
                   const char *guardStr,
                   const char *inputStr,
                   unsigned guardBW,
                   unsigned outBW,
                   CharPtrVec &outNameVec,
-                  const char *instance,
                   int numOut,
-                  double metric[4]);
+                  double *metric);
 
-  void printMerge(const char *procName,
-                  const char *outName,
+  void printMerge(const char *outName,
                   const char *guardStr,
                   unsigned guardBW,
                   unsigned inBW,
                   CharPtrVec &inNameVec,
-                  const char *instance,
                   int numIn,
-                  double metric[4]);
+                  double *metric);
 
   void printArbiter(const char *procName,
                     const char *instance,
