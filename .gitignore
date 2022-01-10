@@ -29,3 +29,4 @@ metrics/
 *_fu
 *-bu
 oldConf/
+*.sh
