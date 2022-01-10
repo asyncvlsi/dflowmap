@@ -24,6 +24,11 @@ DflowGenerator::DflowGenerator(StringVec &argList,
   calc[0] = '\0';
 }
 
+bool DflowGenerator::isNewArg(const char *arg) {
+  int idx = searchStringVec(oriArgList, arg);
+  return (idx == -1);
+}
+
 const char *DflowGenerator::handleEVar(const char *oriArgName,
                                        const char *mappedVarName,
                                        unsigned argBW) {

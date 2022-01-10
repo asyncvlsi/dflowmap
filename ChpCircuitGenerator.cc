@@ -222,13 +222,23 @@ void ChpCircuitGenerator::printArbiter(const char *outName,
                                        int numIn,
                                        CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
-  fprintf(resFp,
-          "%s_%d<%d,%d> %s_inst(",
-          Constant::ARBITER_PREFIX,
-          numIn,
-          outBW,
-          coutBW,
-          normOutput);
+  if (PIPELINE) {
+    fprintf(resFp,
+            "pipe%s_%d<%d,%d> %s_inst(",
+            Constant::ARBITER_PREFIX,
+            numIn,
+            outBW,
+            coutBW,
+            normOutput);
+  } else {
+    fprintf(resFp,
+            "unpipe%s_%d<%d,%d> %s_inst(",
+            Constant::ARBITER_PREFIX,
+            numIn,
+            outBW,
+            coutBW,
+            normOutput);
+  }
   for (auto inName : inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }

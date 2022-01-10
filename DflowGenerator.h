@@ -20,6 +20,8 @@ class DflowGenerator {
                  StringMap<unsigned> &hiddenBW,
                  Map<Expr *, Expr *> &hiddenExprs);
 
+  bool isNewArg(const char *arg);
+
   const char *handleEVar(const char *oriArgName,
                          const char *mappedVarName,
                          unsigned argBW);

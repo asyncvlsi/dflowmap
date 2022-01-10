@@ -6,6 +6,9 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
     char *actName = new char[10240];
     getActIdName(sc, actId, actName, 10240);
     unsigned outUses = getOpUses(actId);
+    if (debug_verbose) {
+      printf("actIdCopyUse (%s, %u)\n", actName, outUses);
+    }
     if (outUses) {
       unsigned copyUse = getCopyUses(actId);
       if (debug_verbose) {
@@ -15,7 +18,8 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
         const char *normalizedName = getNormActIdName(actName);
         sprintf(str, "%scopy.out[%u]", normalizedName, copyUse);
       } else {
-        sprintf(str, "%s", actName);
+        printf("We use %s more than total uses!\n", actName);
+        exit(-1);
       }
     } else {
       sprintf(str, "%s", actName);
@@ -294,7 +298,10 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       unsigned argBW = getBitwidth(actConnection);
       char *oriVarName = new char[10240];
       getActIdName(sc, actId, oriVarName, 10240);
-      const char *mappedVarName = getActIdOrCopyName(actId);
+      const char *mappedVarName = nullptr;
+      if (dflowGenerator->isNewArg(oriVarName)) {
+        mappedVarName = getActIdOrCopyName(actId);
+      }
       if (result_bw == 0) {
         result_bw = argBW;
       }
