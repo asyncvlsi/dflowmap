@@ -399,16 +399,17 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     if (debug_verbose) {
       printf("Run logic optimizer for %s\n", normalizedOp);
     }
-    ExprBlockInfo
-        *info = optimizer->run_external_opt(normalizedOp,
-                                            in_expr_list,
-                                            in_expr_map,
-                                            in_width_map,
-                                            out_expr_list,
-                                            out_expr_name_list,
-                                            out_width_map,
-                                            hidden_expr_list,
-                                            hidden_expr_name_list);
+    char *rtlModuleName = new char[1000];
+    sprintf(rtlModuleName, "op");
+    ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
+                                                      in_expr_list,
+                                                      in_expr_map,
+                                                      in_width_map,
+                                                      out_expr_list,
+                                                      out_expr_name_list,
+                                                      out_width_map,
+                                                      hidden_expr_list,
+                                                      hidden_expr_name_list);
     if (debug_verbose) {
       printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
              "Leak Power: %e W, delay: %e s\n",
