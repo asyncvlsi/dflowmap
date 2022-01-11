@@ -1577,8 +1577,8 @@ void ProcGenerator::handleProcess(Process *proc) {
   createCopyProcs();
   listitem_t *li;
   unsigned sinkCnt = 0;
-  for (li = list_first (p->getlang()->getdflow()->dflow); li; li = list_next (
-      li)) {
+  for (li = list_first (p->getlang()->getdflow()->dflow); li;
+       li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t == ACT_DFLOW_CLUSTER) {
       list_t *dflow_cluster = d->u.dflow_cluster;
