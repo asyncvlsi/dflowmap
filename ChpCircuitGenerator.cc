@@ -44,9 +44,6 @@ void ChpCircuitGenerator::printInit(const char *inName,
                                     const char *outName,
                                     unsigned bitwidth,
                                     unsigned long initVal) {
-//  char *inName = new char[4 + strlen(outName)];
-//  sprintf(inName, "%s_in", outName);
-//  fprintf(resFp, "chan(int<%u>) %s;\n", bitwidth, inName);
   fprintf(resFp,
           "init<%lu,%u> %s_inst(%s, %s);\n",
           initVal,
@@ -113,7 +110,6 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     UIntVec &argBWList,
                                     UIntVec &resBWList,
                                     UIntVec &outWidthList,
-                                    StringVec &normalizedOutList,
                                     StringVec &outList,
                                     Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */

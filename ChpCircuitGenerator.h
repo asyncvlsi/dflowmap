@@ -41,7 +41,6 @@ class ChpCircuitGenerator {
                  UIntVec &argBWList,
                  UIntVec &resBWList,
                  UIntVec &outWidthList,
-                 StringVec &normalizedOutList,
                  StringVec &outList,
                  Vector<BuffInfo> &buffInfos);
 

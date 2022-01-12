@@ -51,19 +51,19 @@ const char *DflowGenerator::handleEVar(const char *oriArgName,
   return curArg;
 }
 
-void DflowGenerator::printPort(const char *exprName,
-                               const int result_suffix,
-                               unsigned result_bw) {
+void DflowGenerator::printChpPort(const char *exprName,
+                                  const int result_suffix,
+                                  unsigned result_bw) {
   resBWList.push_back(result_bw);
   char *subCalc = new char[1500];
   sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprName);
   strcat(calc, subCalc);
 }
 
-void DflowGenerator::printUniExpr(const char *op,
-                                  const char *exprName,
-                                  const int result_suffix,
-                                  unsigned result_bw) {
+void DflowGenerator::printChpUniExpr(const char *op,
+                                     const char *exprName,
+                                     const int result_suffix,
+                                     unsigned result_bw) {
   char *curCal = new char[128 + strlen(exprName)];
   sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, exprName);
   if (debug_verbose) {
@@ -81,12 +81,12 @@ void DflowGenerator::printUniExpr(const char *op,
   resBWList.push_back(result_bw);
 }
 
-void DflowGenerator::printBinExpr(const char *op,
-                                  const char *lexpr_name,
-                                  const char *rexpr_name,
-                                  int exprType,
-                                  const int result_suffix,
-                                  unsigned result_bw) {
+void DflowGenerator::printChpBinExpr(const char *op,
+                                     const char *lexpr_name,
+                                     const char *rexpr_name,
+                                     int exprType,
+                                     const int result_suffix,
+                                     unsigned result_bw) {
   if (result_bw == 0) {
     printf("result_bw is 0!\n");
     exit(-1);
@@ -109,11 +109,11 @@ void DflowGenerator::printBinExpr(const char *op,
   }
 }
 
-void DflowGenerator::printQueryExpr(const char *cexpr_name,
-                                    const char *lexpr_name,
-                                    const char *rexpr_name,
-                                    const int result_suffix,
-                                    unsigned result_bw) {
+void DflowGenerator::printChpQueryExpr(const char *cexpr_name,
+                                       const char *lexpr_name,
+                                       const char *rexpr_name,
+                                       const int result_suffix,
+                                       unsigned result_bw) {
   char *curCal = new char[128 + strlen(cexpr_name) + strlen(lexpr_name)
       + strlen(rexpr_name)];
   sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",

@@ -40,10 +40,9 @@ class ChpBackend {
                const char *calc,
                StringVec &outSendStr,
                IntVec &outResSuffixs,
-               StringVec &normalizedOutList,
                StringVec &outList,
                Vector<BuffInfo> &buffInfos,
-               double fuMetric[4]);
+               double *fuMetric);
 
   void printSplit(const char *splitName,
                   const char *guardStr,

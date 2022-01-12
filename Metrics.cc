@@ -188,12 +188,11 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
     updateMetrics(normInstance, metric);
     writeMetricsFile(normInstance, metric);
   }
-  if (!metric) {
+  if (metric) {
     bool actnCp = false;
     bool actnDp = false;
     updateStatistics(instance, actnCp, actnDp, metric);
   }
-
   return metric;
 }
 
@@ -207,7 +206,7 @@ double *Metrics::getSinkMetric(unsigned bitwidth) {
     printf("We fail to find metric for %s!\n", instance);
     exit(-1);
   }
-  if (metric != nullptr) {
+  if (metric) {
     bool actnCp = false;
     bool actnDp = false;
     updateStatistics(instance, actnCp, actnDp, metric);
@@ -224,7 +223,7 @@ double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
     printf("We fail to find metric for %s!\n", instance);
     exit(-1);
   }
-  if (metric != nullptr) {
+  if (metric) {
     bool actnCp = false;
     bool actnDp = false;
     updateStatistics(instance, actnCp, actnDp, metric);
@@ -236,7 +235,7 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
   char *instance = new char[100];
   sprintf(instance, "init%u", bitwidth);
   double *metric = getOpMetric(instance);
-  if (metric != nullptr) {
+  if (metric) {
     bool actnCp = false;
     bool actnDp = false;
     updateStatistics(instance, actnCp, actnDp, metric);
@@ -468,7 +467,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     writeMetricsFile(normalizedOp, metric);
 #endif
   }
-  if (metric != nullptr) {
+  if (metric) {
     bool actnCp = false;
     bool actnDp = false;
     updateStatistics(instance, actnCp, actnDp, metric);

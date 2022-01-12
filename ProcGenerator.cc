@@ -140,11 +140,11 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-  dflowGenerator->printQueryExpr(cexpr_name,
-                                 lexpr_name,
-                                 rexpr_name,
-                                 result_suffix,
-                                 result_bw);
+  dflowGenerator->printChpQueryExpr(cexpr_name,
+                                    lexpr_name,
+                                    rexpr_name,
+                                    result_suffix,
+                                    result_bw);
   /* create Expr */
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
@@ -209,12 +209,12 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-  dflowGenerator->printBinExpr(op,
-                               lexpr_name,
-                               rexpr_name,
-                               type,
-                               result_suffix,
-                               result_bw);
+  dflowGenerator->printChpBinExpr(op,
+                                  lexpr_name,
+                                  rexpr_name,
+                                  type,
+                                  result_suffix,
+                                  result_bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
@@ -258,7 +258,7 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   result_suffix++;
   sprintf(finalExprName, "res%d", result_suffix);
-  dflowGenerator->printUniExpr(op, lexpr_name, result_suffix, result_bw);
+  dflowGenerator->printChpUniExpr(op, lexpr_name, result_suffix, result_bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   dflowGenerator->prepareUniExprForOpt(lexpr_name,
@@ -962,11 +962,9 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                                    UIntVec &outBWList,
                                    StringVec &outSendStr,
                                    IntVec &outResSuffixs,
-                                   StringVec &normalizedOutList,
                                    StringVec &outList,
                                    Vector<BuffInfo> &buffInfos,
-                                   Map<int, int> &outRecord,
-                                   UIntVec &buffBWs) {
+                                   Map<int, int> &outRecord) {
   if (debug_verbose) {
     printf("PRINT DFLOW FUNCTION\n");
     printf("size: %d\n", strlen(procName));
@@ -980,11 +978,6 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
     for (auto &outStr : outSendStr) {
       printf("%s\n", outStr.c_str());
     }
-    printf("normalizedOutList:\n");
-    for (auto &out : normalizedOutList) {
-      printf("%s ", out.c_str());
-    }
-    printf("\n");
     printf("outList:\n");
     for (auto &out : outList) {
       printf("%s ", out.c_str());
@@ -1037,7 +1030,6 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                       calc,
                       outSendStr,
                       outResSuffixs,
-                      normalizedOutList,
                       outList,
                       buffInfos,
                       fuMetric);
@@ -1051,153 +1043,164 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     StringVec &outSendStr,
                                     IntVec &outResSuffixs,
                                     StringVec &outList,
-                                    StringVec &normalizedOutList,
                                     UIntVec &outWidthList,
                                     Vector<BuffInfo> &buffInfos,
-                                    Map<int, int> &outRecord,
-                                    UIntVec &buffBWs) {
-  if (d->t != ACT_DFLOW_FUNC) {
-    dflow_print(stdout, d);
-    printf("This is not dflow_func!\n");
-    exit(-1);
-  }
-  /* handle left hand side */
+                                    Map<int, int> &outRecord) {
   Expr *expr = d->u.func.lhs;
   int type = expr->type;
-  /* handle right hand side */
   ActId *rhs = d->u.func.rhs;
-  char out[10240];
-  getActIdName(sc, rhs, out, 10240);
-  const char *normalizedOut = getNormActIdName(out);
-  unsigned outWidth = getActIdBW(rhs);
-  if (debug_verbose) {
-    printf("%%%%%%%%%%%%%%%%%%%%%%\nHandle expr ");
-    print_expr(stdout, expr);
-    printf("\n%%%%%%%%%%%%%%%%%%%%%%\n");
-  }
+  char outName[10240];
+  getActIdName(sc, rhs, outName, 10240);
+  const char *normalizedOut = getNormActIdName(outName);
+  unsigned outBW = getActIdBW(rhs);
   Expr *initExpr = d->u.func.init;
-  Expr *nbufs = d->u.func.nbufs;
-  if (initExpr) {
-    if (initExpr->type != E_INT) {
-      print_expr(stdout, initExpr);
-      printf("The init value is not E_INT type!\n");
-      exit(-1);
-    }
-  }
+  Expr *bufExpr = d->u.func.nbufs;
   if (debug_verbose) {
-    if (nbufs) {
+    printf("Handle expr ");
+    print_expr(stdout, expr);
+    printf("\n");
+    if (bufExpr) {
       printf("[nbuf] ");
       rhs->Print(stdout);
       printf(", nBuff: ");
-      print_expr(stdout, nbufs);
-      printf(", isInit: %d", (initExpr != nullptr));
+      print_expr(stdout, bufExpr);
       printf("\n");
+      if (initExpr) {
+        printf("initExpr: ");
+        print_expr(stdout, initExpr);
+        printf("\n");
+      }
     }
   }
   if (type == E_INT) {
     unsigned long val = expr->u.v;
-    createSource(out, val, outWidth);
-    if (initExpr) {
+    createSource(outName, val, outBW);
+    if (bufExpr) {
       print_expr(stdout, expr);
-      printf(" has const lOp, but its rOp has init token!\n");
+      printf(" has const lOp, but its rOp has buffer!\n");
       exit(-1);
     }
   } else {
-    unsigned result_bw = outWidth;
-    if (debug_verbose) {
-      printf("Start to print expression ");
-      print_expr(stdout, expr);
-      printf(", its type: %d\n", expr->type);
-    }
-    const char *exprStr = printExpr(dflowGenerator,
-                                    expr,
-                                    procName,
-                                    result_suffix,
-                                    result_bw);
-    /* check if the expression only has E_VAR. Note that it could be built-in int/bool, e.g., int(varName, bw). In
-     * this case, it still only has E_VAR expression. */
-    Expr *actualExpr = expr;
-    while ((type == E_BUILTIN_INT) || (type == E_BUILTIN_BOOL)) {
-      actualExpr = actualExpr->u.e.l;
-      type = actualExpr->type;
-    }
-    bool onlyVarExpr = (type == E_VAR);
-    if (onlyVarExpr) {
-      if (debug_verbose) {
-        printf("The expression ");
-        print_expr(stdout, expr);
-        printf(" is E_VAR!\n");
-      }
-      char *subProc = new char[10];
-      if (strlen(procName)) {
-        sprintf(subProc, "_port");
-      } else {
-        sprintf(subProc, "func_port");
-      }
-      strcat(procName, subProc);
-      result_suffix++;
-      dflowGenerator->printPort(exprStr, result_suffix, result_bw);
-      char *resName = new char[5];
-      sprintf(resName, "res%d", result_suffix);
-      dflowGenerator->preparePortForOpt(resName, exprStr, result_bw);
-    }
+    unsigned result_bw = outBW;
+    const char *exprName = printExpr(dflowGenerator,
+                                     expr,
+                                     procName,
+                                     result_suffix,
+                                     result_bw);
+    handlePort(expr,
+               procName,
+               result_suffix,
+               result_bw,
+               exprName,
+               dflowGenerator);
 
-    if (initExpr) {
-      unsigned long initVal = initExpr->u.v;
-      char *subProcName = new char[1500];
-      sprintf(subProcName, "_init%lu", initVal);
-      strcat(procName, subProcName);
-      buffBWs.push_back(result_bw);
+    outList.push_back(outName);
+    outWidthList.push_back(outBW);
+    char *outStr = new char[10240];
+    outStr[0] = '\0';
+    unsigned numOuts = outList.size();
+    unsigned outID = numOuts - 1;
+    sprintf(outStr, "out%u!res%d", outID, result_suffix);
+    outRecord.insert({outID, result_suffix});
+
+    if (bufExpr) {
+      handleBuff(bufExpr, initExpr, procName, outName, outID, outBW, buffInfos);
+    }
+    outSendStr.push_back(outStr);
+    outResSuffixs.push_back(result_suffix);
+    {
+      char outWidthStr[1024];
+      sprintf(outWidthStr, "_%d", outBW);
+      strcat(procName, outWidthStr);
     }
     if (debug_verbose) {
       printf("_________________________________\n\n\n\nFor dataflow element: ");
       dflow_print(stdout, d);
       printf("\n___________________________________________\n");
       printf("procName: %s\n", procName);
-      printf("out bw: %d\n", outWidth);
+      printf("out bw: %d\n", outBW);
       printf("result_suffix: %d\n", result_suffix);
-      printf("normalizedOut: %s, out: %s\n", normalizedOut, out);
+      printf("normalizedOut: %s, out: %s\n", normalizedOut, outName);
       printf("init expr: ");
       print_expr(stdout, initExpr);
       printf("\n");
       dflowGenerator->dump();
     }
-    outList.push_back(out);
-    normalizedOutList.push_back(normalizedOut);
-    outWidthList.push_back(outWidth);
-    char *outStr = new char[10240];
-    outStr[0] = '\0';
-    unsigned numOuts = outList.size();
-    char *outName = new char[10240];
-    unsigned outID = numOuts - 1;
-    sprintf(outName, "out%u", outID);
-    sprintf(outStr, "out%u!res%d", outID, result_suffix);
-    outRecord.insert({outID, result_suffix});
-    if (nbufs) {
-      unsigned long numBuff = nbufs->u.v;
-      unsigned long initVal = -1;
-      bool hasInitVal = false;
-      if (initExpr) {
-        initVal = initExpr->u.v;
-        hasInitVal = true;
-      }
-      double *buffMetric = metrics->getBuffMetric(numBuff, outWidth);
-      BuffInfo buff_info;
-      buff_info.outputID = outID;
-      buff_info.bw = outWidth;
-      buff_info.nBuff = numBuff;
-      buff_info.initVal = initVal;
-      buff_info.finalOutput = new char[1 + strlen(out)];
-      sprintf(buff_info.finalOutput, "%s", out);
-      buff_info.hasInitVal = hasInitVal;
-      buff_info.metric = buffMetric;
-      buffInfos.push_back(buff_info);
+  }
+}
+
+void ProcGenerator::handleBuff(Expr *bufExpr,
+                               Expr *initExpr,
+                               char *procName,
+                               const char *outName,
+                               unsigned outID,
+                               unsigned outBW,
+                               Vector<BuffInfo> &buffInfos) {
+  unsigned long numBuff = bufExpr->u.v;
+  unsigned long initVal = -1;
+  bool hasInitVal = false;
+  if (initExpr) {
+    if (initExpr->type != E_INT) {
+      print_expr(stdout, initExpr);
+      printf("The init value is not E_INT type!\n");
+      exit(-1);
     }
-    outSendStr.push_back(outStr);
-    outResSuffixs.push_back(result_suffix);
-    char outWidthStr[1024];
-    sprintf(outWidthStr, "_%d", outWidth);
-    strcat(procName, outWidthStr);
+    initVal = initExpr->u.v;
+    hasInitVal = true;
+    {
+      char *subProcName = new char[1500];
+      sprintf(subProcName, "_init%lu", initVal);
+      strcat(procName, subProcName);
+    }
+  }
+  double *buffMetric = metrics->getBuffMetric(numBuff, outBW);
+  BuffInfo buff_info;
+  buff_info.outputID = outID;
+  buff_info.bw = outBW;
+  buff_info.nBuff = numBuff;
+  buff_info.initVal = initVal;
+  buff_info.finalOutput = new char[1 + strlen(outName)];
+  sprintf(buff_info.finalOutput, "%s", outName);
+  buff_info.hasInitVal = hasInitVal;
+  buff_info.metric = buffMetric;
+  buffInfos.push_back(buff_info);
+}
+
+/* check if the expression only has E_VAR. Note that it could be built-in
+ * int/bool, e.g., int(varName, bw). In this case, it still only has E_VAR expression. */
+void ProcGenerator::handlePort(const Expr *expr,
+                               char *procName,
+                               int &result_suffix,
+                               unsigned result_bw,
+                               const char *exprName,
+                               DflowGenerator *dflowGenerator) {
+  const Expr *actualExpr = expr;
+  int type = expr->type;
+  while ((type == E_BUILTIN_INT) || (type == E_BUILTIN_BOOL)) {
+    actualExpr = actualExpr->u.e.l;
+    type = actualExpr->type;
+  }
+  bool onlyVarExpr = (type == E_VAR);
+  if (onlyVarExpr) {
+    if (debug_verbose) {
+      printf("The expression ");
+      print_expr(stdout, expr);
+      printf(" is port!\n");
+    }
+    {
+      char *subProc = new char[10];
+      if (procName[0] != '\0') {
+        sprintf(subProc, "_port");
+      } else {
+        sprintf(subProc, "func_port");
+      }
+      strcat(procName, subProc);
+    }
+    result_suffix++;
+    dflowGenerator->printChpPort(exprName, result_suffix, result_bw);
+    char *resName = new char[128];
+    sprintf(resName, "res%d", result_suffix);
+    dflowGenerator->preparePortForOpt(resName, exprName, result_bw);
   }
 }
 
@@ -1225,7 +1228,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       StringVec outSendStr;
       IntVec outResSuffixs;
       StringVec outList;
-      StringVec normalizedOutList;
       UIntVec outWidthList;
       Vector<BuffInfo> buffInfos;
       Map<const char *, Expr *> exprMap;
@@ -1233,7 +1235,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       StringMap<unsigned> hiddenBW;
       Map<int, int> outRecord;
       Map<Expr *, Expr *> hiddenExprs;
-      UIntVec buffBWs;
       auto dflowGenerator = new DflowGenerator(argList,
                                                oriArgList,
                                                argBWList,
@@ -1249,11 +1250,9 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       outSendStr,
                       outResSuffixs,
                       outList,
-                      normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      outRecord,
-                      buffBWs);
+                      outRecord);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
         printDFlowFunc(dflowGenerator,
@@ -1261,11 +1260,9 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                        outWidthList,
                        outSendStr,
                        outResSuffixs,
-                       normalizedOutList,
                        outList,
                        buffInfos,
-                       outRecord,
-                       buffBWs);
+                       outRecord);
       }
       break;
     }
@@ -1473,7 +1470,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   StringVec outSendStr;
   IntVec outResSuffixs;
   StringVec outList;
-  StringVec normalizedOutList;
   UIntVec outWidthList;
   Vector<BuffInfo> buffInfos;
   Map<const char *, Expr *> exprMap;
@@ -1482,7 +1478,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   Map<int, int> outRecord;
   Map<Expr *, Expr *> hiddenExprs;
   unsigned elementCnt = 0;
-  UIntVec buffBWs;
   auto dflowGenerator = new DflowGenerator(argList,
                                            oriArgList,
                                            argBWList,
@@ -1506,11 +1501,9 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                       outSendStr,
                       outResSuffixs,
                       outList,
-                      normalizedOutList,
                       outWidthList,
                       buffInfos,
-                      outRecord,
-                      buffBWs);
+                      outRecord);
       char *subProc = new char[1024];
       sprintf(subProc, "_p%d", elementCnt);
       elementCnt++;
@@ -1539,11 +1532,9 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                    outWidthList,
                    outSendStr,
                    outResSuffixs,
-                   normalizedOutList,
                    outList,
                    buffInfos,
-                   outRecord,
-                   buffBWs);
+                   outRecord);
   }
 }
 

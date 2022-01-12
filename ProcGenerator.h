@@ -105,11 +105,9 @@ class ProcGenerator {
                       UIntVec &outBWList,
                       StringVec &outSendStr,
                       IntVec &outResSuffixs,
-                      StringVec &normalizedOutList,
                       StringVec &outList,
                       Vector<BuffInfo> &buffInfos,
-                      Map<int, int> &outRecord,
-                      UIntVec &buffBWs);
+                      Map<int, int> &outRecord);
 
   void handleDFlowFunc(DflowGenerator *dflowGenerator,
                        act_dataflow_element *d,
@@ -118,17 +116,30 @@ class ProcGenerator {
                        StringVec &outSendStr,
                        IntVec &outResSuffixs,
                        StringVec &outList,
-                       StringVec &normalizedOutList,
                        UIntVec &outWidthList,
                        Vector<BuffInfo> &buffInfos,
-                       Map<int, int> &outRecord,
-                       UIntVec &buffBWs);
+                       Map<int, int> &outRecord);
 
   void handleNormalDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 
   void handleDFlowCluster(list_t *dflow);
 
   bool isOpUsed(ActId *actId);
+
+  void handleBuff(Expr *bufExpr,
+                  Expr *initExpr,
+                  char *procName,
+                  const char *outName,
+                  unsigned outID,
+                  unsigned outBW,
+                  Vector<BuffInfo> &buffInfos);
+
+  void handlePort(const Expr *expr,
+                  char *procName,
+                  int &result_suffix,
+                  unsigned result_bw,
+                  const char *exprName,
+                  DflowGenerator *dflowGenerator);
 
  private:
   /* op, its bitwidth */

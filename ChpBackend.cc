@@ -46,17 +46,15 @@ void ChpBackend::printFU(const char *procName,
                          const char *calc,
                          StringVec &outSendStr,
                          IntVec &outResSuffixs,
-                         StringVec &normalizedOutList,
                          StringVec &outList,
                          Vector<BuffInfo> &buffInfos,
-                         double fuMetric[4]) {
+                         double *fuMetric) {
   /* handle normal fu */
   circuitGenerator->printFunc(instName,
                               argList,
                               argBWList,
                               resBWList,
                               outBWList,
-                              normalizedOutList,
                               outList,
                               buffInfos);
   unsigned numArgs = argList.size();
