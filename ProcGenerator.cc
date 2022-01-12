@@ -1213,7 +1213,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       StringVec oriArgList;
       UIntVec argBWList;
       UIntVec resBWList;
-      int result_suffix = 0;
+      int result_suffix = -1;
       StringVec outList;
       UIntVec outWidthList;
       Vector<BuffInfo> buffInfos;
@@ -1449,7 +1449,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   StringVec oriArgList;
   UIntVec argBWList;
   UIntVec resBWList;
-  int result_suffix = 0;
+  int result_suffix = -1;
   StringVec outList;
   UIntVec outWidthList;
   Vector<BuffInfo> buffInfos;
