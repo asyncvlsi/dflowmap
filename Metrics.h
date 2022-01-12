@@ -63,7 +63,7 @@ class Metrics {
                            StringMap<unsigned> &hiddenBW,
                            Map<const char *, Expr *> &exprMap,
                            Map<Expr *, Expr *> &hiddenExprs,
-                           Map<int, int> &outRecord,
+                           Map<unsigned int, unsigned int> &outRecord,
                            UIntVec &outWidthList);
 
   double *getSourceMetric(const char *instance, unsigned int bitwidth);

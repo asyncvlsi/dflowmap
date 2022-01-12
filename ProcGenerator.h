@@ -103,22 +103,18 @@ class ProcGenerator {
   void printDFlowFunc(DflowGenerator *dflowGenerator,
                       const char *procName,
                       UIntVec &outBWList,
-                      StringVec &outSendStr,
-                      IntVec &outResSuffixs,
                       StringVec &outList,
-                      Vector<BuffInfo> &buffInfos,
-                      Map<int, int> &outRecord);
+                      Map<unsigned int, unsigned int> &outRecord,
+                      Vector<BuffInfo> &buffInfos);
 
   void handleDFlowFunc(DflowGenerator *dflowGenerator,
                        act_dataflow_element *d,
                        char *procName,
                        int &result_suffix,
-                       StringVec &outSendStr,
-                       IntVec &outResSuffixs,
                        StringVec &outList,
                        UIntVec &outWidthList,
-                       Vector<BuffInfo> &buffInfos,
-                       Map<int, int> &outRecord);
+                       Map<unsigned int, unsigned int> &outRecord,
+                       Vector<BuffInfo> &buffInfos);
 
   void handleNormalDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 

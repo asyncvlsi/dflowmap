@@ -960,11 +960,9 @@ void ProcGenerator::createSource(const char *outName,
 void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                                    const char *procName,
                                    UIntVec &outBWList,
-                                   StringVec &outSendStr,
-                                   IntVec &outResSuffixs,
                                    StringVec &outList,
-                                   Vector<BuffInfo> &buffInfos,
-                                   Map<int, int> &outRecord) {
+                                   Map<unsigned int, unsigned int> &outRecord,
+                                   Vector<BuffInfo> &buffInfos) {
   if (debug_verbose) {
     printf("PRINT DFLOW FUNCTION\n");
     printf("size: %d\n", strlen(procName));
@@ -974,10 +972,6 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
       printf("%u ", outWidth);
     }
     printf("\n");
-    printf("outSendStr:\n");
-    for (auto &outStr : outSendStr) {
-      printf("%s\n", outStr.c_str());
-    }
     printf("outList:\n");
     for (auto &out : outList) {
       printf("%s ", out.c_str());
@@ -1028,9 +1022,8 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                       resBWList,
                       outBWList,
                       calc,
-                      outSendStr,
-                      outResSuffixs,
                       outList,
+                      outRecord,
                       buffInfos,
                       fuMetric);
   chpBackend->printBuff(buffInfos);
@@ -1040,12 +1033,10 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     act_dataflow_element *d,
                                     char *procName,
                                     int &result_suffix,
-                                    StringVec &outSendStr,
-                                    IntVec &outResSuffixs,
                                     StringVec &outList,
                                     UIntVec &outWidthList,
-                                    Vector<BuffInfo> &buffInfos,
-                                    Map<int, int> &outRecord) {
+                                    Map<unsigned int, unsigned int> &outRecord,
+                                    Vector<BuffInfo> &buffInfos) {
   Expr *expr = d->u.func.lhs;
   int type = expr->type;
   ActId *rhs = d->u.func.rhs;
@@ -1106,8 +1097,6 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
     if (bufExpr) {
       handleBuff(bufExpr, initExpr, procName, outName, outID, outBW, buffInfos);
     }
-    outSendStr.push_back(outStr);
-    outResSuffixs.push_back(result_suffix);
     {
       char outWidthStr[1024];
       sprintf(outWidthStr, "_%d", outBW);
@@ -1224,16 +1213,14 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       StringVec oriArgList;
       UIntVec argBWList;
       UIntVec resBWList;
-      int result_suffix = -1;
-      StringVec outSendStr;
-      IntVec outResSuffixs;
+      int result_suffix = 0;
       StringVec outList;
       UIntVec outWidthList;
       Vector<BuffInfo> buffInfos;
       Map<const char *, Expr *> exprMap;
       StringMap<unsigned> inBW;
       StringMap<unsigned> hiddenBW;
-      Map<int, int> outRecord;
+      Map<unsigned int, unsigned int> outRecord;
       Map<Expr *, Expr *> hiddenExprs;
       auto dflowGenerator = new DflowGenerator(argList,
                                                oriArgList,
@@ -1247,22 +1234,18 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
                       d,
                       procName,
                       result_suffix,
-                      outSendStr,
-                      outResSuffixs,
                       outList,
                       outWidthList,
-                      buffInfos,
-                      outRecord);
+                      outRecord,
+                      buffInfos);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
         printDFlowFunc(dflowGenerator,
                        procName,
                        outWidthList,
-                       outSendStr,
-                       outResSuffixs,
                        outList,
-                       buffInfos,
-                       outRecord);
+                       outRecord,
+                       buffInfos);
       }
       break;
     }
@@ -1466,16 +1449,14 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   StringVec oriArgList;
   UIntVec argBWList;
   UIntVec resBWList;
-  int result_suffix = -1;
-  StringVec outSendStr;
-  IntVec outResSuffixs;
+  int result_suffix = 0;
   StringVec outList;
   UIntVec outWidthList;
   Vector<BuffInfo> buffInfos;
   Map<const char *, Expr *> exprMap;
   StringMap<unsigned> inBW;
   StringMap<unsigned> hiddenBW;
-  Map<int, int> outRecord;
+  Map<unsigned int, unsigned int> outRecord;
   Map<Expr *, Expr *> hiddenExprs;
   unsigned elementCnt = 0;
   auto dflowGenerator = new DflowGenerator(argList,
@@ -1498,12 +1479,10 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                       d,
                       procName,
                       result_suffix,
-                      outSendStr,
-                      outResSuffixs,
                       outList,
                       outWidthList,
-                      buffInfos,
-                      outRecord);
+                      outRecord,
+                      buffInfos);
       char *subProc = new char[1024];
       sprintf(subProc, "_p%d", elementCnt);
       elementCnt++;
@@ -1530,11 +1509,9 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
     printDFlowFunc(dflowGenerator,
                    procName,
                    outWidthList,
-                   outSendStr,
-                   outResSuffixs,
                    outList,
-                   buffInfos,
-                   outRecord);
+                   outRecord,
+                   buffInfos);
   }
 }
 

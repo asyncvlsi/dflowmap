@@ -102,8 +102,7 @@ void ChpLibGenerator::createFU(const char *procName,
                                double *fuMetric,
                                UIntVec &resBW,
                                UIntVec &outBW,
-                               StringVec &outSendStr,
-                               IntVec &outResSuffixs,
+                               Map<unsigned int, unsigned int> &outRecord,
                                Vector<BuffInfo> &buffInfos) {
   if (strlen(instance) < 5) {
     printf("Invalid instance name %s\n", instance);
@@ -112,17 +111,23 @@ void ChpLibGenerator::createFU(const char *procName,
   char *outSend = new char[10240];
   sprintf(outSend, "      ");
   int i = 0;
-  for (i = 0; i < numOuts - 1; i++) {
-    char *subSend = new char[1500];
-    sprintf(subSend, "%s, ", outSendStr[i].c_str());
+  Vector<unsigned> resSuffixVec;
+  for (auto &outRecordIt : outRecord) {
+    unsigned outID = outRecordIt.first;
+    unsigned result_suffix = outRecordIt.second;
+    resSuffixVec.push_back(result_suffix);
+    char* subSend = new char[1024];
+    if (i < numOuts - 1) {
+      sprintf(subSend, "out%u!res%u, ", outID, result_suffix);
+    } else {
+      sprintf(subSend, "out%u!res%u;\n", outID, result_suffix);
+    }
     strcat(outSend, subSend);
+    i++;
   }
-  char *subSend = new char[1500];
-  sprintf(subSend, "%s;\n", outSendStr[i].c_str());
-  strcat(outSend, subSend);
   char *log = new char[1500];
   sprintf(log, "      log(\"send (\", ");
-  for (auto &outResSuffix : outResSuffixs) {
+  for (auto &outResSuffix : resSuffixVec) {
     char *subLog = new char[100];
     sprintf(subLog, "res%u, \",\", ", outResSuffix);
     strcat(log, subLog);

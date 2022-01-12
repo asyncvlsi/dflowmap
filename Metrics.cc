@@ -266,7 +266,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
                                   StringMap<unsigned> &hiddenBW,
                                   Map<const char *, Expr *> &exprMap,
                                   Map<Expr *, Expr *> &hiddenExprs,
-                                  Map<int, int> &outRecord,
+                                  Map<unsigned int, unsigned int> &outRecord,
                                   UIntVec &outWidthList) {
   double *metric = getOpMetric(instance);
   if (!metric) {
@@ -333,12 +333,12 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     /* Prepare out_expr_list */
     list_t *out_expr_list = list_new();
     list_t *out_expr_name_list = list_new();
-    IntVec processedResIDs;
+    UIntVec processedResIDs;
     unsigned numOuts = outRecord.size();
-    for (int ii = 0; ii < numOuts; ii++) {
-      int resID = outRecord.find(ii)->second;
+    for (unsigned ii = 0; ii < numOuts; ii++) {
+      unsigned resID = outRecord.find(ii)->second;
       char *resChar = new char[SHORT_STRING_LEN];
-      sprintf(resChar, "res%d", resID);
+      sprintf(resChar, "res%u", resID);
       if (debug_verbose) {
         printf("resChar: %s\n", resChar);
       }

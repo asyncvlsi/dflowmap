@@ -44,9 +44,8 @@ void ChpBackend::printFU(const char *procName,
                          UIntVec &resBWList,
                          UIntVec &outBWList,
                          const char *calc,
-                         StringVec &outSendStr,
-                         IntVec &outResSuffixs,
                          StringVec &outList,
+                         Map<unsigned int, unsigned int> &outRecord,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
   /* handle normal fu */
@@ -67,8 +66,7 @@ void ChpBackend::printFU(const char *procName,
                          fuMetric,
                          resBWList,
                          outBWList,
-                         outSendStr,
-                         outResSuffixs,
+                         outRecord,
                          buffInfos);
 }
 

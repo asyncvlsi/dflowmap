@@ -25,8 +25,7 @@ class ChpLibGenerator {
                 double *fuMetric,
                 UIntVec &resBW,
                 UIntVec &outBW,
-                StringVec &outSendStr,
-                IntVec &outResSuffixs,
+                Map<unsigned int, unsigned int> &outRecord,
                 Vector<BuffInfo> &buffInfos);
 
   void createFULib(const char *procName,
