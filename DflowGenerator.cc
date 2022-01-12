@@ -52,7 +52,7 @@ const char *DflowGenerator::handleEVar(const char *oriArgName,
   char *curArg = new char[10240];
   int idx = searchStringVec(oriArgList, oriArgName);
   if (idx == -1) {
-    int numArgs = argList.size();
+    unsigned numArgs = argList.size();
     oriArgList.push_back(oriArgName);
     argList.push_back(mappedVarName);
     if (debug_verbose) {

@@ -57,7 +57,7 @@ class ChpCircuitGenerator {
                  StringVec &argList,
                  UIntVec &argBWList,
                  UIntVec &resBWList,
-                 UIntVec &outWidthList,
+                 UIntVec &outBWList,
                  StringVec &outList,
                  Vector<BuffInfo> &buffInfos);
 
@@ -84,6 +84,8 @@ class ChpCircuitGenerator {
                     CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
+
+  void printProcDeclaration(Process *p);
 
   void printProcEnding();
 };

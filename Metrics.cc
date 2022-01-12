@@ -23,7 +23,7 @@
 
 void Metrics::updateMetrics(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
-  for (auto &opMetricsIt : opMetrics) {
+  for (auto &opMetricsIt: opMetrics) {
     if (!strcmp(opMetricsIt.first, normInstance)) {
       if (debug_verbose) {
         printf("We already have metric info for (%s, %s)\n",
@@ -52,7 +52,7 @@ double *Metrics::getOpMetric(const char *instance) {
   if (debug_verbose) {
     printf("get op metric for %s, norm name: %s\n", instance, normInstance);
   }
-  for (auto &opMetricsIt : opMetrics) {
+  for (auto &opMetricsIt: opMetrics) {
     if (!strcmp(opMetricsIt.first, normInstance)) {
       double *metric = opMetricsIt.second;
       return metric;
@@ -100,7 +100,7 @@ double Metrics::getArea(double metric[4]) {
 
 void Metrics::printOpMetrics() {
   printf("Info in opMetrics:\n");
-  for (auto &opMetricsIt : opMetrics) {
+  for (auto &opMetricsIt: opMetrics) {
     printf("%s ", opMetricsIt.first);
   }
   printf("\n");
@@ -288,7 +288,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
                                   Map<const char *, Expr *> &exprMap,
                                   Map<Expr *, Expr *> &hiddenExprs,
                                   Map<unsigned int, unsigned int> &outRecord,
-                                  UIntVec &outWidthList) {
+                                  UIntVec &outBWList) {
   double *metric = getOpMetric(instance);
   if (!metric) {
 #if LOGIC_OPTIMIZER
@@ -302,7 +302,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     unsigned totalInBW = 0;
     unsigned lowBWInPorts = 0;
     unsigned highBWInPorts = 0;
-    for (auto &inBWIt : inBW) {
+    for (auto &inBWIt: inBW) {
       String inName = inBWIt.first;
       unsigned bw = inBWIt.second;
       totalInBW += bw;
@@ -328,7 +328,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     list_t *hidden_expr_list = list_new();
     list_t *hidden_expr_name_list = list_new();
     iHashtable *out_width_map = ihash_new(0);
-    for (auto &hiddenBWIt : hiddenBW) {
+    for (auto &hiddenBWIt: hiddenBW) {
       String hiddenName = hiddenBWIt.first;
       unsigned bw = hiddenBWIt.second;
       char *hiddenChar = new char[1 + strlen(hiddenName.c_str())];
@@ -374,7 +374,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
       }
       ihash_bucket_t *b_width;
       b_width = ihash_add(out_width_map, (long) resExpr);
-      unsigned bw = outWidthList[ii];
+      unsigned bw = outBWList[ii];
       b_width->i = (int) bw;
       processedResIDs.push_back(resID);
     }
@@ -757,7 +757,7 @@ double *Metrics::getArbiterMetric(unsigned numInputs,
 void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   auto copyStatisticsIt = copyStatistics.find(bitwidth);
   if (copyStatisticsIt != copyStatistics.end()) {
-    Map<int, int> &record = copyStatisticsIt->second;
+    Map<unsigned, unsigned> &record = copyStatisticsIt->second;
     auto recordIt = record.find(numOutputs);
     if (recordIt != record.end()) {
       recordIt->second++;
@@ -765,7 +765,7 @@ void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
       record.insert({numOutputs, 1});
     }
   } else {
-    Map<int, int> record = {{numOutputs, 1}};
+    Map<unsigned, unsigned> record = {{numOutputs, 1}};
     copyStatistics.insert({bitwidth, record});
   }
 }
@@ -804,12 +804,12 @@ void Metrics::printStatistics() {
 
 void Metrics::printCopyStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "%s\n", "COPY STATISTICS:");
-  for (auto &copyStatisticsIt : copyStatistics) {
+  for (auto &copyStatisticsIt: copyStatistics) {
     fprintf(statisticsFP, "%d-bit COPY:\n", copyStatisticsIt.first);
-    Map<int, int> &record = copyStatisticsIt.second;
-    for (auto &recordIt : record) {
-      fprintf(statisticsFP, "  %d outputs: %d\n", recordIt.first,
-              recordIt.second);
+    Map<unsigned, unsigned> &record = copyStatisticsIt.second;
+    for (auto &recordIt: record) {
+      fprintf(statisticsFP, "  %u outputs: %u\n",
+              recordIt.first, recordIt.second);
     }
   }
   fprintf(statisticsFP, "\n");
@@ -848,7 +848,7 @@ void Metrics::updateStatistics(const char *instance,
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
-  for (auto &areaStatisticsIt : areaStatistics) {
+  for (auto &areaStatisticsIt: areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
       areaStatisticsIt.second += area;
       exist = true;
@@ -856,7 +856,7 @@ void Metrics::updateStatistics(const char *instance,
   }
   if (exist) {
     bool foundLP = false;
-    for (auto &leakpowerStatisticsIt : leakpowerStatistics) {
+    for (auto &leakpowerStatisticsIt: leakpowerStatistics) {
       if (!strcmp(leakpowerStatisticsIt.first, instance)) {
         leakpowerStatisticsIt.second += leakPower;
         foundLP = true;
@@ -869,7 +869,7 @@ void Metrics::updateStatistics(const char *instance,
           instance);
       exit(-1);
     }
-    for (auto &instanceCntIt : instanceCnt) {
+    for (auto &instanceCntIt: instanceCnt) {
       if (!strcmp(instanceCntIt.first, instance)) {
         instanceCntIt.second += 1;
         return;
@@ -891,7 +891,7 @@ void Metrics::updateStatistics(const char *instance,
 }
 
 int Metrics::getInstanceCnt(const char *instance) {
-  for (auto &instanceCntIt : instanceCnt) {
+  for (auto &instanceCntIt: instanceCnt) {
     if (!strcmp(instanceCntIt.first, instance)) {
       return instanceCntIt.second;
     }
@@ -901,7 +901,7 @@ int Metrics::getInstanceCnt(const char *instance) {
 }
 
 double Metrics::getInstanceArea(const char *instance) {
-  for (auto &areaStatisticsIt : areaStatistics) {
+  for (auto &areaStatisticsIt: areaStatistics) {
     if (!strcmp(areaStatisticsIt.first, instance)) {
       return areaStatisticsIt.second;
     }
@@ -943,7 +943,6 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
   std::multimap<double, const char *> sortedAreas = flip_map(areaStatistics);
   fprintf(statisticsFP,
           "instance name      area     percentage     # of instances\n");
-  double redundantArea = 0;
   for (auto iter = sortedAreas.rbegin(); iter != sortedAreas.rend(); iter++) {
     double area = iter->first;
     double ratio = (double) area / totalArea * 100;
@@ -952,16 +951,9 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
       int cnt = getInstanceCnt(instance);
       fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio,
               cnt);
-      if (cnt > 1) {
-//        redundantArea += (cnt - 1) * getOpMetric(instance)[3];
-      }
     }
   }
   fprintf(statisticsFP, "\n");
-  if (debug_verbose) {
-    printf("totalArea: %f, redundant area: %f, ratio: %5.1f\n",
-           totalArea, redundantArea, (redundantArea / totalArea * 100));
-  }
 }
 
 void Metrics::dump() {

@@ -75,8 +75,7 @@ void printCustomNamespace(ChpLibGenerator *libGenerator, ActNamespace *ns,
 
 static void create_outfiles(const char *src,
                             FILE **resfp, FILE **libfp, FILE **conffp) {
-  int i;
-  i = strlen(src);
+  unsigned i = strlen(src);
   while (i > 0) {
     if (src[i - 1] == '/') {
       break;
@@ -84,9 +83,9 @@ static void create_outfiles(const char *src,
     i--;
   }
 
-  int len = strlen(src);
+  unsigned len = strlen(src);
   char *tmpbuf = new char[8 + len];
-  for (int j = 0; j < i; j++) {
+  for (unsigned j = 0; j < i; j++) {
     tmpbuf[j] = src[j];
   }
   snprintf(tmpbuf + i, 8 + len - i, "result_%s", src + i);
@@ -121,24 +120,20 @@ int main(int argc, char **argv) {
     switch (ch) {
       case 'v':debug_verbose++;
         break;
-
       case 'm':
         if (mfile) {
           FREE (mfile);
         }
         mfile = Strdup(optarg);
         break;
-
       case '?':
       default:usage(argv[0]);
         break;
     }
   }
-
   if (optind != argc - 1) {
     usage(argv[0]);
   }
-
   char *act_file = argv[optind];
 
   /* read in the ACT file */
@@ -152,13 +147,9 @@ int main(int argc, char **argv) {
     a->Print(stdout);
     printf("\n\n\n");
   }
-
-  /* open files */
   FILE *resFp, *libFp, *confFp;
   create_outfiles(act_file, &resFp, &libFp, &confFp);
   fprintf(confFp, "begin sim.chp\n");
-
-  /* read in the Metric file */
   char *metricFilePath = new char[1000];
   if (mfile) {
     snprintf(metricFilePath, 1000, "%s", mfile);
@@ -167,13 +158,11 @@ int main(int argc, char **argv) {
   }
   char *statisticsFilePath = new char[1000];
   sprintf(statisticsFilePath, "statistics");
-
   auto metrics = new Metrics(metricFilePath, statisticsFilePath);
   metrics->readMetricsFile();
   auto circuitGenerator = new ChpCircuitGenerator(resFp);
   auto libGenerator = new ChpLibGenerator(libFp, confFp);
   auto backend = new ChpBackend(circuitGenerator, libGenerator);
-  auto procGenerator = new ProcGenerator(metrics, backend);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
@@ -188,17 +177,16 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      p->PrintHeader(resFp, "defproc");
-      fprintf(resFp, ";\n");
+      backend->printProcDeclaration(p);
     }
   }
-
   /* generate chp implementation for each act process */
   Map<const char *, unsigned> procCount;
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
+      auto procGenerator = new ProcGenerator(metrics, backend);
       procGenerator->handleProcess(p);
     }
   }

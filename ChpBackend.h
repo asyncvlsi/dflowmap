@@ -89,6 +89,8 @@ class ChpBackend {
 
   void printProcHeader(Process *p);
 
+  void printProcDeclaration(Process *p);
+
   void printProcEnding();
 
   void createChpBlock(Process *p);

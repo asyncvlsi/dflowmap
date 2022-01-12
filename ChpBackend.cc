@@ -159,6 +159,10 @@ void ChpBackend::printProcHeader(Process *p) {
   circuitGenerator->printProcHeader(p);
 }
 
+void ChpBackend::printProcDeclaration(Process *p) {
+  circuitGenerator->printProcDeclaration(p);
+}
+
 void ChpBackend::printProcEnding() {
   circuitGenerator->printProcEnding();
 }

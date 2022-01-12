@@ -126,7 +126,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     StringVec &argList,
                                     UIntVec &argBWList,
                                     UIntVec &resBWList,
-                                    UIntVec &outWidthList,
+                                    UIntVec &outBWList,
                                     StringVec &outList,
                                     Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
@@ -262,6 +262,11 @@ void ChpCircuitGenerator::printProcHeader(Process *p) {
   p->PrintHeader(resFp, "defproc");
   fprintf(resFp, "\n{");
   p->CurScope()->Print(resFp);
+}
+
+void ChpCircuitGenerator::printProcDeclaration(Process *p) {
+  p->PrintHeader(resFp, "defproc");
+  fprintf(resFp, ";\n");
 }
 
 void ChpCircuitGenerator::printProcEnding() {

@@ -76,7 +76,7 @@ void ProcGenerator::collectBitwidthInfo() {
 
 void ProcGenerator::printBitwidthInfo() {
   printf("bitwidth info:\n");
-  for (auto &bitwidthMapIt : bitwidthMap) {
+  for (auto &bitwidthMapIt: bitwidthMap) {
     char *connectName = new char[10240];
     getActConnectionName(bitwidthMapIt.first, connectName, 10240);
     printf("(%s, %u) ", connectName, bitwidthMapIt.second);
@@ -608,7 +608,7 @@ void ProcGenerator::recordOpUses(ActId *actId,
 
 void ProcGenerator::printOpUses() {
   printf("OP USES:\n");
-  for (auto &opUsesIt : opUses) {
+  for (auto &opUsesIt: opUses) {
     char *opName = new char[10240];
     getActConnectionName(opUsesIt.first, opName, 10240);
     printf("(%s, %u) ", opName, opUsesIt.second);
@@ -925,7 +925,7 @@ void ProcGenerator::collectOpUses() {
       case ACT_DFLOW_CLUSTER: {
         ActConnectVec actConnectVec;
         collectDflowClusterUses(d->u.dflow_cluster, actConnectVec);
-        for (auto &actConnect : actConnectVec) {
+        for (auto &actConnect: actConnectVec) {
           updateOpUses(actConnect);
         }
         break;
@@ -939,7 +939,7 @@ void ProcGenerator::collectOpUses() {
 }
 
 void ProcGenerator::createCopyProcs() {
-  for (auto &opUsesIt : opUses) {
+  for (auto &opUsesIt: opUses) {
     unsigned uses = opUsesIt.second;
     if (uses) {
       unsigned numOut = uses + 1;
@@ -977,25 +977,24 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
     printf("PRINT DFLOW FUNCTION\n");
     printf("size: %d\n", strlen(procName));
     printf("procName: %s\n", procName);
-    printf("outWidthList:\n");
-    for (auto &outWidth : outBWList) {
+    printf("outBWList:\n");
+    for (auto &outWidth: outBWList) {
       printf("%u ", outWidth);
     }
     printf("\n");
     printf("outList:\n");
-    for (auto &out : outList) {
+    for (auto &out: outList) {
       printf("%s ", out.c_str());
     }
     printf("\n");
     printf("buffInfos: ");
-    for (auto &buffInfo : buffInfos) {
+    for (auto &buffInfo: buffInfos) {
       printf("(%u, %lu, %lu, %d) ", buffInfo.outputID, buffInfo.nBuff,
              buffInfo.initVal, buffInfo.hasInitVal);
     }
     printf("\n");
     dflowGenerator->dump();
   }
-//  calc[strlen(calc) - 2] = ';';
   const char *calc = dflowGenerator->getCalc();
   StringVec &argList = dflowGenerator->getArgList();
   UIntVec &argBWList = dflowGenerator->getArgBWList();
@@ -1007,8 +1006,8 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
 
   char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<", procName);
-  int numArgs = argList.size();
-  int i = 0;
+  unsigned numArgs = argList.size();
+  unsigned i = 0;
   for (; i < numArgs; i++) {
     char *subInstance = new char[100];
     if (i == (numArgs - 1)) {
@@ -1044,7 +1043,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     char *procName,
                                     int &resSuffix,
                                     StringVec &outList,
-                                    UIntVec &outWidthList,
+                                    UIntVec &outBWList,
                                     Map<unsigned int, unsigned int> &outRecord,
                                     Vector<BuffInfo> &buffInfos) {
   Expr *expr = d->u.func.lhs;
@@ -1095,7 +1094,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                exprName,
                dflowGenerator);
     outList.push_back(outName);
-    outWidthList.push_back(outBW);
+    outBWList.push_back(outBW);
     unsigned outID = outList.size() - 1;
     outRecord.insert({outID, resSuffix});
 
@@ -1108,7 +1107,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       strcat(procName, outWidthStr);
     }
     if (debug_verbose) {
-      printf("_________________________________\n\n\n\nFor dataflow element: ");
+      printf("For dataflow element: ");
       dflow_print(stdout, d);
       printf("\n___________________________________________\n");
       printf("procName: %s\n", procName);
@@ -1219,7 +1218,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       UIntVec resBWList;
       int resSuffix = -1;
       StringVec outList;
-      UIntVec outWidthList;
+      UIntVec outBWList;
       Vector<BuffInfo> buffInfos;
       Map<const char *, Expr *> exprMap;
       StringMap<unsigned> inBW;
@@ -1239,14 +1238,14 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                       procName,
                       resSuffix,
                       outList,
-                      outWidthList,
+                      outBWList,
                       outRecord,
                       buffInfos);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
         printDFlowFunc(dflowGenerator,
                        procName,
-                       outWidthList,
+                       outBWList,
                        outList,
                        outRecord,
                        buffInfos);
@@ -1291,7 +1290,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           outNameVec.push_back(outName);
         }
       }
-      for (auto &sink : sinkVec) {
+      for (auto &sink: sinkVec) {
         chpBackend->printChannel(sink, outBW);
         createSink(sink, outBW);
       }
@@ -1454,7 +1453,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   UIntVec resBWList;
   int resSuffix = -1;
   StringVec outList;
-  UIntVec outWidthList;
+  UIntVec outBWList;
   Vector<BuffInfo> buffInfos;
   Map<const char *, Expr *> exprMap;
   StringMap<unsigned> inBW;
@@ -1484,7 +1483,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                       procName,
                       resSuffix,
                       outList,
-                      outWidthList,
+                      outBWList,
                       outRecord,
                       buffInfos);
       char *subProc = new char[1024];
@@ -1503,7 +1502,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
     }
   }
   if (debug_verbose) {
-    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     printf("Process cluster dflow:\n");
     print_dflow(stdout, dflow);
     printf("\n");
@@ -1512,7 +1510,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   if (strlen(calc) > 1) {
     printDFlowFunc(dflowGenerator,
                    procName,
-                   outWidthList,
+                   outBWList,
                    outList,
                    outRecord,
                    buffInfos);
@@ -1523,6 +1521,8 @@ ProcGenerator::ProcGenerator(Metrics *metrics,
                              ChpBackend *chpBackend) {
   this->metrics = metrics;
   this->chpBackend = chpBackend;
+  p = nullptr;
+  sc = nullptr;
 }
 
 void ProcGenerator::handleProcess(Process *proc) {
@@ -1541,9 +1541,6 @@ void ProcGenerator::handleProcess(Process *proc) {
     exit(-1);
   }
   chpBackend->printProcHeader(p);
-  bitwidthMap.clear();
-  opUses.clear();
-  copyUses.clear();
   collectBitwidthInfo();
   collectOpUses();
   createCopyProcs();

@@ -69,7 +69,7 @@ class Metrics {
 
   void dump();
 
-  unsigned getEquivalentBW(unsigned oriBW);
+  static unsigned getEquivalentBW(unsigned oriBW);
 
   double *getOrGenCopyMetric(unsigned bitwidth, unsigned numOut);
 
@@ -85,7 +85,7 @@ class Metrics {
                            Map<const char *, Expr *> &exprMap,
                            Map<Expr *, Expr *> &hiddenExprs,
                            Map<unsigned int, unsigned int> &outRecord,
-                           UIntVec &outWidthList);
+                           UIntVec &outBWList);
 
   double *getSourceMetric(const char *instance, unsigned int bitwidth);
 
@@ -112,7 +112,7 @@ class Metrics {
   Map<const char *, double *> opMetrics;
 
   /* copy bitwidth,< # of output, # of instances of this COPY> */
-  Map<int, Map<int, int>> copyStatistics;
+  Map<unsigned, Map<unsigned, unsigned >> copyStatistics;
 
   double totalArea = 0;
 
@@ -155,13 +155,13 @@ class Metrics {
 
   void printStatistics();
 
-  double getArea(double metric[4]);
+  static double getArea(double metric[4]);
 
-  double getLP(double metric[4]);
+  static double getLP(double metric[4]);
 
-  double getEnergy(double metric[4]);
+  static double getEnergy(double metric[4]);
 
-  double getDelay(double metric[4]);
+  static double getDelay(double metric[4]);
 };
 
 #endif //DFLOWMAP_METRICS_H

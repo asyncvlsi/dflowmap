@@ -133,7 +133,7 @@ class ProcGenerator {
                        char *procName,
                        int &resSuffix,
                        StringVec &outList,
-                       UIntVec &outWidthList,
+                       UIntVec &outBWList,
                        Map<unsigned int, unsigned int> &outRecord,
                        Vector<BuffInfo> &buffInfos);
 
@@ -151,12 +151,12 @@ class ProcGenerator {
                   unsigned outBW,
                   Vector<BuffInfo> &buffInfos);
 
-  void handlePort(const Expr *expr,
-                  char *procName,
-                  int &resSuffix,
-                  unsigned resBW,
-                  const char *exprName,
-                  DflowGenerator *dflowGenerator);
+  static void handlePort(const Expr *expr,
+                         char *procName,
+                         int &resSuffix,
+                         unsigned resBW,
+                         const char *exprName,
+                         DflowGenerator *dflowGenerator);
 
  private:
   /* op, its bitwidth */

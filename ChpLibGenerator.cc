@@ -208,7 +208,7 @@ void ChpLibGenerator::createFULib(const char *procName,
       fprintf(libFp, "  int<W%d> x%d;\n", i, i);
     }
     // define intermediate variables
-    int numRes = resBW.size();
+    unsigned numRes = resBW.size();
     for (i = 0; i < numRes; i++) {
       unsigned int resbw = resBW[i];
       fprintf(libFp, "  int<%u> res%d;\n", resbw, i);
