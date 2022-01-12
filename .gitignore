@@ -7,7 +7,6 @@ arm64_*
 *.deps
 .idea/
 cmake-build-debug/
-CMakeLists.txt
 lib_*
 result_*
 .actsim_history

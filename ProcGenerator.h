@@ -35,7 +35,7 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
-#include "ChpBackend.h"
+#include "backend/chp/ChpBackend.h"
 #include "Metrics.h"
 #include "common.h"
 #include "Helper.h"
