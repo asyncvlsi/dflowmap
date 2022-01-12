@@ -44,8 +44,8 @@ class ProcGenerator {
                          Expr *expr,
                          const char *sym,
                          char *procName,
-                         int &result_suffix,
-                         unsigned &result_bw);
+                         int &resSuffix,
+                         unsigned &resBW);
 
   const char *EMIT_BIN(DflowGenerator *dflowGenerator,
                        Expr *expr,
@@ -53,22 +53,22 @@ class ProcGenerator {
                        const char *op,
                        int type,
                        char *procName,
-                       int &result_suffix,
-                       unsigned &result_bw);
+                       int &resSuffix,
+                       unsigned &resBW);
 
   const char *EMIT_UNI(DflowGenerator *dflowGenerator,
                        Expr *expr,
                        const char *sym,
                        const char *op,
                        char *procName,
-                       int &result_suffix,
-                       unsigned &result_bw);
+                       int &resSuffix,
+                       unsigned &resBW);
 
   const char *printExpr(DflowGenerator *dflowGenerator,
                         Expr *expr,
                         char *procName,
-                        int &result_suffix,
-                        unsigned &result_bw);
+                        int &resSuffix,
+                        unsigned &resBW);
 
   unsigned getCopyUses(ActId *actId);
 
@@ -110,13 +110,13 @@ class ProcGenerator {
   void handleDFlowFunc(DflowGenerator *dflowGenerator,
                        act_dataflow_element *d,
                        char *procName,
-                       int &result_suffix,
+                       int &resSuffix,
                        StringVec &outList,
                        UIntVec &outWidthList,
                        Map<unsigned int, unsigned int> &outRecord,
                        Vector<BuffInfo> &buffInfos);
 
-  void handleNormalDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
+  void handleNormDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 
   void handleDFlowCluster(list_t *dflow);
 
@@ -132,8 +132,8 @@ class ProcGenerator {
 
   void handlePort(const Expr *expr,
                   char *procName,
-                  int &result_suffix,
-                  unsigned result_bw,
+                  int &resSuffix,
+                  unsigned resBW,
                   const char *exprName,
                   DflowGenerator *dflowGenerator);
 

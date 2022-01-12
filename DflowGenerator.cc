@@ -52,59 +52,59 @@ const char *DflowGenerator::handleEVar(const char *oriArgName,
 }
 
 void DflowGenerator::printChpPort(const char *exprName,
-                                  const int result_suffix,
-                                  unsigned result_bw) {
-  resBWList.push_back(result_bw);
+                                  const int resSuffix,
+                                  unsigned resBW) {
+  resBWList.push_back(resBW);
   char *subCalc = new char[1500];
-  sprintf(subCalc, "      res%d := %s;\n", result_suffix, exprName);
+  sprintf(subCalc, "      res%d := %s;\n", resSuffix, exprName);
   strcat(calc, subCalc);
 }
 
 void DflowGenerator::printChpUniExpr(const char *op,
                                      const char *exprName,
-                                     const int result_suffix,
-                                     unsigned result_bw) {
+                                     const int resSuffix,
+                                     unsigned resBW) {
   char *curCal = new char[128 + strlen(exprName)];
-  sprintf(curCal, "      res%d := %s %s;\n", result_suffix, op, exprName);
+  sprintf(curCal, "      res%d := %s %s;\n", resSuffix, op, exprName);
   if (debug_verbose) {
     printf("%s\n", curCal);
   }
   strcat(calc, curCal);
   if (debug_verbose) {
-    printf("uni res%d has bw %u\n", result_suffix, result_bw);
+    printf("uni res%d has bw %u\n", resSuffix, resBW);
     printf("%s\n", curCal);
   }
-  if (result_bw == 0) {
-    printf("result_bw is 0!\n");
+  if (resBW == 0) {
+    printf("resBW is 0!\n");
     exit(-1);
   }
-  resBWList.push_back(result_bw);
+  resBWList.push_back(resBW);
 }
 
 void DflowGenerator::printChpBinExpr(const char *op,
                                      const char *lexpr_name,
                                      const char *rexpr_name,
                                      int exprType,
-                                     const int result_suffix,
-                                     unsigned result_bw) {
-  if (result_bw == 0) {
-    printf("result_bw is 0!\n");
+                                     const int resSuffix,
+                                     unsigned resBW) {
+  if (resBW == 0) {
+    printf("resBW is 0!\n");
     exit(-1);
   }
-  resBWList.push_back(result_bw);
+  resBWList.push_back(resBW);
 
   char *curCal = new char[300];
   bool binType = isBinType(exprType);
   if (binType) {
     sprintf(curCal, "      res%d := int(%s %s %s);\n",
-            result_suffix, lexpr_name, op, rexpr_name);
+            resSuffix, lexpr_name, op, rexpr_name);
   } else {
     sprintf(curCal, "      res%d := %s %s %s;\n",
-            result_suffix, lexpr_name, op, rexpr_name);
+            resSuffix, lexpr_name, op, rexpr_name);
   }
   strcat(calc, curCal);
   if (debug_verbose) {
-    printf("bin res%d has bw %u\n", result_suffix, result_bw);
+    printf("bin res%d has bw %u\n", resSuffix, resBW);
     printf("%s\n", curCal);
   }
 }
@@ -112,22 +112,22 @@ void DflowGenerator::printChpBinExpr(const char *op,
 void DflowGenerator::printChpQueryExpr(const char *cexpr_name,
                                        const char *lexpr_name,
                                        const char *rexpr_name,
-                                       const int result_suffix,
-                                       unsigned result_bw) {
+                                       const int resSuffix,
+                                       unsigned resBW) {
   char *curCal = new char[128 + strlen(cexpr_name) + strlen(lexpr_name)
       + strlen(rexpr_name)];
   sprintf(curCal, "      res%d := bool(%s) ? %s : %s;\n",
-          result_suffix, cexpr_name, lexpr_name, rexpr_name);
+          resSuffix, cexpr_name, lexpr_name, rexpr_name);
   strcat(calc, curCal);
   if (debug_verbose) {
-    printf("query res%d has bw %u\n", result_suffix, result_bw);
+    printf("query res%d has bw %u\n", resSuffix, resBW);
     printf("%s\n", curCal);
   }
-  if (result_bw == 0) {
-    printf("result_bw is 0!\n");
+  if (resBW == 0) {
+    printf("resBW is 0!\n");
     exit(-1);
   }
-  resBWList.push_back(result_bw);
+  resBWList.push_back(resBW);
 }
 
 void DflowGenerator::preparePortForOpt(const char *expr_name,

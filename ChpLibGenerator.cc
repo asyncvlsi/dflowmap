@@ -114,13 +114,13 @@ void ChpLibGenerator::createFU(const char *procName,
   Vector<unsigned> resSuffixVec;
   for (auto &outRecordIt : outRecord) {
     unsigned outID = outRecordIt.first;
-    unsigned result_suffix = outRecordIt.second;
-    resSuffixVec.push_back(result_suffix);
+    unsigned resSuffix = outRecordIt.second;
+    resSuffixVec.push_back(resSuffix);
     char* subSend = new char[1024];
     if (i < numOuts - 1) {
-      sprintf(subSend, "out%u!res%u, ", outID, result_suffix);
+      sprintf(subSend, "out%u!res%u, ", outID, resSuffix);
     } else {
-      sprintf(subSend, "out%u!res%u;\n", outID, result_suffix);
+      sprintf(subSend, "out%u!res%u;\n", outID, resSuffix);
     }
     strcat(outSend, subSend);
     i++;

@@ -27,26 +27,26 @@ class DflowGenerator {
                          unsigned argBW);
 
   void printChpPort(const char *exprName,
-                    int result_suffix,
-                    unsigned result_bw);
+                    int resSuffix,
+                    unsigned resBW);
 
   void printChpUniExpr(const char *op,
                        const char *exprName,
-                       int result_suffix,
-                       unsigned result_bw);
+                       int resSuffix,
+                       unsigned resBW);
 
   void printChpBinExpr(const char *op,
                        const char *lexpr_name,
                        const char *rexpr_name,
                        int exprType,
-                       int result_suffix,
-                       unsigned result_bw);
+                       int resSuffix,
+                       unsigned resBW);
 
   void printChpQueryExpr(const char *cexpr_name,
                          const char *lexpr_name,
                          const char *rexpr_name,
-                         int result_suffix,
-                         unsigned result_bw);
+                         int resSuffix,
+                         unsigned resBW);
 
   void preparePortForOpt(const char *expr_name,
                          const char *portName,

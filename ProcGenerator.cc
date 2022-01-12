@@ -90,8 +90,8 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                       Expr *expr,
                                       const char *sym,
                                       char *procName,
-                                      int &result_suffix,
-                                      unsigned &result_bw) {
+                                      int &resSuffix,
+                                      unsigned &resBW) {
   if (debug_verbose) {
     printf("handle query expression for ");
     print_expr(stdout, expr);
@@ -107,18 +107,18 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
   const char *cexpr_name = printExpr(dflowGenerator,
                                      cExpr,
                                      procName,
-                                     result_suffix,
+                                     resSuffix,
                                      cBW);
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
   const char *rexpr_name = printExpr(dflowGenerator,
                                      rExpr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
   {
     /* generate subProc name */
     char *cVal = new char[100];
@@ -138,13 +138,13 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
     strcat(procName, subProcName);
   }
   char *finalExprName = new char[100];
-  result_suffix++;
-  sprintf(finalExprName, "res%d", result_suffix);
+  resSuffix++;
+  sprintf(finalExprName, "res%d", resSuffix);
   dflowGenerator->printChpQueryExpr(cexpr_name,
                                     lexpr_name,
                                     rexpr_name,
-                                    result_suffix,
-                                    result_bw);
+                                    resSuffix,
+                                    resBW);
   /* create Expr */
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
@@ -160,7 +160,7 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                          finalExprName,
                                          exprType,
                                          bodyExprType,
-                                         result_bw);
+                                         resBW);
   return finalExprName;
 }
 
@@ -170,8 +170,8 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                     const char *op,
                                     int type,
                                     char *procName,
-                                    int &result_suffix,
-                                    unsigned &result_bw) {
+                                    int &resSuffix,
+                                    unsigned &resBW) {
   if (debug_verbose) {
     printf("Handle bin expr ");
     print_expr(stdout, expr);
@@ -185,13 +185,13 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
   const char *rexpr_name = printExpr(dflowGenerator,
                                      rExpr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
   {
     /* generate subProc name */
     char *lVal = new char[100];
@@ -207,14 +207,14 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
     strcat(procName, subProcName);
   }
   char *finalExprName = new char[100];
-  result_suffix++;
-  sprintf(finalExprName, "res%d", result_suffix);
+  resSuffix++;
+  sprintf(finalExprName, "res%d", resSuffix);
   dflowGenerator->printChpBinExpr(op,
                                   lexpr_name,
                                   rexpr_name,
                                   type,
-                                  result_suffix,
-                                  result_bw);
+                                  resSuffix,
+                                  resBW);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
@@ -224,7 +224,7 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                        rType,
                                        finalExprName,
                                        exprType,
-                                       result_bw);
+                                       resBW);
   return finalExprName;
 }
 
@@ -233,8 +233,8 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                     const char *sym,
                                     const char *op,
                                     char *procName,
-                                    int &result_suffix,
-                                    unsigned &result_bw) {
+                                    int &resSuffix,
+                                    unsigned &resBW) {
   if (debug_verbose) {
     printf("Handle uni expr ");
     print_expr(stdout, expr);
@@ -247,8 +247,8 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
   {
     /* generate subProc name */
     char *val = new char[100];
@@ -256,40 +256,29 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
     sprintf(procName, "%s_%s%s", procName, sym, val);
   }
   char *finalExprName = new char[100];
-  result_suffix++;
-  sprintf(finalExprName, "res%d", result_suffix);
-  dflowGenerator->printChpUniExpr(op, lexpr_name, result_suffix, result_bw);
+  resSuffix++;
+  sprintf(finalExprName, "res%d", resSuffix);
+  dflowGenerator->printChpUniExpr(op, lexpr_name, resSuffix, resBW);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   dflowGenerator->prepareUniExprForOpt(lexpr_name,
                                        lType,
                                        finalExprName,
                                        exprType,
-                                       result_bw);
+                                       resBW);
   return finalExprName;
 }
 
 const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                                      Expr *expr,
                                      char *procName,
-                                     int &result_suffix,
-                                     unsigned &result_bw) {
+                                     int &resSuffix,
+                                     unsigned &resBW) {
   int type = expr->type;
   switch (type) {
     case E_INT: {
-      if (procName[0] == '\0') {
-        printf("we should NOT process Source here!\n");
-        exit(-1);
-      }
       unsigned long val = expr->u.v;
       const char *valStr = strdup(std::to_string(val).c_str());
-      if (result_bw == 0) {
-        if (val == 0) {
-          result_bw = 1;
-        } else {
-          result_bw = (unsigned) (log2(val)) + 1;
-        }
-      }
       return valStr;
     }
     case E_VAR: {
@@ -302,12 +291,12 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       if (dflowGenerator->isNewArg(oriVarName)) {
         mappedVarName = getActIdOrCopyName(actId);
       }
-      if (result_bw == 0) {
-        result_bw = argBW;
+      if (resBW == 0) {
+        resBW = argBW;
       }
       if (debug_verbose) {
         printf("oriVarName: %s, mappedVarName: %s, res_bw: %u\n",
-               oriVarName, mappedVarName, result_bw);
+               oriVarName, mappedVarName, resBW);
       }
       return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
     }
@@ -318,8 +307,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "&",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_OR: {
       return EMIT_BIN(dflowGenerator,
@@ -328,8 +317,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "|",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_NOT: {
       return EMIT_UNI(dflowGenerator,
@@ -337,8 +326,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "not",
                       "~",
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_PLUS: {
       return EMIT_BIN(dflowGenerator,
@@ -347,8 +336,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "+",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_MINUS: {
       return EMIT_BIN(dflowGenerator,
@@ -357,8 +346,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "-",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_MULT: {
       return EMIT_BIN(dflowGenerator,
@@ -367,8 +356,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "*",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_DIV: {
       return EMIT_BIN(dflowGenerator,
@@ -377,8 +366,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "/",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_MOD: {
       return EMIT_BIN(dflowGenerator,
@@ -387,8 +376,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "%",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_LSL: {
       return EMIT_BIN(dflowGenerator,
@@ -397,8 +386,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "<<",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_LSR: {
       return EMIT_BIN(dflowGenerator,
@@ -407,8 +396,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       ">>",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_ASR: {
       return EMIT_BIN(dflowGenerator,
@@ -417,8 +406,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       ">>>",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_UMINUS: {
       return EMIT_UNI(dflowGenerator,
@@ -426,8 +415,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "neg",
                       "-",
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_XOR: {
       return EMIT_BIN(dflowGenerator,
@@ -436,8 +425,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "^",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_LT: {
       return EMIT_BIN(dflowGenerator,
@@ -446,8 +435,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "<",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_GT: {
       return EMIT_BIN(dflowGenerator,
@@ -456,8 +445,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       ">",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_LE: {
       return EMIT_BIN(dflowGenerator,
@@ -466,8 +455,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "<=",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_GE: {
       return EMIT_BIN(dflowGenerator,
@@ -476,8 +465,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       ">=",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_EQ: {
       return EMIT_BIN(dflowGenerator,
@@ -486,8 +475,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "=",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_NE: {
       return EMIT_BIN(dflowGenerator,
@@ -496,8 +485,8 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "!=",
                       type,
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_COMPLEMENT: {
       return EMIT_UNI(dflowGenerator,
@@ -505,46 +494,46 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "compl",
                       "~",
                       procName,
-                      result_suffix,
-                      result_bw);
+                      resSuffix,
+                      resBW);
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
-      if (result_bw == 0) {
+      if (resBW == 0) {
         Expr *rExpr = expr->u.e.r;
         if (rExpr) {
-          result_bw = rExpr->u.v;
+          resBW = rExpr->u.v;
         } else {
-          result_bw = 1;
+          resBW = 1;
         }
       }
       if (debug_verbose) {
         printf("It is E_BUILTIN_INT! The real expression is ");
         print_expr(stdout, lExpr);
-        printf(", result_bw: %u\n", result_bw);
+        printf(", resBW: %u\n", resBW);
       }
       return printExpr(dflowGenerator,
                        lExpr,
                        procName,
-                       result_suffix,
-                       result_bw);
+                       resSuffix,
+                       resBW);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
-      result_bw = 1;
+      resBW = 1;
       return printExpr(dflowGenerator,
                        lExpr,
                        procName,
-                       result_suffix,
-                       result_bw);
+                       resSuffix,
+                       resBW);
     }
     case E_QUERY: {
       return EMIT_QUERY(dflowGenerator,
                         expr,
                         "q",
                         procName,
-                        result_suffix,
-                        result_bw);
+                        resSuffix,
+                        resBW);
     }
     default: {
       print_expr(stdout, expr);
@@ -1032,7 +1021,7 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
 void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     act_dataflow_element *d,
                                     char *procName,
-                                    int &result_suffix,
+                                    int &resSuffix,
                                     StringVec &outList,
                                     UIntVec &outWidthList,
                                     Map<unsigned int, unsigned int> &outRecord,
@@ -1072,27 +1061,22 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       exit(-1);
     }
   } else {
-    unsigned result_bw = outBW;
+    unsigned resBW = outBW;
     const char *exprName = printExpr(dflowGenerator,
                                      expr,
                                      procName,
-                                     result_suffix,
-                                     result_bw);
+                                     resSuffix,
+                                     resBW);
     handlePort(expr,
                procName,
-               result_suffix,
-               result_bw,
+               resSuffix,
+               resBW,
                exprName,
                dflowGenerator);
-
     outList.push_back(outName);
     outWidthList.push_back(outBW);
-    char *outStr = new char[10240];
-    outStr[0] = '\0';
-    unsigned numOuts = outList.size();
-    unsigned outID = numOuts - 1;
-    sprintf(outStr, "out%u!res%d", outID, result_suffix);
-    outRecord.insert({outID, result_suffix});
+    unsigned outID = outList.size() - 1;
+    outRecord.insert({outID, resSuffix});
 
     if (bufExpr) {
       handleBuff(bufExpr, initExpr, procName, outName, outID, outBW, buffInfos);
@@ -1108,7 +1092,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       printf("\n___________________________________________\n");
       printf("procName: %s\n", procName);
       printf("out bw: %d\n", outBW);
-      printf("result_suffix: %d\n", result_suffix);
+      printf("resSuffix: %d\n", resSuffix);
       printf("normalizedOut: %s, out: %s\n", normalizedOut, outName);
       printf("init expr: ");
       print_expr(stdout, initExpr);
@@ -1159,8 +1143,8 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
  * int/bool, e.g., int(varName, bw). In this case, it still only has E_VAR expression. */
 void ProcGenerator::handlePort(const Expr *expr,
                                char *procName,
-                               int &result_suffix,
-                               unsigned result_bw,
+                               int &resSuffix,
+                               unsigned resBW,
                                const char *exprName,
                                DflowGenerator *dflowGenerator) {
   const Expr *actualExpr = expr;
@@ -1185,20 +1169,19 @@ void ProcGenerator::handlePort(const Expr *expr,
       }
       strcat(procName, subProc);
     }
-    result_suffix++;
-    dflowGenerator->printChpPort(exprName, result_suffix, result_bw);
+    resSuffix++;
+    dflowGenerator->printChpPort(exprName, resSuffix, resBW);
     char *resName = new char[128];
-    sprintf(resName, "res%d", result_suffix);
-    dflowGenerator->preparePortForOpt(resName, exprName, result_bw);
+    sprintf(resName, "res%d", resSuffix);
+    dflowGenerator->preparePortForOpt(resName, exprName, resBW);
   }
 }
 
-void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
-                                             unsigned &sinkCnt) {
+void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
+                                           unsigned &sinkCnt) {
   switch (d->t) {
     case ACT_DFLOW_FUNC: {
       if (debug_verbose) {
-        printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         printf("Process normal dflow:\n");
         dflow_print(stdout, d);
         printf("\n");
@@ -1213,7 +1196,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       StringVec oriArgList;
       UIntVec argBWList;
       UIntVec resBWList;
-      int result_suffix = -1;
+      int resSuffix = -1;
       StringVec outList;
       UIntVec outWidthList;
       Vector<BuffInfo> buffInfos;
@@ -1233,7 +1216,7 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
       handleDFlowFunc(dflowGenerator,
                       d,
                       procName,
-                      result_suffix,
+                      resSuffix,
                       outList,
                       outWidthList,
                       outRecord,
@@ -1438,7 +1421,6 @@ void ProcGenerator::handleNormalDflowElement(act_dataflow_element *d,
 }
 
 void ProcGenerator::handleDFlowCluster(list_t *dflow) {
-  listitem_t *li;
   char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
   procName[0] = '\0';
   IntVec boolResSuffixs;
@@ -1449,7 +1431,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   StringVec oriArgList;
   UIntVec argBWList;
   UIntVec resBWList;
-  int result_suffix = -1;
+  int resSuffix = -1;
   StringVec outList;
   UIntVec outWidthList;
   Vector<BuffInfo> buffInfos;
@@ -1467,6 +1449,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                                            inBW,
                                            hiddenBW,
                                            hiddenExprs);
+  listitem_t *li;
   for (li = list_first (dflow); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (debug_verbose) {
@@ -1478,7 +1461,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
       handleDFlowFunc(dflowGenerator,
                       d,
                       procName,
-                      result_suffix,
+                      resSuffix,
                       outList,
                       outWidthList,
                       outRecord,
@@ -1552,7 +1535,7 @@ void ProcGenerator::handleProcess(Process *proc) {
       list_t *dflow_cluster = d->u.dflow_cluster;
       handleDFlowCluster(dflow_cluster);
     } else {
-      handleNormalDflowElement(d, sinkCnt);
+      handleNormDflowElement(d, sinkCnt);
     }
   }
   chpBackend->printProcEnding();
