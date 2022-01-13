@@ -27,6 +27,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 include_directories(./)
 include_directories(common)
 include_directories( $ENV{ACT_HOME}/include)
+
 add_library( ActLib SHARED IMPORTED )
 set_target_properties( ActLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libact.a )
 add_library( ActCommon SHARED IMPORTED )
@@ -35,20 +36,8 @@ add_library( ExprOpt SHARED IMPORTED )
 set_target_properties( ExprOpt PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexpropt.a )
 add_library( ExprOptCommercial SHARED IMPORTED )
 set_target_properties( ExprOptCommercial PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexproptcommercial.a )
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_EXE_LINKER_FLAGS "-ldl")
 
-add_subdirectory(backend/chp)
-add_executable(dflowmap
-        main.cc
-        DflowGenerator.cc
-        DflowGenerator.h
-        ProcGenerator.cc
-        ProcGenerator.h
-        Metrics.cc
-        Metrics.h
-        common/Helper.cc
-        common/Helper.h
-        )
-
-target_link_libraries(dflowmap chpBackend ActLib ActCommon ExprOpt ExprOptCommercial)
+add_subdirectory(src)
