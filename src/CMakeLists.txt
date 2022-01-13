@@ -1,3 +1,4 @@
+include_directories(./)
 include_directories(common)
 include_directories( $ENV{ACT_HOME}/include)
 

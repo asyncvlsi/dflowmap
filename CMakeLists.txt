@@ -24,7 +24,7 @@ project(dflowmap)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
+include_directories(./)
 add_library( ActLib SHARED IMPORTED )
 set_target_properties( ActLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libact.a )
 add_library( ActCommon SHARED IMPORTED )
