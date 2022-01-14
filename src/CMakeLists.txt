@@ -2,7 +2,7 @@ include_directories(./)
 include_directories(common)
 include_directories( $ENV{ACT_HOME}/include)
 
-add_subdirectory(backend/chp)
+add_subdirectory(backend)
 add_subdirectory(common)
 add_subdirectory(core)
 add_executable(dflowmap
