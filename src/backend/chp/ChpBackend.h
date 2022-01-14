@@ -95,6 +95,8 @@ class ChpBackend {
 
   void createChpBlock(Process *p);
 
+  void printCustomNamespace(ActNamespace *ns);
+
  private:
   ChpCircuitGenerator *circuitGenerator;
   ChpLibGenerator *libGenerator;

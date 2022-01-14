@@ -32,8 +32,10 @@ ChpLibGenerator::ChpLibGenerator(FILE *libFp, FILE *confFp) {
     printf("Invalid file handler for CHP lib generator!\n");
     exit(-1);
   }
+  fprintf(confFp, "begin sim.chp\n");
   this->libFp = libFp;
   this->confFp = confFp;
+
 }
 
 bool ChpLibGenerator::hasInstance(const char *instance) {
@@ -488,4 +490,31 @@ void ChpLibGenerator::createChpBlock(Process *p) {
     exit(-1);
   }
   p->Print(libFp);
+}
+
+void ChpLibGenerator::printCustomNamespace(ActNamespace *ns) {
+  const char *nsName = ns->getName();
+  fprintf(libFp, "namespace %s {\n", nsName);
+  ActTypeiter it(ns);
+  bool isMEM = strcmp(nsName, "mem") == 0;
+  for (it = it.begin(); it != it.end(); it++) {
+    Type *t = *it;
+    auto p = dynamic_cast<Process *>(t);
+    if (p->isExpanded()) {
+      p->Print(libFp);
+      if (isMEM) {
+        const char *memProcName = p->getName();
+        genMemConfiguration(memProcName);
+        if (debug_verbose) {
+          unsigned len = strlen(memProcName);
+          char *memName = new char[len - 1];
+          strncpy(memName, memProcName, len - 2);
+          memName[len - 2] = '\0';
+          printf("memName: %s\n", memName);
+          printf("[mem]: mem_%s_inst\n", memName);
+        }
+      }
+    }
+  }
+  fprintf(libFp, "}\n\n");
 }

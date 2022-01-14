@@ -170,3 +170,7 @@ void ChpBackend::printProcEnding() {
 void ChpBackend::createChpBlock(Process *p) {
   libGenerator->createChpBlock(p);
 }
+
+void ChpBackend::printCustomNamespace(ActNamespace *ns) {
+
+}

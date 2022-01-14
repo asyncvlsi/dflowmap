@@ -31,6 +31,7 @@ public:
   static constexpr const char* SPLIT_PREFIX = "split";
   static constexpr const char* ACTN_CP_PREFIX = "actn_cp_";
   static constexpr const char* ACTN_DP_PREFIX = "actn_dp_";
+  static constexpr const char* MEM_NAMESPACE = "mem";
 };
 
 #endif //DFLOWMAP_CONSTANT_H

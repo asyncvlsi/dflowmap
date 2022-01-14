@@ -272,3 +272,18 @@ void ChpCircuitGenerator::printProcDeclaration(Process *p) {
 void ChpCircuitGenerator::printProcEnding() {
   fprintf(resFp, "}\n\n");
 }
+
+void ChpCircuitGenerator::printCustomNamespace(ActNamespace *ns) {
+  const char *nsName = ns->getName();
+  fprintf(resFp, "namespace %s {\n", nsName);
+  ActTypeiter it(ns);
+  for (it = it.begin(); it != it.end(); it++) {
+    Type *t = *it;
+    auto p = dynamic_cast<Process *>(t);
+    if (p->isExpanded()) {
+      p->PrintHeader(resFp, "defproc");
+      fprintf(resFp, ";\n");
+    }
+  }
+  fprintf(resFp, "}\n\n");
+}

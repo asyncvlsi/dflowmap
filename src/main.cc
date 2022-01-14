@@ -41,38 +41,6 @@ static void usage(char *name) {
   exit(1);
 }
 
-void printCustomNamespace(ChpLibGenerator *libGenerator, ActNamespace *ns,
-                          FILE *resFp, FILE *libFp, FILE *confFp) {
-  const char *nsName = ns->getName();
-  fprintf(resFp, "namespace %s {\n", nsName);
-  fprintf(libFp, "namespace %s {\n", nsName);
-  ActTypeiter it(ns);
-  bool isMEM = strcmp(nsName, "mem") == 0;
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (p->isExpanded()) {
-      p->PrintHeader(resFp, "defproc");
-      fprintf(resFp, ";\n");
-      p->Print(libFp);
-      if (isMEM) {
-        const char *memProcName = p->getName();
-        libGenerator->genMemConfiguration(memProcName);
-        if (debug_verbose) {
-          unsigned len = strlen(memProcName);
-          char *memName = new char[len - 1];
-          strncpy(memName, memProcName, len - 2);
-          memName[len - 2] = '\0';
-          printf("memName: %s\n", memName);
-          printf("[mem]: mem_%s_inst\n", memName);
-        }
-      }
-    }
-  }
-  fprintf(resFp, "}\n\n");
-  fprintf(libFp, "}\n\n");
-}
-
 static void create_outfiles(const char *src,
                             FILE **resfp, FILE **libfp, FILE **conffp) {
   unsigned i = strlen(src);
@@ -106,6 +74,24 @@ static void create_outfiles(const char *src,
   if (!*conffp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
+}
+
+Metrics* createMetrics(const char* metricFile) {
+  char *metricFilePath = new char[1000];
+  if (metricFile) {
+    if (strlen(metricFile) > 1000) {
+      printf("The metric file path %s is too long!\n", metricFile);
+      exit(-1);
+    }
+    snprintf(metricFilePath, 1000, "%s", metricFile);
+  } else {
+    sprintf(metricFilePath, "metrics/fluid.metrics");
+  }
+  char *statisticsFilePath = new char[1000];
+  sprintf(statisticsFilePath, "statistics");
+  auto metrics = new Metrics(metricFilePath, statisticsFilePath);
+  metrics->readMetricsFile();
+  return metrics;
 }
 
 int main(int argc, char **argv) {
@@ -149,26 +135,16 @@ int main(int argc, char **argv) {
   }
   FILE *resFp, *libFp, *confFp;
   create_outfiles(act_file, &resFp, &libFp, &confFp);
-  fprintf(confFp, "begin sim.chp\n");
-  char *metricFilePath = new char[1000];
-  if (mfile) {
-    snprintf(metricFilePath, 1000, "%s", mfile);
-  } else {
-    sprintf(metricFilePath, "metrics/fluid.metrics");
-  }
-  char *statisticsFilePath = new char[1000];
-  sprintf(statisticsFilePath, "statistics");
-  auto metrics = new Metrics(metricFilePath, statisticsFilePath);
-  metrics->readMetricsFile();
+  Metrics* metrics = createMetrics(mfile);
   auto circuitGenerator = new ChpCircuitGenerator(resFp);
   auto libGenerator = new ChpLibGenerator(libFp, confFp);
   auto backend = new ChpBackend(circuitGenerator, libGenerator);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
-    ActNamespace *n = *i;
-    if (!n->isExported()) {
-      printCustomNamespace(libGenerator, n, resFp, libFp, confFp);
+    ActNamespace *ns = *i;
+    if (!ns->isExported()) {
+      backend->printCustomNamespace(ns);
     }
   }
   /* declare all of the act processes */

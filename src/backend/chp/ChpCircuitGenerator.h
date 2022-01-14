@@ -23,12 +23,14 @@
 #define DFLOWMAP__CHPCIRCUITGENERATOR_H_
 
 #include <act/act.h>
+#include <act/iter.h>
 #include <fstream>
 #include "Helper.h"
 
 class ChpCircuitGenerator {
  private:
   FILE *resFp;
+
  public:
   explicit ChpCircuitGenerator(FILE *resFp);
 
@@ -88,6 +90,8 @@ class ChpCircuitGenerator {
   void printProcDeclaration(Process *p);
 
   void printProcEnding();
+
+  void printCustomNamespace(ActNamespace *ns);
 };
 
 #endif //DFLOWMAP__CHPCIRCUITGENERATOR_H_

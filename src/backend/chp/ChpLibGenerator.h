@@ -25,6 +25,7 @@
 #include <cstring>
 #include <algorithm>
 #include <act/act.h>
+#include <act/iter.h>
 #include <fstream>
 #include "common.h"
 
@@ -87,6 +88,8 @@ class ChpLibGenerator {
   void createCopy(const char *instance, double *metric);
 
   void createChpBlock(Process *p);
+
+  void printCustomNamespace(ActNamespace *ns);
 
  private:
   const char *processes[MAX_PROCESSES];
