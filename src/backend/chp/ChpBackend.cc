@@ -172,5 +172,6 @@ void ChpBackend::createChpBlock(Process *p) {
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {
-
+  circuitGenerator->printCustomNamespace(ns);
+  libGenerator->printCustomNamespace(ns);
 }
