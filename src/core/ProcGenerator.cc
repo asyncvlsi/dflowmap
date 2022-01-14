@@ -1051,7 +1051,6 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
   ActId *rhs = d->u.func.rhs;
   char outName[10240];
   getActIdName(sc, rhs, outName, 10240);
-  const char *normalizedOut = getNormActIdName(outName);
   unsigned outBW = getActIdBW(rhs);
   Expr *initExpr = d->u.func.init;
   Expr *bufExpr = d->u.func.nbufs;
@@ -1113,7 +1112,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       printf("procName: %s\n", procName);
       printf("out bw: %d\n", outBW);
       printf("resSuffix: %d\n", resSuffix);
-      printf("normalizedOut: %s, out: %s\n", normalizedOut, outName);
+      printf("out: %s\n", outName);
       printf("init expr: ");
       print_expr(stdout, initExpr);
       printf("\n");
@@ -1208,10 +1207,6 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       }
       char *procName = new char[MAX_PROC_NAME_LEN];
       procName[0] = '\0';
-      IntVec boolResSuffixs;
-      char *def = new char[10240];
-      def[0] = '\0';
-      sprintf(def, "\n");
       StringVec argList;
       StringVec oriArgList;
       UIntVec argBWList;
@@ -1406,6 +1401,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           coutBW,
           actnCp,
           actnDp);
+      //TODO: generate procName and instance inside chpBackend!
       chpBackend->printArbiter(procName,
                                instance,
                                outputName,
@@ -1519,7 +1515,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
 
 ProcGenerator::ProcGenerator(Metrics *metrics,
                              ChpBackend *chpBackend,
-                             Process* p) {
+                             Process *p) {
   this->metrics = metrics;
   this->chpBackend = chpBackend;
   this->p = p;
