@@ -289,6 +289,6 @@ void ChpCircuitGenerator::printCustomNamespace(ActNamespace *ns) {
 }
 
 void ChpCircuitGenerator::printFileEnding() {
-  fprintf(resFp, "main_test test;\n");
+  fprintf(resFp, "/* end of generation */\n");
   fclose(resFp);
 }
