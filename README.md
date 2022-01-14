@@ -21,7 +21,7 @@ program into circuit backend description.
   `build/dflowmap`
 * to generate CHP description for the test file `tests/dfadd.act`, first copy
   the file to the home directory of dflowmap, and
-  run `build/dflowmap tests/dfadd.act`, and there will be three output files:
+  run `build/dflowmap dfadd.act`, and there will be three output files:
   * lib_dfadd.act: CHP process library
   * conf_dfadd.act: specify the performance (delay, area,
     leakage power, execution energy) of each generated CHP process
