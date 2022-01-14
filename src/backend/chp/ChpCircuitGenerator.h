@@ -92,6 +92,8 @@ class ChpCircuitGenerator {
   void printProcEnding();
 
   void printCustomNamespace(ActNamespace *ns);
+
+  void printFileEnding();
 };
 
 #endif //DFLOWMAP__CHPCIRCUITGENERATOR_H_

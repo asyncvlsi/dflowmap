@@ -518,3 +518,8 @@ void ChpLibGenerator::printCustomNamespace(ActNamespace *ns) {
   }
   fprintf(libFp, "}\n\n");
 }
+
+void ChpLibGenerator::printFileEnding() {
+  fprintf(confFp, "end\n");
+  fclose(confFp);
+}

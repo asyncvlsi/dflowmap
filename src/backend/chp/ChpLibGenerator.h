@@ -91,6 +91,8 @@ class ChpLibGenerator {
 
   void printCustomNamespace(ActNamespace *ns);
 
+  void printFileEnding();
+
  private:
   const char *processes[MAX_PROCESSES];
   const char *instances[MAX_PROCESSES];

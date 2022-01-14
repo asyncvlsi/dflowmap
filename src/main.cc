@@ -166,10 +166,7 @@ int main(int argc, char **argv) {
       procGenerator->handleProcess(p);
     }
   }
-  fprintf(resFp, "main_test test;\n");
-  fprintf(confFp, "end\n");
-  fclose(resFp);
-  fclose(confFp);
+  backend->printFileEnding();
   metrics->dump();
 
   return 0;

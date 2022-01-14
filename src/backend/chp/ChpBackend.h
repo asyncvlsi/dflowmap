@@ -97,6 +97,8 @@ class ChpBackend {
 
   void printCustomNamespace(ActNamespace *ns);
 
+  void printFileEnding();
+
  private:
   ChpCircuitGenerator *circuitGenerator;
   ChpLibGenerator *libGenerator;

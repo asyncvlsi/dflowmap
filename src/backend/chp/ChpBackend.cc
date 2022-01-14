@@ -175,3 +175,8 @@ void ChpBackend::printCustomNamespace(ActNamespace *ns) {
   circuitGenerator->printCustomNamespace(ns);
   libGenerator->printCustomNamespace(ns);
 }
+
+void ChpBackend::printFileEnding() {
+  circuitGenerator->printFileEnding();
+  libGenerator->printFileEnding();
+}
