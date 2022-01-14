@@ -47,9 +47,9 @@
 
 class ProcGenerator {
  public:
-  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend);
+  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend, Process* p);
 
-  void handleProcess(Process *p);
+  void run();
 
   const char *getActIdOrCopyName(ActId *actId);
 

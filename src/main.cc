@@ -162,8 +162,8 @@ int main(int argc, char **argv) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
     if (p->isExpanded()) {
-      auto procGenerator = new ProcGenerator(metrics, backend);
-      procGenerator->handleProcess(p);
+      auto procGenerator = new ProcGenerator(metrics, backend, p);
+      procGenerator->run();
     }
   }
   backend->printFileEnding();

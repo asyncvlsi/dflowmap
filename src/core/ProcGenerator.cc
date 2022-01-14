@@ -1518,16 +1518,15 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
 }
 
 ProcGenerator::ProcGenerator(Metrics *metrics,
-                             ChpBackend *chpBackend) {
+                             ChpBackend *chpBackend,
+                             Process* p) {
   this->metrics = metrics;
   this->chpBackend = chpBackend;
-  p = nullptr;
-  sc = nullptr;
+  this->p = p;
+  this->sc = p->CurScope();
 }
 
-void ProcGenerator::handleProcess(Process *proc) {
-  this->p = proc;
-  this->sc = p->CurScope();
+void ProcGenerator::run() {
   const char *pName = p->getName();
   if (debug_verbose) {
     printf("processing %s\n", pName);
