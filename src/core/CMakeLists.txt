@@ -1,4 +1,4 @@
-add_library( core
+add_library( dflowmap-core
         DflowGenerator.cc
         DflowGenerator.h
         ProcGenerator.cc
