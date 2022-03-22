@@ -41,8 +41,11 @@ static void usage(char *name) {
   exit(1);
 }
 
-static void create_outfiles(const char *src,
+static void create_outfiles(const char *src, char *&statsFilePath,
                             FILE **resfp, FILE **libfp, FILE **conffp) {
+  /* "src" contains the path to the act file, which is in the form of
+   * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
+   * "circuit", as well as taking care of the file path.*/
   unsigned i = strlen(src);
   while (i > 0) {
     if (src[i - 1] == '/') {
@@ -50,33 +53,34 @@ static void create_outfiles(const char *src,
     }
     i--;
   }
-
   unsigned len = strlen(src);
+  char *basesrcName = new char[len - i - 3];
+  snprintf(basesrcName, len - i - 3, "%s", src + i);
   char *tmpbuf = new char[8 + len];
   for (unsigned j = 0; j < i; j++) {
     tmpbuf[j] = src[j];
   }
-  snprintf(tmpbuf + i, 8 + len - i, "result_%s", src + i);
+  statsFilePath = new char[8 + len];
+  sprintf(statsFilePath, "%s.stat", basesrcName);
+  sprintf(tmpbuf + i, "%s_circuit.act", basesrcName);
   *resfp = fopen(tmpbuf, "w");
   if (!*resfp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
-
-  snprintf(tmpbuf + i, 8 + len - i, "lib_%s", src + i);
+  sprintf(tmpbuf + i, "%s_lib.act", basesrcName);
   *libfp = fopen(tmpbuf, "w");
   if (!*libfp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
   fprintf(*resfp, "import \"%s\";\n\n", tmpbuf);
-
-  snprintf(tmpbuf + i, 8 + len - i, "conf_%s", src + i);
+  sprintf(tmpbuf + i, "%s.conf", basesrcName);
   *conffp = fopen(tmpbuf, "w");
   if (!*conffp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
 }
 
-Metrics* createMetrics(const char* metricFile) {
+Metrics *createMetrics(const char *metricFile, const char *statsFilePath) {
   char *metricFilePath = new char[1000];
   if (metricFile) {
     if (strlen(metricFile) > 1000) {
@@ -87,9 +91,7 @@ Metrics* createMetrics(const char* metricFile) {
   } else {
     sprintf(metricFilePath, "metrics/fluid.metrics");
   }
-  char *statisticsFilePath = new char[1000];
-  sprintf(statisticsFilePath, "statistics");
-  auto metrics = new Metrics(metricFilePath, statisticsFilePath);
+  auto metrics = new Metrics(metricFilePath, statsFilePath);
   metrics->readMetricsFile();
   return metrics;
 }
@@ -134,8 +136,9 @@ int main(int argc, char **argv) {
     printf("\n\n\n");
   }
   FILE *resFp, *libFp, *confFp;
-  create_outfiles(act_file, &resFp, &libFp, &confFp);
-  Metrics* metrics = createMetrics(mfile);
+  char *statsFilePath = nullptr;
+  create_outfiles(act_file, statsFilePath, &resFp, &libFp, &confFp);
+  Metrics *metrics = createMetrics(mfile, statsFilePath);
   auto circuitGenerator = new ChpCircuitGenerator(resFp);
   auto libGenerator = new ChpLibGenerator(libFp, confFp);
   auto backend = new ChpBackend(circuitGenerator, libGenerator);

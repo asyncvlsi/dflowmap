@@ -17,12 +17,16 @@ program into circuit backend description.
   available, leave it blank. If an open-source optimizer is available, specify
   it as `expropt`. If a commercial optimizer is available, then add
   `exproptcommercial` in a new line after `expropt`
-* to compile the tool, run `sh comile.sh`, and the binary is located at
+* to compile the tool, run `sh build.sh`, and the binary is located at
   `build/src/dflowmap`
-* to generate CHP description for the test file `tests/dfadd.act`, first copy
-  the file to the home directory of dflowmap, and
-  run `build/src/dflowmap dfadd.act`, and there will be three output files:
-  * lib_dfadd.act: CHP process library
-  * conf_dfadd.act: specify the performance (delay, area,
-    leakage power, execution energy) of each generated CHP process
-  * result_dfadd.act: CHP instances
+
+## Running instructions
+Suppose we want to generate CHP description for the dfadd benchmakr located at
+`tests/dfadd.act`. Run `build/src/dflowmap dfadd.act` in the home directory,
+ and four output files will be generated:
+  * dfadd_lib.act: library of CHP processes used by dfadd
+  * dfadd_circuit.act: instances of CHP processes synthesized for dfadd. It invokes 
+  `dfadd_lib.act` for the implementation of each CHP process
+  * dfadd.conf: configuration file which specifues the performance (delay, area,
+    leakage power, execution energy) of each CHP process
+  * dfadd.stat: performance statistics of the generated CHP instances
