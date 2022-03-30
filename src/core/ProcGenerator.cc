@@ -828,15 +828,12 @@ void ProcGenerator::collectDflowClusterUses(list_t *dflow,
         }
         break;
       }
-      case ACT_DFLOW_MIXER: {
-        printf("We don't support MIXER for now!\n");
-        exit(-1);
-      }
+      case ACT_DFLOW_MIXER:
       case ACT_DFLOW_ARBITER: {
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
-          printf("\nArbiter has less than TWO inputs!\n");
+          printf(" has less than TWO inputs!\n");
           exit(-1);
         }
         ActId **inputs = d->u.splitmerge.multi;
@@ -903,16 +900,12 @@ void ProcGenerator::collectOpUses() {
         }
         break;
       }
-      case ACT_DFLOW_MIXER: {
-        printf("We don't support MIXER for now!\n");
-        exit(-1);
-        break;
-      }
+      case ACT_DFLOW_MIXER:
       case ACT_DFLOW_ARBITER: {
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
           dflow_print(stdout, d);
-          printf("\nArbiter has less than TWO inputs!\n");
+          printf(" has less than TWO inputs!\n");
           exit(-1);
         }
         ActId **inputs = d->u.splitmerge.multi;
@@ -1196,6 +1189,33 @@ void ProcGenerator::handlePort(const Expr *expr,
   }
 }
 
+void ProcGenerator::handleSelectionUnit(act_dataflow_element *d,
+                                        CharPtrVec &inNameVec,
+                                        char *&outputName,
+                                        unsigned &dataBW,
+                                        int &numInputs) {
+  ActId *output = d->u.splitmerge.single;
+  getActIdName(sc, output, outputName, 10240);
+  const char *normalizedOutput = getNormActIdName(outputName);
+  bool actnCp = false;
+  bool actnDp = false;
+  checkACTN(normalizedOutput, actnCp, actnDp);
+  printf("[merge]: %s_inst\n", normalizedOutput);
+  if (actnCp) {
+    printf("[actnCp]: %s_inst\n", normalizedOutput);
+  } else if (actnDp) {
+    printf("[actnDp]: %s_inst\n", normalizedOutput);
+  }
+  dataBW = getActIdBW(output);
+  numInputs = d->u.splitmerge.nmulti;
+  ActId **inputs = d->u.splitmerge.multi;
+  for (int i = 0; i < numInputs; i++) {
+    ActId *in = inputs[i];
+    const char *inStr = getActIdOrCopyName(in);
+    inNameVec.push_back(inStr);
+  }
+}
+
 void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                            unsigned &sinkCnt) {
   switch (d->t) {
@@ -1314,100 +1334,71 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       break;
     }
     case ACT_DFLOW_MERGE: {
-      ActId *output = d->u.splitmerge.single;
-      char *outputName = new char[10240];
-      getActIdName(sc, output, outputName, 10240);
-      const char *normalizedOutput = getNormActIdName(outputName);
-      bool actnCp = false;
-      bool actnDp = false;
-      checkACTN(normalizedOutput, actnCp, actnDp);
-      printf("[merge]: %s_inst\n", normalizedOutput);
-      if (actnCp) {
-        printf("[actnCp]: %s_inst\n", normalizedOutput);
-      } else if (actnDp) {
-        printf("[actnDp]: %s_inst\n", normalizedOutput);
-      }
-      unsigned inBW = getActIdBW(output);
-      ActId *guard = d->u.splitmerge.guard;
-      unsigned guardBW = getActIdBW(guard);
-      int numInputs = d->u.splitmerge.nmulti;
-      const char *guardStr = getActIdOrCopyName(guard);
-      ActId **inputs = d->u.splitmerge.multi;
       CharPtrVec inNameVec;
-      for (int i = 0; i < numInputs; i++) {
-        ActId *in = inputs[i];
-        const char *inStr = getActIdOrCopyName(in);
-        inNameVec.push_back(inStr);
-      }
-      double *metric = metrics->getOrGenMergeMetric(guardBW,
-                                                    inBW,
+      char *outputName = new char[10240];
+      unsigned dataBW = 0;
+      int numInputs = 0;
+      handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
+      ActId *ctrlIn = d->u.splitmerge.guard;
+      unsigned ctrlBW = getActIdBW(ctrlIn);
+      const char *ctrlInName = getActIdOrCopyName(ctrlIn);
+      double *metric = metrics->getOrGenMergeMetric(ctrlBW,
+                                                    dataBW,
                                                     numInputs,
-                                                    actnCp,
-                                                    actnDp);
+                                                    false,
+                                                    false);
       chpBackend->printMerge(outputName,
-                             guardStr,
-                             guardBW,
-                             inBW,
+                             ctrlInName,
+                             ctrlBW,
+                             dataBW,
                              inNameVec,
                              numInputs,
                              metric);
       break;
     }
     case ACT_DFLOW_MIXER: {
-      printf("We don't support MIXER for now!\n");
-      exit(-1);
+      CharPtrVec inNameVec;
+      char *outputName = new char[10240];
+      unsigned dataBW = 0;
+      int numInputs = 0;
+      handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
+      double *metric = metrics->getMixerMetric(numInputs, dataBW);
+      chpBackend->printMixer(outputName, dataBW, inNameVec, metric);
       break;
     }
     case ACT_DFLOW_ARBITER: {
-      ActId *output = d->u.splitmerge.single;
+      CharPtrVec inNameVec;
       char *outputName = new char[10240];
-      getActIdName(sc, output, outputName, 10240);
-      const char *normalizedOutput = getNormActIdName(outputName);
-      bool actnCp = false;
-      bool actnDp = false;
-      checkACTN(normalizedOutput, actnCp, actnDp);
-      printf("[arbiter]: %s_inst\n", normalizedOutput);
-      if (actnCp) {
-        printf("[actnCp]: %s_inst\n", normalizedOutput);
-      } else if (actnDp) {
-        printf("[actnDp]: %s_inst\n", normalizedOutput);
-      }
-      unsigned outBW = getActIdBW(output);
-      int numInputs = d->u.splitmerge.nmulti;
-      int coutBW = ceil(log2(numInputs));
+      unsigned dataBW = 0;
+      int numInputs = 0;
+      handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
+
       char *procName = new char[MAX_PROC_NAME_LEN];
       if (PIPELINE) {
         sprintf(procName, "pipe%s_%d", Constant::ARBITER_PREFIX, numInputs);
       } else {
         sprintf(procName, "unpipe%s_%d", Constant::ARBITER_PREFIX, numInputs);
       }
-      ActId **inputs = d->u.splitmerge.multi;
-      CharPtrVec inNameVec;
-      for (int i = 0; i < numInputs; i++) {
-        ActId *in = inputs[i];
-        const char *inStr = getActIdOrCopyName(in);
-        inNameVec.push_back(inStr);
-      }
-      ActId *cout = d->u.splitmerge.nondetctrl;
-      char *coutName = new char[10240];
-      getActIdName(sc, cout, coutName, 10240);
-
+      ActId *ctrlOut = d->u.splitmerge.nondetctrl;
+      unsigned ctrlBW = getActIdBW(ctrlOut);
+      char *ctrlOutName = new char[10240];
+      getActIdName(sc, ctrlOut, ctrlOutName, 10240);
       char *instance = new char[MAX_INSTANCE_LEN];
-      sprintf(instance, "%s<%d,%d>", procName, outBW, coutBW);
+      sprintf(instance, "%s<%d,%d>", procName, dataBW, ctrlBW);
 
       double *metric = metrics->getArbiterMetric(
           numInputs,
-          outBW,
-          coutBW,
-          actnCp,
-          actnDp);
+          dataBW,
+          ctrlBW,
+          false,
+          false);
       //TODO: generate procName and instance inside chpBackend!
       chpBackend->printArbiter(procName,
                                instance,
                                outputName,
-                               coutName,
-                               outBW,
-                               coutBW,
+                               ctrlOutName,
+                               dataBW,
+                               ctrlBW,
                                numInputs,
                                inNameVec,
                                metric);

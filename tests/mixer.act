@@ -1,0 +1,8 @@
+defproc main (chan?(int<32>) in1; chan?(int<32>) in2; chan!(int<32>) out)
+{
+  dataflow {
+    {*} in1, in2 -> out
+  }
+}
+
+main m;

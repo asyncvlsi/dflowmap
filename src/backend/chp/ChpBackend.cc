@@ -137,6 +137,26 @@ void ChpBackend::printMerge(const char *outName,
   libGenerator->createMerge(procName, instance, metric, numIn);
 }
 
+void ChpBackend::printMixer(const char *outName,
+                            unsigned dataBW,
+                            CharPtrVec &inNameVec,
+                            double *metric) {
+  unsigned numInputs = inNameVec.size();
+  char *procName = new char[MAX_PROC_NAME_LEN];
+  if (PIPELINE) {
+    sprintf(procName, "pipe%s_%d", Constant::MIXER_PREFIX, numInputs);
+  } else {
+    sprintf(procName, "unpipe%s_%d", Constant::MIXER_PREFIX, numInputs);
+  }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<%d>", procName, dataBW);
+  circuitGenerator->printMixer(procName,
+                               outName,
+                               dataBW,
+                               inNameVec);
+  libGenerator->createMixer(procName, instance, metric, numInputs);
+}
+
 void ChpBackend::printArbiter(const char *procName,
                               const char *instance,
                               const char *outName,

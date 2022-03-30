@@ -258,6 +258,18 @@ void ChpCircuitGenerator::printArbiter(const char *outName,
   fprintf(resFp, "%s, %s);\n", outName, coutName);
 }
 
+void ChpCircuitGenerator::printMixer(const char *procName,
+                                     const char *outName,
+                                     unsigned dataBW,
+                                     CharPtrVec &inNameVec) {
+  const char *normOutput = getNormActIdName(outName);
+  fprintf(resFp, "%s<%d> %s_inst(", procName, dataBW, normOutput);
+  for (auto inName : inNameVec) {
+    fprintf(resFp, "%s, ", inName);
+  }
+  fprintf(resFp, "%s);\n", outName);
+}
+
 void ChpCircuitGenerator::printProcHeader(Process *p) {
   p->PrintHeader(resFp, "defproc");
   fprintf(resFp, "\n{");

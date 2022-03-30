@@ -75,6 +75,11 @@ class ChpLibGenerator {
                      double *metric,
                      int numInputs);
 
+  void createMixer(const char *procName,
+                     const char *instance,
+                     double *metric,
+                     int numInputs);
+
   void createSource(const char *instance, double *metric);
 
   void createInit(const char *instance, double *metric);

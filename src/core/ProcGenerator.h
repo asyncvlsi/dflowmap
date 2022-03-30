@@ -47,7 +47,7 @@
 
 class ProcGenerator {
  public:
-  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend, Process* p);
+  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend, Process *p);
 
   void run();
 
@@ -136,6 +136,12 @@ class ProcGenerator {
                        UIntVec &outBWList,
                        Map<unsigned int, unsigned int> &outRecord,
                        Vector<BuffInfo> &buffInfos);
+
+  void handleSelectionUnit(act_dataflow_element *d,
+                           CharPtrVec &inNameVec,
+                           char *&outputName,
+                           unsigned &dataBW,
+                           int &numInputs);
 
   void handleNormDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 

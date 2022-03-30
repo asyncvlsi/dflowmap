@@ -85,6 +85,11 @@ class ChpCircuitGenerator {
                     int numIn,
                     CharPtrVec &inNameVec);
 
+  void printMixer(const char *procName,
+                  const char *outName,
+                  unsigned dataBW,
+                  CharPtrVec &inNameVec);
+
   void printProcHeader(Process *p);
 
   void printProcDeclaration(Process *p);

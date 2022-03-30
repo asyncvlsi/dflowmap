@@ -107,6 +107,9 @@ class Metrics {
                            bool actnCp,
                            bool actnDp);
 
+  double *getMixerMetric(unsigned numInputs,
+                           unsigned inBW);
+
  private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
   Map<const char *, double *> opMetrics;

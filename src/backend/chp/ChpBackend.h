@@ -87,6 +87,11 @@ class ChpBackend {
                     CharPtrVec &inNameVec,
                     double *metric);
 
+  void printMixer(const char *outName,
+                  unsigned dataBW,
+                  CharPtrVec &inNameVec,
+                  double *metric);
+
   void printProcHeader(Process *p);
 
   void printProcDeclaration(Process *p);

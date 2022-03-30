@@ -356,6 +356,37 @@ void ChpLibGenerator::createArbiter(const char *procName,
   createConf(instance, metric);
 }
 
+void ChpLibGenerator::createMixer(const char *procName,
+                                  const char *instance,
+                                  double *metric,
+                                  int numInputs) {
+  if (!hasProcess(procName)) {
+    fprintf(libFp, "template<pint W1>\n");
+    fprintf(libFp, "defproc %s(", procName);
+    for (int i = 0; i < numInputs; i++) {
+      fprintf(libFp, "chan?(int<W1>) in%d; ", i);
+    }
+    fprintf(libFp, "chan!(int<W1>) out) {\n");
+    if (PIPELINE) {
+      //TODO
+      printf("Pipelined Mixer implementation is coming soon!\n");
+      exit(-1);
+    } else {
+      fprintf(libFp, "  chp {\n");
+      fprintf(libFp, "    *[ [");
+      for (int i = 0; i < numInputs; i++) {
+        fprintf(libFp, "#in%d -> out!in%d; in%d?\n", i, i, i);
+        if (i != (numInputs - 1)) {
+          fprintf(libFp, " [] ");
+        }
+      }
+      fprintf(libFp, " ] ]\n");
+    }
+    fprintf(libFp, "  }\n}\n\n");
+  }
+  createConf(instance, metric);
+}
+
 void ChpLibGenerator::createSource(const char *instance, double *metric) {
   if (!hasProcess("source")) {
     fprintf(libFp, "template<pint V, W>\n");

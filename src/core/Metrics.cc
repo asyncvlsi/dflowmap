@@ -754,6 +754,13 @@ double *Metrics::getArbiterMetric(unsigned numInputs,
   return metric;
 }
 
+double *Metrics::getMixerMetric(unsigned numInputs,
+                                unsigned inBW) {
+  unsigned ctrlBW = ceil(log2(numInputs));
+  double *metric = getOrGenMergeMetric(ctrlBW, inBW, numInputs, false, false);
+  return metric;
+}
+
 void Metrics::updateCopyStatistics(unsigned bitwidth, unsigned numOutputs) {
   auto copyStatisticsIt = copyStatistics.find(bitwidth);
   if (copyStatisticsIt != copyStatistics.end()) {
