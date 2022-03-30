@@ -8,5 +8,13 @@ add_subdirectory(core)
 add_executable(dflowmap
         main.cc
 )
-target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon ExprOpt
-        ExprOptCommercial)
+if(EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
+    if(EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
+        target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon ExprOpt
+                ExprOptCommercial)
+    else()
+        target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon ExprOpt)
+    endif()
+else()
+    target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon)
+endif()
