@@ -26,10 +26,6 @@
 #include "Constant.h"
 #include "common.h"
 
-bool isActnCp(const char *instance);
-
-bool isActnDp(const char *instance);
-
 void normalizeName(char *src, char toDel, char newChar);
 
 const char *getNormInstanceName(const char *src);
@@ -58,8 +54,6 @@ void getActIdName(Scope *sc, ActId *actId, char *buff, int sz);
 void getCurProc(const char *str, char *val);
 
 void getActConnectionName(act_connection *actConnection, char *buff, int sz);
-
-void checkACTN(const char *channel,bool &actnCp,bool &actnDp);
 
 void print_dflow(FILE *fp, list_t *dflow);
 

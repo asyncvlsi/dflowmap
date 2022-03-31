@@ -21,14 +21,6 @@
 
 #include "Helper.h"
 
-bool isActnCp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_CP_PREFIX) == 0;
-}
-
-bool isActnDp(const char *instance) {
-  return std::string(instance).find(Constant::ACTN_DP_PREFIX) == 0;
-}
-
 void normalizeName(char *src, char toDel, char newChar) {
   char *pos = strchr(src, toDel);
   while (pos) {
@@ -148,21 +140,6 @@ void getActConnectionName(act_connection *actConnection,
   ActId *uid = actConnection->toid();
   uid->sPrint(buff, sz);
   delete uid;
-}
-
-void checkACTN(const char *channel,
-                              bool &actnCp,
-                              bool &actnDp) {
-  if (isActnCp(channel)) {
-    actnCp = true;
-  }
-  if (isActnDp(channel)) {
-    actnDp = true;
-  }
-  if (actnCp && actnDp) {
-    printf("%s is both actnCp and actnDp!\n", channel);
-    exit(-1);
-  }
 }
 
 void print_dflow(FILE *fp, list_t *dflow) {

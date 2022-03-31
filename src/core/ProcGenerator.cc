@@ -1197,15 +1197,7 @@ void ProcGenerator::handleSelectionUnit(act_dataflow_element *d,
   ActId *output = d->u.splitmerge.single;
   getActIdName(sc, output, outputName, 10240);
   const char *normalizedOutput = getNormActIdName(outputName);
-  bool actnCp = false;
-  bool actnDp = false;
-  checkACTN(normalizedOutput, actnCp, actnDp);
   printf("[merge]: %s_inst\n", normalizedOutput);
-  if (actnCp) {
-    printf("[actnCp]: %s_inst\n", normalizedOutput);
-  } else if (actnDp) {
-    printf("[actnDp]: %s_inst\n", normalizedOutput);
-  }
   dataBW = getActIdBW(output);
   numInputs = d->u.splitmerge.nmulti;
   ActId **inputs = d->u.splitmerge.multi;
@@ -1284,8 +1276,6 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       const char *normalizedGuard = getNormActIdName(guardName);
       strcat(splitName, normalizedGuard);
       CharPtrVec sinkVec;
-      bool actnCp = false;
-      bool actnDp = false;
       CharPtrVec outNameVec;
       for (int i = 0; i < numOutputs; i++) {
         ActId *out = outputs[i];
@@ -1301,7 +1291,6 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           getActIdName(sc, out, outName, 10240);
           const char *normalizedOut = getNormActIdName(outName);
           strcat(splitName, normalizedOut);
-          checkACTN(normalizedOut, actnCp, actnDp);
           outNameVec.push_back(outName);
         }
       }
@@ -1309,20 +1298,13 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         chpBackend->printChannel(sink, outBW);
         createSink(sink, outBW);
       }
-      if (actnCp) {
-        printf("[actnCp]: %s\n", splitName);
-      } else if (actnDp) {
-        printf("[actnDp]: %s\n", splitName);
-      }
       printf("[split]: %s\n", splitName);
 
       const char *guardStr = getActIdOrCopyName(guard);
       const char *inputStr = getActIdOrCopyName(input);
       double *metric = metrics->getOrGenSplitMetric(guardBW,
                                                     outBW,
-                                                    numOutputs,
-                                                    actnCp,
-                                                    actnDp);
+                                                    numOutputs);
       chpBackend->printSplit(splitName,
                              guardStr,
                              inputStr,
@@ -1344,9 +1326,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       const char *ctrlInName = getActIdOrCopyName(ctrlIn);
       double *metric = metrics->getOrGenMergeMetric(ctrlBW,
                                                     dataBW,
-                                                    numInputs,
-                                                    false,
-                                                    false);
+                                                    numInputs);
       chpBackend->printMerge(outputName,
                              ctrlInName,
                              ctrlBW,
@@ -1389,9 +1369,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       double *metric = metrics->getArbiterMetric(
           numInputs,
           dataBW,
-          ctrlBW,
-          false,
-          false);
+          ctrlBW);
       //TODO: generate procName and instance inside chpBackend!
       chpBackend->printArbiter(procName,
                                instance,

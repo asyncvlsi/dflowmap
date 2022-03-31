@@ -210,9 +210,7 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
     writeMetricsFile(normInstance, metric);
   }
   if (metric) {
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
@@ -228,9 +226,7 @@ double *Metrics::getSinkMetric(unsigned bitwidth) {
     exit(-1);
   }
   if (metric) {
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
@@ -245,9 +241,7 @@ double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
     exit(-1);
   }
   if (metric) {
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
@@ -257,9 +251,7 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
   sprintf(instance, "init%u", bitwidth);
   double *metric = getOpMetric(instance);
   if (metric) {
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
@@ -275,9 +267,7 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
     metric[1] = nBuff * metric[1];
     metric[2] = nBuff * metric[2];
     metric[3] = nBuff * metric[3];
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
@@ -489,18 +479,14 @@ double *Metrics::getOrGenFUMetric(const char *instance,
 #endif
   }
   if (metric) {
-    bool actnCp = false;
-    bool actnDp = false;
-    updateStatistics(instance, actnCp, actnDp, metric);
+    updateStatistics(instance, metric);
   }
   return metric;
 }
 
 double *Metrics::getOrGenMergeMetric(unsigned guardBW,
                                      unsigned inBW,
-                                     unsigned numIn,
-                                     bool actnCp,
-                                     bool actnDp) {
+                                     unsigned numIn) {
   if (!LOGIC_OPTIMIZER) {
     return nullptr;
   }
@@ -641,16 +627,14 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
       writeMetricsFile(instance, metric);
     }
   }
-  updateStatistics(instance, actnCp, actnDp, metric);
+  updateStatistics(instance, metric);
   updateMergeMetrics(metric);
   return metric;
 }
 
 double *Metrics::getOrGenSplitMetric(unsigned guardBW,
                                      unsigned inBW,
-                                     unsigned numOut,
-                                     bool actnCp,
-                                     bool actnDp) {
+                                     unsigned numOut) {
   if (!LOGIC_OPTIMIZER) {
     return nullptr;
   }
@@ -740,24 +724,22 @@ double *Metrics::getOrGenSplitMetric(unsigned guardBW,
       writeMetricsFile(instance, metric);
     }
   }
-  updateStatistics(instance, actnCp, actnDp, metric);
+  updateStatistics(instance, metric);
   updateSplitMetrics(metric);
   return metric;
 }
 
 double *Metrics::getArbiterMetric(unsigned numInputs,
                                   unsigned inBW,
-                                  unsigned coutBW,
-                                  bool actnCp,
-                                  bool actnDp) {
-  double *metric = getOrGenMergeMetric(coutBW, inBW, numInputs, actnCp, actnDp);
+                                  unsigned coutBW) {
+  double *metric = getOrGenMergeMetric(coutBW, inBW, numInputs);
   return metric;
 }
 
 double *Metrics::getMixerMetric(unsigned numInputs,
                                 unsigned inBW) {
   unsigned ctrlBW = ceil(log2(numInputs));
-  double *metric = getOrGenMergeMetric(ctrlBW, inBW, numInputs, false, false);
+  double *metric = getOrGenMergeMetric(ctrlBW, inBW, numInputs);
   return metric;
 }
 
@@ -792,18 +774,10 @@ void Metrics::printStatistics() {
           mergeArea, ((double) 100 * mergeArea / totalArea));
   fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
           splitArea, ((double) 100 * splitArea / totalArea));
-  fprintf(statisticsFP, "ACTN CP area: %ld, ratio: %5.1f\n",
-          actnCpArea, ((double) 100 * actnCpArea / totalArea));
-  fprintf(statisticsFP, "ACTN DP area: %ld, ratio: %5.1f\n",
-          actnDpArea, ((double) 100 * actnDpArea / totalArea));
   fprintf(statisticsFP, "Merge LeakPower: %ld, ratio: %5.1f\n",
           mergeLeakPower, ((double) 100 * mergeLeakPower / totalLeakPowewr));
   fprintf(statisticsFP, "Split LeakPower: %ld, ratio: %5.1f\n",
           splitLeakPower, ((double) 100 * splitLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "ACTN CP LeakPower: %ld, ratio: %5.1f\n",
-          actnCpLeakPower, ((double) 100 * actnCpLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "ACTN DP LeakPower: %ld, ratio: %5.1f\n",
-          actnDpLeakPower, ((double) 100 * actnDpLeakPower / totalLeakPowewr));
   printAreaStatistics(statisticsFP);
   printLeakpowerStatistics(statisticsFP);
   fclose(statisticsFP);
@@ -822,16 +796,6 @@ void Metrics::printCopyStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "\n");
 }
 
-void Metrics::updateACTNCpMetrics(double area, double leakPower) {
-  actnCpArea += area;
-  actnCpLeakPower += leakPower;
-}
-
-void Metrics::updateACTNDpMetrics(double area, double leakPower) {
-  actnDpArea += area;
-  actnDpLeakPower += leakPower;
-}
-
 void Metrics::updateMergeMetrics(double metric[4]) {
   double area = getArea(metric);
   double leakPower = getLP(metric);
@@ -846,17 +810,14 @@ void Metrics::updateSplitMetrics(double metric[4]) {
   splitLeakPower += leakPower;
 }
 
-void Metrics::updateStatistics(const char *instance,
-                               bool actnCp,
-                               bool actnDp,
-                               double metric[4]) {
+void Metrics::updateStatistics(const char *instName, double metric[4]) {
   double area = getArea(metric);
   double leakPower = getLP(metric);
   totalArea += area;
   totalLeakPowewr += leakPower;
   bool exist = false;
   for (auto &areaStatisticsIt: areaStatistics) {
-    if (!strcmp(areaStatisticsIt.first, instance)) {
+    if (!strcmp(areaStatisticsIt.first, instName)) {
       areaStatisticsIt.second += area;
       exist = true;
     }
@@ -864,7 +825,7 @@ void Metrics::updateStatistics(const char *instance,
   if (exist) {
     bool foundLP = false;
     for (auto &leakpowerStatisticsIt: leakpowerStatistics) {
-      if (!strcmp(leakpowerStatisticsIt.first, instance)) {
+      if (!strcmp(leakpowerStatisticsIt.first, instName)) {
         leakpowerStatisticsIt.second += leakPower;
         foundLP = true;
         break;
@@ -873,27 +834,22 @@ void Metrics::updateStatistics(const char *instance,
     if (!foundLP) {
       printf(
           "We could find %s in areaStatistics, but not in leakpowerStatistics!\n",
-          instance);
+          instName);
       exit(-1);
     }
     for (auto &instanceCntIt: instanceCnt) {
-      if (!strcmp(instanceCntIt.first, instance)) {
+      if (!strcmp(instanceCntIt.first, instName)) {
         instanceCntIt.second += 1;
         return;
       }
     }
     printf("We could find %s in areaStatistics, but not in instanceCnt!\n",
-           instance);
+           instName);
     exit(-1);
   } else {
-    areaStatistics.insert({instance, area});
-    leakpowerStatistics.insert({instance, leakPower});
-    instanceCnt.insert({instance, 1});
-  }
-  if (actnCp) {
-    updateACTNCpMetrics(area, leakPower);
-  } else if (actnDp) {
-    updateACTNDpMetrics(area, leakPower);
+    areaStatistics.insert({instName, area});
+    leakpowerStatistics.insert({instName, leakPower});
+    instanceCnt.insert({instName, 1});
   }
 }
 

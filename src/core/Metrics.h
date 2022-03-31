@@ -42,10 +42,7 @@ class Metrics {
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateStatistics(const char *instName,
-                        bool actnCp,
-                        bool actnDp,
-                        double metric[4]);
+  void updateStatistics(const char *instName, double metric[4]);
 
   void printOpMetrics();
 
@@ -62,10 +59,6 @@ class Metrics {
   void updateMergeMetrics(double metric[4]);
 
   void updateSplitMetrics(double metric[4]);
-
-  void updateACTNCpMetrics(double area, double leakPower);
-
-  void updateACTNDpMetrics(double area, double leakPower);
 
   void dump();
 
@@ -89,26 +82,14 @@ class Metrics {
 
   double *getSourceMetric(const char *instance, unsigned int bitwidth);
 
-  double *getOrGenMergeMetric(unsigned guardBW,
-                              unsigned inBW,
-                              unsigned numIn,
-                              bool actnCp,
-                              bool actnDp);
+  double *getOrGenMergeMetric(unsigned guardBW, unsigned inBW, unsigned numIn);
 
-  double *getOrGenSplitMetric(unsigned guardBW,
-                              unsigned inBW,
-                              unsigned numOut,
-                              bool actnCp,
-                              bool actnDp);
+  double *getOrGenSplitMetric(unsigned guardBW, unsigned inBW, unsigned numOut);
 
-  double *getArbiterMetric(unsigned numInputs,
-                           unsigned inBW,
-                           unsigned coutBW,
-                           bool actnCp,
-                           bool actnDp);
+  double *getArbiterMetric(unsigned numInputs, unsigned inBW, unsigned coutBW);
 
   double *getMixerMetric(unsigned numInputs,
-                           unsigned inBW);
+                         unsigned inBW);
 
  private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
@@ -131,17 +112,9 @@ class Metrics {
 
   double splitArea = 0;
 
-  double actnCpArea = 0;
-
-  double actnDpArea = 0;
-
   double mergeLeakPower = 0;
 
   double splitLeakPower = 0;
-
-  double actnCpLeakPower = 0;
-
-  double actnDpLeakPower = 0;
 
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
