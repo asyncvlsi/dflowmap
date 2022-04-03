@@ -25,7 +25,7 @@
 #include <act/act.h>
 #include <act/iter.h>
 #include <fstream>
-#include "Helper.h"
+#include "src/common/Helper.h"
 
 class ChpCircuitGenerator {
  private:

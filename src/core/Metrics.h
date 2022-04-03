@@ -28,8 +28,8 @@
 #include <fstream>
 #include <sstream>
 #include <act/act.h>
-#include "common.h"
-#include "Helper.h"
+#include "src/common/common.h"
+#include "src/common/Helper.h"
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>
 #endif

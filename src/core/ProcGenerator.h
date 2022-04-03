@@ -35,11 +35,11 @@
 #include <act/expr.h>
 #include <algorithm>
 #include <act/act.h>
-#include "backend/chp/ChpBackend.h"
-#include "Metrics.h"
-#include "common.h"
-#include "Helper.h"
-#include "DflowGenerator.h"
+#include "src/backend/chp/ChpBackend.h"
+#include "src/core/Metrics.h"
+#include "src/common/common.h"
+#include "src/common/Helper.h"
+#include "src/core/DflowGenerator.h"
 
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>

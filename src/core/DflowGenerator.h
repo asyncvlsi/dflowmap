@@ -23,8 +23,8 @@
 #define DFLOWMAP__DFLOWGENERATOR_H_
 #include <act/act.h>
 #include <cstring>
-#include "common.h"
-#include "Helper.h"
+#include "src/common/common.h"
+#include "src/common/Helper.h"
 
 class DflowGenerator {
  public:

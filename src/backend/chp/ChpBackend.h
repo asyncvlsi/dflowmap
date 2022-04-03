@@ -22,8 +22,8 @@
 #ifndef DFLOWMAP__CHPBACKEND_H_
 #define DFLOWMAP__CHPBACKEND_H_
 
-#include "ChpCircuitGenerator.h"
-#include "ChpLibGenerator.h"
+#include "src/backend/chp/ChpCircuitGenerator.h"
+#include "src/backend/chp/ChpLibGenerator.h"
 
 class ChpBackend {
  public:

@@ -27,7 +27,7 @@
 #include <act/act.h>
 #include <act/iter.h>
 #include <fstream>
-#include "common.h"
+#include "src/common/common.h"
 
 class ChpLibGenerator {
  public:
