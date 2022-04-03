@@ -10,11 +10,11 @@ add_executable(dflowmap
 )
 if(EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
     if(EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
-        target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon ExprOpt
+        target_link_libraries(dflowmap chpBackend dflowmap-core dflowmap-common ActLib ActCommon ExprOpt
                 ExprOptCommercial)
     else()
-        target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon ExprOpt)
+        target_link_libraries(dflowmap chpBackend dflowmap-core dflowmap-common ActLib ActCommon ExprOpt)
     endif()
 else()
-    target_link_libraries(dflowmap chpBackend dflowmap-core common ActLib ActCommon)
+    target_link_libraries(dflowmap chpBackend dflowmap-core dflowmap-common ActLib ActCommon)
 endif()

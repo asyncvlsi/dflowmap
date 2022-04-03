@@ -1,4 +1,4 @@
-add_library( common
+add_library( dflowmap-common
         common.h
         Constant.h
         Helper.h
