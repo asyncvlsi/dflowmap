@@ -5,5 +5,5 @@ add_library( dflowmap-core
         ProcGenerator.h
         Metrics.cc
         Metrics.h
-        )
+        dflowmap_main.cc)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

@@ -4,10 +4,6 @@ add_executable(
         IfTest
         if_test.cc
 )
-target_link_libraries(
-        IfTest
-        gtest_main
-)
 gtest_discover_tests(IfTest)
 if(EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
     if(EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)

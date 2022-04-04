@@ -30,6 +30,7 @@
 #include <algorithm>
 #include "src/core/ProcGenerator.h"
 #include "src/core/Metrics.h"
+#include "src/core/dflowmap_main.cc"
 
 int debug_verbose;
 
@@ -41,69 +42,12 @@ static void usage(char *name) {
   exit(1);
 }
 
-static void create_outfiles(const char *src, char *&statsFilePath,
-                            FILE **resfp, FILE **libfp, FILE **conffp) {
-  /* "src" contains the path to the act file, which is in the form of
-   * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
-   * "circuit", as well as taking care of the file path.*/
-  unsigned i = strlen(src);
-  while (i > 0) {
-    if (src[i - 1] == '/') {
-      break;
-    }
-    i--;
-  }
-  unsigned len = strlen(src);
-  char *basesrcName = new char[len - i - 3];
-  snprintf(basesrcName, len - i - 3, "%s", src + i);
-  char *tmpbuf = new char[8 + len];
-  for (unsigned j = 0; j < i; j++) {
-    tmpbuf[j] = src[j];
-  }
-  statsFilePath = new char[8 + len];
-  sprintf(statsFilePath, "%s.stat", basesrcName);
-  sprintf(tmpbuf + i, "%s_circuit.act", basesrcName);
-  *resfp = fopen(tmpbuf, "w");
-  if (!*resfp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-  sprintf(tmpbuf + i, "%s_lib.act", basesrcName);
-  *libfp = fopen(tmpbuf, "w");
-  if (!*libfp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-  fprintf(*resfp, "import \"%s\";\n\n", tmpbuf);
-  sprintf(tmpbuf + i, "%s.conf", basesrcName);
-  *conffp = fopen(tmpbuf, "w");
-  if (!*conffp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-}
-
-Metrics *createMetrics(const char *metricFile, const char *statsFilePath) {
-  char *metricFilePath = new char[1000];
-  if (metricFile) {
-    if (strlen(metricFile) > 1000) {
-      printf("The metric file path %s is too long!\n", metricFile);
-      exit(-1);
-    }
-    snprintf(metricFilePath, 1000, "%s", metricFile);
-  } else {
-    sprintf(metricFilePath, "metrics/fluid.metrics");
-  }
-  auto metrics = new Metrics(metricFilePath, statsFilePath);
-  metrics->readMetricsFile();
-  return metrics;
-}
-
 int main(int argc, char **argv) {
   int ch;
   char *mfile = nullptr;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
-
   debug_verbose = 0;
-
   while ((ch = getopt(argc, argv, "vqm:")) != -1) {
     switch (ch) {
       case 'v':debug_verbose++;
@@ -122,13 +66,11 @@ int main(int argc, char **argv) {
   if (optind != argc - 1) {
     usage(argv[0]);
   }
-  char *act_file = argv[optind];
-
   /* read in the ACT file */
+  char *act_file = argv[optind];
   Act *a = new Act(act_file);
   a->Expand();
   a->mangle(nullptr);
-
   if (debug_verbose) {
     fprintf(stdout, "Processing ACT file %s!\n", act_file);
     printf("------------------ACT FILE--------------------\n");
@@ -136,41 +78,7 @@ int main(int argc, char **argv) {
     printf("\n\n\n");
   }
   FILE *resFp, *libFp, *confFp;
-  char *statsFilePath = nullptr;
-  create_outfiles(act_file, statsFilePath, &resFp, &libFp, &confFp);
-  Metrics *metrics = createMetrics(mfile, statsFilePath);
-  auto circuitGenerator = new ChpCircuitGenerator(resFp);
-  auto libGenerator = new ChpLibGenerator(libFp, confFp);
-  auto backend = new ChpBackend(circuitGenerator, libGenerator);
-  /* declare custom namespace */
-  ActNamespaceiter i(a->Global());
-  for (i = i.begin(); i != i.end(); i++) {
-    ActNamespace *ns = *i;
-    if (!ns->isExported()) {
-      backend->printCustomNamespace(ns);
-    }
-  }
-  /* declare all of the act processes */
-  ActTypeiter it(a->Global());
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (p->isExpanded()) {
-      backend->printProcDeclaration(p);
-    }
-  }
-  /* generate chp implementation for each act process */
-  Map<const char *, unsigned> procCount;
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (p->isExpanded()) {
-      auto procGenerator = new ProcGenerator(metrics, backend, p);
-      procGenerator->run();
-    }
-  }
-  backend->printFileEnding();
-  metrics->dump();
+  dflowmap_main(a, mfile, act_file, resFp, libFp, confFp);
 
   return 0;
 }
