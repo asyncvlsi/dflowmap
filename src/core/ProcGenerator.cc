@@ -1197,7 +1197,9 @@ void ProcGenerator::handleSelectionUnit(act_dataflow_element *d,
   ActId *output = d->u.splitmerge.single;
   getActIdName(sc, output, outputName, 10240);
   const char *normalizedOutput = getNormActIdName(outputName);
-  printf("[merge]: %s_inst\n", normalizedOutput);
+  if (debug_verbose) {
+    printf("[merge]: %s_inst\n", normalizedOutput);
+  }
   dataBW = getActIdBW(output);
   numInputs = d->u.splitmerge.nmulti;
   ActId **inputs = d->u.splitmerge.multi;
@@ -1298,8 +1300,9 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         chpBackend->printChannel(sink, outBW);
         createSink(sink, outBW);
       }
-      printf("[split]: %s\n", splitName);
-
+      if (debug_verbose) {
+        printf("[split]: %s\n", splitName);
+      }
       const char *guardStr = getActIdOrCopyName(guard);
       const char *inputStr = getActIdOrCopyName(input);
       double *metric = metrics->getOrGenSplitMetric(guardBW,
