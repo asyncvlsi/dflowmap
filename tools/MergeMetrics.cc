@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     removeMetrics(diffOp);
   }
   std::ofstream metricFp;
-  metricFp.open("fluid.metrics", std::ios_base::app);
+  metricFp.open("chp.metrics", std::ios_base::app);
   for (auto &opMetricsIt : opMetrics) {
     const char *opName = opMetricsIt.first;
     double *metric = opMetricsIt.second;

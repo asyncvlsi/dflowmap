@@ -89,7 +89,7 @@ Metrics *createMetrics(const char *metricFile, const char *statsFilePath) {
     }
     snprintf(metricFilePath, 1000, "%s", metricFile);
   } else {
-    sprintf(metricFilePath, "metrics/fluid.metrics");
+    sprintf(metricFilePath, "dflow-std/chp.metrics");
   }
   auto metrics = new Metrics(metricFilePath, statsFilePath);
   metrics->readMetricsFile();

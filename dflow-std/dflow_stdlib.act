@@ -1,0 +1,2979 @@
+/*
+ * This file is part of the ACT library
+ *
+ * Copyright (c) 2021 Rui Li
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+namespace dflow-std {
+template<pint V, W>
+defproc source(chan!(int<W>)out) {
+  chp {
+    *[log("send ", V); out!V]
+  }
+}
+
+template<pint W>
+defproc sink(chan?(int<W>) in) {
+  int<W> t;  chp {
+  *[in?t]
+  }
+}
+
+template<pint W>
+defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
+  int<W> x;
+  chp {
+    *[in?x; out!x]
+  }
+}
+
+template<pint V, W>
+defproc init(chan?(int<W>)in; chan!(int<W>) out) {
+  int<W> x;
+  chp {
+    out!V;
+    log("send initVal ", V);
+    *[in?x; out!x; log("send ", x)]
+  }
+}
+
+template<pint W, N>
+defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {
+  int<W> x;
+  chp {
+  *[ in?x; log("receive ", x); (,i:N: out[i]!x; log("send ", i, ",", x) )]
+  }
+}
+
+template<pint W, N>
+defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {
+  [ N <= 8 -> copy_leaf<W,N> l(in,out);
+   [] else ->
+      pint M = N/8;
+      pint F = N - M*8;
+      copy_leaf<W,8> t[M];
+      (i:M: t[i].out=out[8*i..8*i+7];)
+      [ F > 0 -> copy_leaf<W,F> u;
+                 copy<W,M+1> m(in);
+                 (i:M: m.out[i] = t[i].in;)
+                 m.out[M] = u.in;
+                 u.out=out[M*8..N-1];
+      [] else -> copy<W,M> n(in);
+                 (i:M: n.out[i] = t[i].in;)
+      ]
+  ]
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer2(chan?(int<W1>) in0; chan?(int<W1>) in1; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer2(chan?(int<W1>) in0; chan?(int<W1>) in1; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter2(chan?(int<W1>) in0; chan?(int<W1>) in1; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter2(chan?(int<W1>) in0; chan?(int<W1>) in1; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge2(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge2(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split2(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split2(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer3(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer3(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter3(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter3(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge3(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge3(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split3(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split3(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer4(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer4(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter4(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter4(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge4(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge4(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split4(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split4(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer5(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer5(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter5(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter5(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge5(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge5(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split5(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split5(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer6(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer6(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter6(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter6(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge6(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge6(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split6(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split6(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer7(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer7(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter7(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter7(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge7(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge7(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split7(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split7(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer8(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer8(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter8(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter8(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge8(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge8(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split8(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split8(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer9(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer9(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter9(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter9(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge9(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge9(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split9(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split9(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer10(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer10(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter10(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter10(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge10(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge10(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split10(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split10(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer11(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer11(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter11(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter11(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge11(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge11(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split11(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split11(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer12(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer12(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter12(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter12(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge12(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge12(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split12(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split12(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer13(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer13(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter13(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter13(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge13(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge13(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split13(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split13(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer14(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer14(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter14(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter14(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge14(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge14(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split14(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split14(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer15(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer15(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter15(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter15(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge15(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      []ctrl=14 & #in14 -> out!in14; in14?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge15(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+       [] c=14 -> in14?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split15(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      []ctrl=14 & #in -> out14!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split15(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+       [] c=14 -> out14!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer16(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer16(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter16(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter16(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge16(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      []ctrl=14 & #in14 -> out!in14; in14?,ctrl?
+      []ctrl=15 & #in15 -> out!in15; in15?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge16(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+       [] c=14 -> in14?x
+       [] c=15 -> in15?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split16(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      []ctrl=14 & #in -> out14!in; in?,ctrl?
+      []ctrl=15 & #in -> out15!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split16(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+       [] c=14 -> out14!x
+       [] c=15 -> out15!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer17(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer17(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter17(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter17(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge17(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      []ctrl=14 & #in14 -> out!in14; in14?,ctrl?
+      []ctrl=15 & #in15 -> out!in15; in15?,ctrl?
+      []ctrl=16 & #in16 -> out!in16; in16?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge17(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+       [] c=14 -> in14?x
+       [] c=15 -> in15?x
+       [] c=16 -> in16?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split17(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      []ctrl=14 & #in -> out14!in; in?,ctrl?
+      []ctrl=15 & #in -> out15!in; in?,ctrl?
+      []ctrl=16 & #in -> out16!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split17(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+       [] c=14 -> out14!x
+       [] c=15 -> out15!x
+       [] c=16 -> out16!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer18(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       [] #in17 -> out!in17,cout!17; in17?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer18(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       [] #in17 -> in17?x; out!x,cout!17; in17?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter18(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       [] #in17 -> out!in17,cout!17; in17?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter18(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       [] #in17 -> in17?x; out!x,cout!17; in17?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge18(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan?(int<W2>) in17; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      []ctrl=14 & #in14 -> out!in14; in14?,ctrl?
+      []ctrl=15 & #in15 -> out!in15; in15?,ctrl?
+      []ctrl=16 & #in16 -> out!in16; in16?,ctrl?
+      []ctrl=17 & #in17 -> out!in17; in17?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge18(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan?(int<W2>) in17; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+       [] c=14 -> in14?x
+       [] c=15 -> in15?x
+       [] c=16 -> in16?x
+       [] c=17 -> in17?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split18(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16; chan!(int<W2>) out17) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      []ctrl=14 & #in -> out14!in; in?,ctrl?
+      []ctrl=15 & #in -> out15!in; in?,ctrl?
+      []ctrl=16 & #in -> out16!in; in?,ctrl?
+      []ctrl=17 & #in -> out17!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split18(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16; chan!(int<W2>) out17) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+       [] c=14 -> out14!x
+       [] c=15 -> out15!x
+       [] c=16 -> out16!x
+       [] c=17 -> out17!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_mixer19(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan?(int<W1>) in18; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [#in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       [] #in17 -> out!in17,cout!17; in17?
+       [] #in18 -> out!in18,cout!18; in18?
+       ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_mixer19(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan?(int<W1>) in18; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [#in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       [] #in17 -> in17?x; out!x,cout!17; in17?
+       [] #in18 -> in18?x; out!x,cout!18; in18?
+       ];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_arbiter19(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan?(int<W1>) in18; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  chp {
+    *[ [| #in0 -> out!in0,cout!0; in0?
+       [] #in1 -> out!in1,cout!1; in1?
+       [] #in2 -> out!in2,cout!2; in2?
+       [] #in3 -> out!in3,cout!3; in3?
+       [] #in4 -> out!in4,cout!4; in4?
+       [] #in5 -> out!in5,cout!5; in5?
+       [] #in6 -> out!in6,cout!6; in6?
+       [] #in7 -> out!in7,cout!7; in7?
+       [] #in8 -> out!in8,cout!8; in8?
+       [] #in9 -> out!in9,cout!9; in9?
+       [] #in10 -> out!in10,cout!10; in10?
+       [] #in11 -> out!in11,cout!11; in11?
+       [] #in12 -> out!in12,cout!12; in12?
+       [] #in13 -> out!in13,cout!13; in13?
+       [] #in14 -> out!in14,cout!14; in14?
+       [] #in15 -> out!in15,cout!15; in15?
+       [] #in16 -> out!in16,cout!16; in16?
+       [] #in17 -> out!in17,cout!17; in17?
+       [] #in18 -> out!in18,cout!18; in18?
+       |]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_arbiter19(chan?(int<W1>) in0; chan?(int<W1>) in1; chan?(int<W1>) in2; chan?(int<W1>) in3; chan?(int<W1>) in4; chan?(int<W1>) in5; chan?(int<W1>) in6; chan?(int<W1>) in7; chan?(int<W1>) in8; chan?(int<W1>) in9; chan?(int<W1>) in10; chan?(int<W1>) in11; chan?(int<W1>) in12; chan?(int<W1>) in13; chan?(int<W1>) in14; chan?(int<W1>) in15; chan?(int<W1>) in16; chan?(int<W1>) in17; chan?(int<W1>) in18; chan!(int<W1>) out; chan!(int<W2>) cout) {
+  int<W2> x;
+  chp {
+    *[ [| #in0 -> in0?x; out!x,cout!0; in0?
+       [] #in1 -> in1?x; out!x,cout!1; in1?
+       [] #in2 -> in2?x; out!x,cout!2; in2?
+       [] #in3 -> in3?x; out!x,cout!3; in3?
+       [] #in4 -> in4?x; out!x,cout!4; in4?
+       [] #in5 -> in5?x; out!x,cout!5; in5?
+       [] #in6 -> in6?x; out!x,cout!6; in6?
+       [] #in7 -> in7?x; out!x,cout!7; in7?
+       [] #in8 -> in8?x; out!x,cout!8; in8?
+       [] #in9 -> in9?x; out!x,cout!9; in9?
+       [] #in10 -> in10?x; out!x,cout!10; in10?
+       [] #in11 -> in11?x; out!x,cout!11; in11?
+       [] #in12 -> in12?x; out!x,cout!12; in12?
+       [] #in13 -> in13?x; out!x,cout!13; in13?
+       [] #in14 -> in14?x; out!x,cout!14; in14?
+       [] #in15 -> in15?x; out!x,cout!15; in15?
+       [] #in16 -> in16?x; out!x,cout!16; in16?
+       [] #in17 -> in17?x; out!x,cout!17; in17?
+       [] #in18 -> in18?x; out!x,cout!18; in18?
+       |];
+       log("send ", x)
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc unpipe_merge19(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan?(int<W2>) in17; chan?(int<W2>) in18; chan!(int<W2>) out) {
+  chp {
+    *[[ctrl=0 & #in0 -> out!in0; in0?,ctrl?
+      []ctrl=1 & #in1 -> out!in1; in1?,ctrl?
+      []ctrl=2 & #in2 -> out!in2; in2?,ctrl?
+      []ctrl=3 & #in3 -> out!in3; in3?,ctrl?
+      []ctrl=4 & #in4 -> out!in4; in4?,ctrl?
+      []ctrl=5 & #in5 -> out!in5; in5?,ctrl?
+      []ctrl=6 & #in6 -> out!in6; in6?,ctrl?
+      []ctrl=7 & #in7 -> out!in7; in7?,ctrl?
+      []ctrl=8 & #in8 -> out!in8; in8?,ctrl?
+      []ctrl=9 & #in9 -> out!in9; in9?,ctrl?
+      []ctrl=10 & #in10 -> out!in10; in10?,ctrl?
+      []ctrl=11 & #in11 -> out!in11; in11?,ctrl?
+      []ctrl=12 & #in12 -> out!in12; in12?,ctrl?
+      []ctrl=13 & #in13 -> out!in13; in13?,ctrl?
+      []ctrl=14 & #in14 -> out!in14; in14?,ctrl?
+      []ctrl=15 & #in15 -> out!in15; in15?,ctrl?
+      []ctrl=16 & #in16 -> out!in16; in16?,ctrl?
+      []ctrl=17 & #in17 -> out!in17; in17?,ctrl?
+      []ctrl=18 & #in18 -> out!in18; in18?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1, W2>
+defproc pipe_merge19(chan?(int<W1>)ctrl; chan?(int<W2>) in0; chan?(int<W2>) in1; chan?(int<W2>) in2; chan?(int<W2>) in3; chan?(int<W2>) in4; chan?(int<W2>) in5; chan?(int<W2>) in6; chan?(int<W2>) in7; chan?(int<W2>) in8; chan?(int<W2>) in9; chan?(int<W2>) in10; chan?(int<W2>) in11; chan?(int<W2>) in12; chan?(int<W2>) in13; chan?(int<W2>) in14; chan?(int<W2>) in15; chan?(int<W2>) in16; chan?(int<W2>) in17; chan?(int<W2>) in18; chan!(int<W2>) out) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[ctrl?c; log("receive ", c);
+      [c=0 -> in0?x
+       [] c=1 -> in1?x
+       [] c=2 -> in2?x
+       [] c=3 -> in3?x
+       [] c=4 -> in4?x
+       [] c=5 -> in5?x
+       [] c=6 -> in6?x
+       [] c=7 -> in7?x
+       [] c=8 -> in8?x
+       [] c=9 -> in9?x
+       [] c=10 -> in10?x
+       [] c=11 -> in11?x
+       [] c=12 -> in12?x
+       [] c=13 -> in13?x
+       [] c=14 -> in14?x
+       [] c=15 -> in15?x
+       [] c=16 -> in16?x
+       [] c=17 -> in17?x
+       [] c=18 -> in18?x
+      ];
+      log("receive x: ", x);
+      out!x; log("send ", x)
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc unpipe_split19(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16; chan!(int<W2>) out17; chan!(int<W2>) out18) {
+  chp {
+    *[[ctrl=0 & #in -> out0!in; in?,ctrl?
+      []ctrl=1 & #in -> out1!in; in?,ctrl?
+      []ctrl=2 & #in -> out2!in; in?,ctrl?
+      []ctrl=3 & #in -> out3!in; in?,ctrl?
+      []ctrl=4 & #in -> out4!in; in?,ctrl?
+      []ctrl=5 & #in -> out5!in; in?,ctrl?
+      []ctrl=6 & #in -> out6!in; in?,ctrl?
+      []ctrl=7 & #in -> out7!in; in?,ctrl?
+      []ctrl=8 & #in -> out8!in; in?,ctrl?
+      []ctrl=9 & #in -> out9!in; in?,ctrl?
+      []ctrl=10 & #in -> out10!in; in?,ctrl?
+      []ctrl=11 & #in -> out11!in; in?,ctrl?
+      []ctrl=12 & #in -> out12!in; in?,ctrl?
+      []ctrl=13 & #in -> out13!in; in?,ctrl?
+      []ctrl=14 & #in -> out14!in; in?,ctrl?
+      []ctrl=15 & #in -> out15!in; in?,ctrl?
+      []ctrl=16 & #in -> out16!in; in?,ctrl?
+      []ctrl=17 & #in -> out17!in; in?,ctrl?
+      []ctrl=18 & #in -> out18!in; in?,ctrl?
+      ]
+    ]
+  }
+}
+
+template<pint W1,W2>
+defproc pipe_split19(chan?(int<W1>)ctrl; chan?(int<W2>)in; chan!(int<W2>) out0; chan!(int<W2>) out1; chan!(int<W2>) out2; chan!(int<W2>) out3; chan!(int<W2>) out4; chan!(int<W2>) out5; chan!(int<W2>) out6; chan!(int<W2>) out7; chan!(int<W2>) out8; chan!(int<W2>) out9; chan!(int<W2>) out10; chan!(int<W2>) out11; chan!(int<W2>) out12; chan!(int<W2>) out13; chan!(int<W2>) out14; chan!(int<W2>) out15; chan!(int<W2>) out16; chan!(int<W2>) out17; chan!(int<W2>) out18) {
+  int<W1> c;
+  int<W2> x;
+  chp {
+    *[in?x, ctrl?c; log("receive ", c, ", ", x);
+      [c=0 -> out0!x
+       [] c=1 -> out1!x
+       [] c=2 -> out2!x
+       [] c=3 -> out3!x
+       [] c=4 -> out4!x
+       [] c=5 -> out5!x
+       [] c=6 -> out6!x
+       [] c=7 -> out7!x
+       [] c=8 -> out8!x
+       [] c=9 -> out9!x
+       [] c=10 -> out10!x
+       [] c=11 -> out11!x
+       [] c=12 -> out12!x
+       [] c=13 -> out13!x
+       [] c=14 -> out14!x
+       [] c=15 -> out15!x
+       [] c=16 -> out16!x
+       [] c=17 -> out17!x
+       [] c=18 -> out18!x
+      ];
+      log("send ", x)
+    ]
+  }
+}
+
+}
