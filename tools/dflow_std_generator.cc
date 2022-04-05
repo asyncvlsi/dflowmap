@@ -4,6 +4,7 @@
 FILE* outFp;
 
 void createUnpipeSplit(int numOuts) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1,W2>\n");
   fprintf(outFp, "defproc unpipe_split%d(chan?(int<W1>)ctrl; chan?(int<W2>)in; ",
          numOuts);
@@ -25,6 +26,7 @@ void createUnpipeSplit(int numOuts) {
 }
 
 void createPipeSplit(int numOuts) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1,W2>\n");
   fprintf(outFp, "defproc pipe_split%d(chan?(int<W1>)ctrl; chan?(int<W2>)in; ",
          numOuts);
@@ -48,6 +50,7 @@ void createPipeSplit(int numOuts) {
 }
 
 void createUnpipeMerge(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc unpipe_merge%d(chan?(int<W1>)ctrl; ", N);
   int i = 0;
@@ -70,6 +73,7 @@ void createUnpipeMerge(int N) {
 }
 
 void createPipeMerge(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc pipe_merge%d(chan?(int<W1>)ctrl; ", N);
   int i = 0;
@@ -92,6 +96,7 @@ void createPipeMerge(int N) {
 }
 
 void createUnpipeArbiter(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc unpipe_arbiter%d(", N);
   int i = 0;
@@ -112,6 +117,7 @@ void createUnpipeArbiter(int N) {
 }
 
 void createPipeArbiter(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc pipe_arbiter%d(", N);
   int i = 0;
@@ -133,6 +139,7 @@ void createPipeArbiter(int N) {
 }
 
 void createUnpipeMixer(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc unpipe_mixer%d(", N);
   int i = 0;
@@ -153,6 +160,7 @@ void createUnpipeMixer(int N) {
 }
 
 void createPipeMixer(int N) {
+  fprintf(outFp, "export\n");
   fprintf(outFp, "template<pint W1, W2>\n");
   fprintf(outFp, "defproc pipe_mixer%d(", N);
   int i = 0;
@@ -174,7 +182,7 @@ void createPipeMixer(int N) {
 }
 
 int main() {
-  outFp = fopen("dflow_stdlib", "w");
+  outFp = fopen("dflow_stdlib_auto", "w");
   if (!outFp) {
     fprintf(outFp, "Cannot open dflow_stdlib!\n");
     exit(-1);
