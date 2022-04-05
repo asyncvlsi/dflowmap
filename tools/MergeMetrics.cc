@@ -1,7 +1,7 @@
 
 
 /**
- * compile: g++ -std=c++17 MergeMetrics.cpp
+ * compile: g++ -std=c++17 MergeMetrics.cc
  */
 #include <vector>
 #include <map>
