@@ -72,7 +72,8 @@ static void create_outfiles(const char *src, char *&statsFilePath,
   if (!*libfp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
-  fprintf(*resfp, "import \"%s\";\n\n", tmpbuf);
+  fprintf(*resfp, "import \"%s\";\n", tmpbuf);
+  fprintf(*resfp, "import \"dflow_stdlib.act\";\n\n");
   sprintf(tmpbuf + i, "%s.conf", basesrcName);
   *conffp = fopen(tmpbuf, "w");
   if (!*conffp) {

@@ -99,7 +99,7 @@ void ChpCircuitGenerator::printSource(const char *instance,
 }
 
 void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
-  for (auto &buffInfo : buffInfos) {
+  for (auto &buffInfo: buffInfos) {
     const char *finalOutput = buffInfo.finalOutput;
     unsigned bw = buffInfo.bw;
     unsigned long nBuff = buffInfo.nBuff;
@@ -131,7 +131,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
                                     Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
   //TODO: may not need to create the port! (if there is no func body!!!)
-  for (auto &buffInfo : buffInfos) {
+  for (auto &buffInfo: buffInfos) {
     const char *output = buffInfo.finalOutput;
     if (!output) {
       printf("Try to create BUFF for null output channel!\n");
@@ -145,7 +145,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   }
 
   Vector<unsigned> buffOutIDs;
-  for (auto &buffInfo : buffInfos) {
+  for (auto &buffInfo: buffInfos) {
     buffOutIDs.push_back(buffInfo.outputID);
   }
   unsigned numOuts = outList.size();
@@ -153,11 +153,11 @@ void ChpCircuitGenerator::printFunc(const char *instance,
     printf("No output is found!\n");
     exit(-1);
   }
-  Vector<const char*> outputVec;
-  Vector<const char*> normOutputVec;
+  Vector<const char *> outputVec;
+  Vector<const char *> normOutputVec;
   for (unsigned i = 0; i < numOuts; i++) {
     const char *oriOut = outList[i].c_str();
-    const char* normOut = getNormActIdName(oriOut);
+    const char *normOut = getNormActIdName(oriOut);
     char *actualOut = new char[7 + strlen(oriOut)];
     char *actualNormOut = new char[7 + strlen(normOut)];
     if (hasInVector<unsigned>(buffOutIDs, i)) {
@@ -174,7 +174,7 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   if (debug_verbose) {
     printf("[fu]: ");
   }
-  for (auto &normOutput : normOutputVec) {
+  for (auto &normOutput: normOutputVec) {
     fprintf(resFp, "%s_", normOutput);
     if (debug_verbose) {
       printf("%s_", normOutput);
@@ -184,11 +184,11 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   if (debug_verbose) {
     printf("inst\n");
   }
-  for (auto &arg : argList) {
+  for (auto &arg: argList) {
     fprintf(resFp, "%s, ", arg.c_str());
   }
   for (unsigned i = 0; i < numOuts; i++) {
-    const char* output = outputVec[i];
+    const char *output = outputVec[i];
     fprintf(resFp, "%s", output);
     if (i == (numOuts - 1)) {
       fprintf(resFp, ");\n");
@@ -207,22 +207,38 @@ void ChpCircuitGenerator::printSplit(const char *procName,
                                      CharPtrVec &outNameVec) {
   fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, outBW, splitName);
   fprintf(resFp, "%s, %s", guardStr, inputStr);
-  for (auto outName : outNameVec) {
+  for (auto outName: outNameVec) {
     fprintf(resFp, ", %s", outName);
   }
   fprintf(resFp, ");\n");
 }
 
-void ChpCircuitGenerator::printMerge(const char *procName,
-                                     const char *outName,
+void ChpCircuitGenerator::printMerge(const char *outName,
                                      const char *guardStr,
                                      unsigned guardBW,
                                      unsigned inBW,
                                      CharPtrVec &inNameVec) {
+  unsigned numInputs = inNameVec.size();
   const char *normOutput = getNormActIdName(outName);
-  fprintf(resFp, "%s<%d,%d> %s_inst(", procName, guardBW, inBW, normOutput);
+  if (PIPELINE) {
+    fprintf(resFp,
+            "dflowstd::pipe_%s%d<%d,%d> %s_inst(",
+            Constant::MERGE_PREFIX,
+            numInputs,
+            guardBW,
+            inBW,
+            normOutput);
+  } else {
+    fprintf(resFp,
+            "dflowstd::unpipe_%s%d<%d,%d> %s_inst(",
+            Constant::MERGE_PREFIX,
+            numInputs,
+            guardBW,
+            inBW,
+            normOutput);
+  }
   fprintf(resFp, "%s, ", guardStr);
-  for (auto inName : inNameVec) {
+  for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }
   fprintf(resFp, "%s);\n", outName);
@@ -252,7 +268,7 @@ void ChpCircuitGenerator::printArbiter(const char *outName,
             coutBW,
             normOutput);
   }
-  for (auto inName : inNameVec) {
+  for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }
   fprintf(resFp, "%s, %s);\n", outName, coutName);
@@ -264,7 +280,7 @@ void ChpCircuitGenerator::printMixer(const char *procName,
                                      CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
   fprintf(resFp, "%s<%d> %s_inst(", procName, dataBW, normOutput);
-  for (auto inName : inNameVec) {
+  for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }
   fprintf(resFp, "%s);\n", outName);

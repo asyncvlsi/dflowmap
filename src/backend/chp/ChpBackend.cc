@@ -128,13 +128,12 @@ void ChpBackend::printMerge(const char *outName,
   }
   char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
-  circuitGenerator->printMerge(procName,
-                               outName,
-                               guardStr,
-                               guardBW,
-                               inBW,
-                               inNameVec);
-  libGenerator->createMerge(procName, instance, metric, numIn);
+  circuitGenerator->printMerge(
+      outName,
+      guardStr,
+      guardBW,
+      inBW,
+      inNameVec);
 }
 
 void ChpBackend::printMixer(const char *outName,

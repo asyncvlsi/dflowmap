@@ -235,48 +235,6 @@ void ChpLibGenerator::createFULib(const char *procName,
   createConf(instance, numOuts, metric);
 }
 
-void ChpLibGenerator::createMerge(const char *procName,
-                                  const char *instance,
-                                  double *metric,
-                                  int numInputs) {
-  if (!hasProcess(procName)) {
-    fprintf(libFp, "template<pint W1, W2>\n");
-    fprintf(libFp, "defproc %s(chan?(int<W1>)ctrl; ", procName);
-    int i = 0;
-    for (i = 0; i < numInputs; i++) {
-      fprintf(libFp, "chan?(int<W2>) in%d; ", i);
-    }
-    fprintf(libFp, "chan!(int<W2>) out) {\n");
-    if (PIPELINE) {
-      fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
-    } else {
-      fprintf(libFp, "  int<W2> x;\n");
-    }
-    fprintf(libFp, "  chp {\n");
-    if (PIPELINE) {
-      fprintf(libFp, "    *[ctrl?c; log(\"receive \", c); [");
-      for (i = 0; i < numInputs - 1; i++) {
-        fprintf(libFp, "c=%d -> in%d?x [] ", i, i);
-      }
-      fprintf(libFp, "c=%d -> in%d?x]; log(\"receive x: \", x); ", i, i);
-      fprintf(libFp, "out!x; log(\"send \", x)]\n");
-    } else {
-      fprintf(libFp, "    *[[");
-      for (i = 0; i < numInputs; i++) {
-        fprintf(libFp,
-                "ctrl=%d & #in%d -> x:=in%d; log(\"send %d, \", x); "
-                "out!x,in%d?,ctrl?\n", i, i, i, i, i);
-        if (i < numInputs - 1) {
-          fprintf(libFp, "      []");
-        }
-      }
-      fprintf(libFp, "      ]]\n");
-    }
-    fprintf(libFp, "  }\n}\n\n");
-  }
-  createConf(instance, metric);
-}
-
 void ChpLibGenerator::createSplit(const char *procName,
                                   const char *instance,
                                   double *metric,

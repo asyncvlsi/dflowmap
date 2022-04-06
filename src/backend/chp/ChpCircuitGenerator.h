@@ -71,8 +71,7 @@ class ChpCircuitGenerator {
                   unsigned outBW,
                   CharPtrVec &outNameVec);
 
-  void printMerge(const char *procName,
-                  const char *outName,
+  void printMerge(const char *outName,
                   const char *guardStr,
                   unsigned guardBW,
                   unsigned inBW,
