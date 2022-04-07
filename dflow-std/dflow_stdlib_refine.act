@@ -29,7 +29,7 @@ import "dflow_stdlib.act";
 
 namespace dflowstd {
 
-export template <pint V, W>
+template <pint V, W>
 defproc constant_value(bool! d[W])
 {
   (i:W: 
@@ -61,6 +61,40 @@ export defproc sink_dflow <: sink()
   BUFX2 sig_buf;
   sig_buf.A = in.r;
   sig_buf.Y = in.a;
+}
+
+export template <pint N>
+defproc delay_line(bool? in; bool! out)
+{
+  INVX1 invs[2*N];
+  invs[0].A = in;
+  (i:2*N-1 : invs[i].Y = invs[i+1].A;)
+  invs[2*N-1].Y = out;
+}
+
+/* 
+ * This is a pulse generator. When the input signal ``in'' changes from 0 to 1, 
+ * the output signal ``out'' will transit from 0 to 1, and then from 1 to 0. 
+ * The duration of this pulse is controlled by parameter ``PW'' (pulse width), 
+ * which determines the number of inverters (2*PW + 1).
+ */
+export template <pint PW>
+defproc pulse(bool? in; bool! out)
+{
+  INVX1 invs[2*PW+1];
+  invs[0].A = in;
+  (i:2*PW: invs[i].Y = invs[i+1].A; )
+
+  AND2X1 and;
+  and.A = in;
+  and.B = invs[2*PW].Y;
+
+  out = and.Y;
+
+  spec {
+    timing in+: out+ <[1] and.B-
+    // this delay margin is a placeholder, its actual value depends on the delay of LATCH
+  }
 }
 
 }
