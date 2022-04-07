@@ -52,6 +52,15 @@ export defproc source_dflow <: source()
   consts.d = out.d;
 }
 
-
+export defproc sink_dflow <: sink()
++{
+  bd<W> in;
+}
+{ 
+  // this signal buffer is needed because it is not allowed to directly connect `in.r' with `in.a'.
+  BUFX2 sig_buf;
+  sig_buf.A = in.r;
+  sig_buf.Y = in.a;
+}
 
 }
