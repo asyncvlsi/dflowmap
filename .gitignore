@@ -30,3 +30,6 @@ metrics/
 oldConf/
 *.sh
 record/
+
+bin/
+lib/
