@@ -1,0 +1,57 @@
+/*
+ * This file is part of the ACT library
+ *
+ * Copyright (c) 2022 Rui Li, Yihang Yang, Rajit Manohar
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+import globals;
+import std::channel;
+import std::cells;
+
+open std::channel;
+open std::cells;
+
+import "dflow_stdlib.act";
+
+namespace dflowstd {
+
+export template <pint V, W>
+defproc constant_value(bool! d[W])
+{
+  (i:W: 
+    [((V >> i) & 1) = 0 -> TIELOX1 tielow[i..i]; tielow[i].Y = d[i];
+    [] else -> TIEHIX1 tiehigh[i..i]; tiehigh[i].Y = d[i];
+    ]
+  )
+}
+
+export defproc source_dflow <: source()
++{
+  bd<W> out; 
+}
+{
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = out.a;
+  reset_nor.Y = out.r;
+  constant_value<V, W> consts;
+  consts.d = out.d;
+}
+
+
+
+}
