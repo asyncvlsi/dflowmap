@@ -25,17 +25,19 @@ void ChpBackend::createCopyProcs(const char *inName,
                                  unsigned bw,
                                  unsigned numOut,
                                  double *metric) {
-  circuitGenerator->printCopy(inName, bw, numOut);
-  char *instName = new char[1500];
-  sprintf(instName, "copy<%u,%u>", bw, numOut);
-  libGenerator->createCopy(instName, metric);
+  char *procName = new char[1024];
+  sprintf(procName, "dflowstd::copy");
+  char *instance = new char[1024];
+  sprintf(instance, "%s<%u,%u>", procName, bw, numOut);
+  circuitGenerator->printCopy(instance, inName);
+  libGenerator->createCopy(instance, metric);
 }
 
 void ChpBackend::printSink(const char *inName, unsigned bw, double metric[4]) {
-  circuitGenerator->printSink(inName, bw);
-  char *instName = new char[1500];
-  sprintf(instName, "sink<%u>", bw);
-  libGenerator->createSink(instName, metric);
+  char *instance = new char[1500];
+  sprintf(instance, "dflowstd::sink<%u>", bw);
+  circuitGenerator->printSink(instance, inName);
+  libGenerator->createSink(instance, metric);
 }
 
 void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
@@ -47,15 +49,15 @@ void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
   circuitGenerator->printChannel(chanName, bitwidth);
 }
 
-void ChpBackend::printSource(const char *outName,
-                             const char *instance,
+void ChpBackend::printSource(const char *instance,
+                             const char *outName,
                              double metric[4]) {
   circuitGenerator->printSource(instance, outName);
   libGenerator->createSource(instance, metric);
 }
 
 void ChpBackend::printFU(const char *procName,
-                         const char *instName,
+                         const char *instance,
                          StringVec &argList,
                          UIntVec &argBWList,
                          UIntVec &resBWList,
@@ -66,7 +68,7 @@ void ChpBackend::printFU(const char *procName,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
   /* handle normal fu */
-  circuitGenerator->printFunc(instName,
+  circuitGenerator->printFunc(instance,
                               argList,
                               argBWList,
                               resBWList,
@@ -79,7 +81,7 @@ void ChpBackend::printFU(const char *procName,
                          calc,
                          numArgs,
                          numOuts,
-                         instName,
+                         instance,
                          fuMetric,
                          resBWList,
                          outBWList,
@@ -88,8 +90,8 @@ void ChpBackend::printFU(const char *procName,
 }
 
 void ChpBackend::printSplit(const char *splitName,
-                            const char *guardStr,
-                            const char *inputStr,
+                            const char *guardName,
+                            const char *inputName,
                             unsigned guardBW,
                             unsigned outBW,
                             CharPtrVec &outNameVec,
@@ -97,43 +99,43 @@ void ChpBackend::printSplit(const char *splitName,
                             double *metric) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName, "pipe%s_%d", Constant::SPLIT_PREFIX, numOut);
+    sprintf(procName, "dflowstd::pipe_%s%d", Constant::SPLIT_PREFIX, numOut);
   } else {
-    sprintf(procName, "unpipe%s_%d", Constant::SPLIT_PREFIX, numOut);
+    sprintf(procName, "dflowstd::unpipe_%s%d", Constant::SPLIT_PREFIX, numOut);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<%d,%d>", procName, guardBW, outBW);
-  circuitGenerator->printSplit(procName,
+  circuitGenerator->printSplit(instance,
                                splitName,
-                               guardStr,
-                               inputStr,
-                               guardBW,
-                               outBW,
+                               guardName,
+                               inputName,
                                outNameVec);
-  libGenerator->createSplit(procName, instance, metric, numOut);
+  libGenerator->createSplit(instance, metric, numOut);
 }
 
 void ChpBackend::printMerge(const char *outName,
-                            const char *guardStr,
+                            const char *guardName,
                             unsigned guardBW,
                             unsigned inBW,
                             CharPtrVec &inNameVec,
-                            int numIn,
+                            int numInputs,
                             double *metric) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName, "pipe%s_%d", Constant::MERGE_PREFIX, numIn);
+    sprintf(procName, "dflowstd::pipe_%s%d", Constant::MERGE_PREFIX, numInputs);
   } else {
-    sprintf(procName, "unpipe%s_%d", Constant::MERGE_PREFIX, numIn);
+    sprintf(procName,
+            "dflowstd::unpipe_%s%d",
+            Constant::MERGE_PREFIX,
+            numInputs);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
-  circuitGenerator->printMerge(
-      outName,
-      guardStr,
-      guardBW,
-      inBW,
-      inNameVec);
+  circuitGenerator->printMerge(instance,
+                               outName,
+                               guardName,
+                               inNameVec);
+  libGenerator->createMerge(instance, metric);
 }
 
 void ChpBackend::printMixer(const char *outName,
@@ -143,35 +145,47 @@ void ChpBackend::printMixer(const char *outName,
   unsigned numInputs = inNameVec.size();
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName, "pipe%s_%d", Constant::MIXER_PREFIX, numInputs);
+    sprintf(procName, "dflowstd::pipe_%s%d", Constant::MIXER_PREFIX, numInputs);
   } else {
-    sprintf(procName, "unpipe%s_%d", Constant::MIXER_PREFIX, numInputs);
+    sprintf(procName,
+            "dflowstd::unpipe_%s%d",
+            Constant::MIXER_PREFIX,
+            numInputs);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
   sprintf(instance, "%s<%d>", procName, dataBW);
-  circuitGenerator->printMixer(procName,
+  circuitGenerator->printMixer(instance,
                                outName,
-                               dataBW,
                                inNameVec);
-  libGenerator->createMixer(procName, instance, metric, numInputs);
+  libGenerator->createMixer(instance, metric);
 }
 
-void ChpBackend::printArbiter(const char *procName,
-                              const char *instance,
-                              const char *outName,
+void ChpBackend::printArbiter(const char *outName,
                               const char *coutName,
                               unsigned outBW,
                               unsigned coutBW,
-                              int numIn,
+                              int numInputs,
                               CharPtrVec &inNameVec,
                               double *metric) {
-  circuitGenerator->printArbiter(outName,
+  char *procName = new char[MAX_PROC_NAME_LEN];
+  if (PIPELINE) {
+    sprintf(procName,
+            "dflowstd::pipe_%s%d",
+            Constant::ARBITER_PREFIX,
+            numInputs);
+  } else {
+    sprintf(procName,
+            "dflowstd::unpipe_%s%d",
+            Constant::ARBITER_PREFIX,
+            numInputs);
+  }
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<%d,%d>", procName, outBW, coutBW);
+  circuitGenerator->printArbiter(instance,
+                                 outName,
                                  coutName,
-                                 outBW,
-                                 coutBW,
-                                 numIn,
                                  inNameVec);
-  libGenerator->createArbiter(procName, instance, metric, numIn);
+  libGenerator->createArbiter(instance, metric);
 }
 
 void ChpBackend::printProcHeader(Process *p) {

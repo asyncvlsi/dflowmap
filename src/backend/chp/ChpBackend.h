@@ -44,12 +44,12 @@ class ChpBackend {
 
   void printChannel(const char *chanName, unsigned bitwidth);
 
-  void printSource(const char *outName,
-                   const char *instance,
+  void printSource(const char *instance,
+                   const char *outName,
                    double metric[4]);
 
   void printFU(const char *procName,
-               const char *instName,
+               const char *instance,
                StringVec &argList,
                UIntVec &argBWList,
                UIntVec &resBWList,
@@ -61,8 +61,8 @@ class ChpBackend {
                double *fuMetric);
 
   void printSplit(const char *splitName,
-                  const char *guardStr,
-                  const char *inputStr,
+                  const char *guardName,
+                  const char *inputName,
                   unsigned guardBW,
                   unsigned outBW,
                   CharPtrVec &outNameVec,
@@ -70,20 +70,18 @@ class ChpBackend {
                   double *metric);
 
   void printMerge(const char *outName,
-                  const char *guardStr,
+                  const char *guardName,
                   unsigned guardBW,
                   unsigned inBW,
                   CharPtrVec &inNameVec,
-                  int numIn,
+                  int numInputs,
                   double *metric);
 
-  void printArbiter(const char *procName,
-                    const char *instance,
-                    const char *outName,
+  void printArbiter(const char *outName,
                     const char *coutName,
                     unsigned outBW,
                     unsigned coutBW,
-                    int numIn,
+                    int numInputs,
                     CharPtrVec &inNameVec,
                     double *metric);
 

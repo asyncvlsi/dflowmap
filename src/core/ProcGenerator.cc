@@ -955,9 +955,9 @@ void ProcGenerator::createSource(const char *outName,
                                  unsigned long val,
                                  unsigned bitwidth) {
   char *instance = new char[1500];
-  sprintf(instance, "source<%lu,%u>", val, bitwidth);
+  sprintf(instance, "dflowstd::source<%lu,%u>", val, bitwidth);
   double *metric = metrics->getSourceMetric(instance, bitwidth);
-  chpBackend->printSource(outName, instance, metric);
+  chpBackend->printSource(instance, outName, metric);
 }
 
 void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
@@ -1374,15 +1374,14 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           dataBW,
           ctrlBW);
       //TODO: generate procName and instance inside chpBackend!
-      chpBackend->printArbiter(procName,
-                               instance,
-                               outputName,
-                               ctrlOutName,
-                               dataBW,
-                               ctrlBW,
-                               numInputs,
-                               inNameVec,
-                               metric);
+      chpBackend->printArbiter(
+          outputName,
+          ctrlOutName,
+          dataBW,
+          ctrlBW,
+          numInputs,
+          inNameVec,
+          metric);
       break;
     }
     case ACT_DFLOW_CLUSTER: {

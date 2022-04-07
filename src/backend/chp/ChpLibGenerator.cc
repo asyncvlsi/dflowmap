@@ -139,7 +139,7 @@ void ChpLibGenerator::createFU(const char *procName,
     unsigned outID = outRecordIt.first;
     unsigned resSuffix = outRecordIt.second;
     resSuffixVec.push_back(resSuffix);
-    char* subSend = new char[1024];
+    char *subSend = new char[1024];
     if (i < numOuts - 1) {
       sprintf(subSend, "out%u!res%u, ", outID, resSuffix);
     } else {
@@ -235,158 +235,33 @@ void ChpLibGenerator::createFULib(const char *procName,
   createConf(instance, numOuts, metric);
 }
 
-void ChpLibGenerator::createSplit(const char *procName,
-                                  const char *instance,
-                                  double *metric,
-                                  int numOutputs) {
-  if (!hasProcess(procName)) {
-    fprintf(libFp, "template<pint W1,W2>\n");
-    fprintf(libFp,
-            "defproc %s(chan?(int<W1>)ctrl; chan?(int<W2>)in; ",
-            procName);
-    int i = 0;
-    for (i = 0; i < numOutputs - 1; i++) {
-      fprintf(libFp, "chan!(int<W2>) out%d; ", i);
-    }
-    fprintf(libFp, "chan!(int<W2>) out%d) {\n", i);
-    if (PIPELINE) {
-      fprintf(libFp, "  int<W1> c;\n  int<W2> x;\n");
-    } else {
-      fprintf(libFp, "  int<W2> x;\n");
-    }
-    fprintf(libFp, "  chp {\n");
-    if (PIPELINE) {
-      fprintf(libFp, R"(    *[in?x, ctrl?c; log("receive ", c, ", ", x);[)");
-      for (i = 0; i < numOutputs - 1; i++) {
-        fprintf(libFp, "c=%d -> out%d!x [] ", i, i);
-      }
-      fprintf(libFp, "c=%d -> out%d!x]; log(\"send \", x)]\n", i, i);
-
-    } else {
-      fprintf(libFp, "    *[[");
-      for (i = 0; i < numOutputs; i++) {
-        fprintf(libFp,
-                "ctrl=%d & #in -> x:=in; log(\"send %d, \", x); out%d!x,in?,ctrl?\n",
-                i,
-                i,
-                i);
-        if (i < numOutputs - 1) {
-          fprintf(libFp, "      []");
-        }
-      }
-      fprintf(libFp, "      ]]\n");
-    }
-    fprintf(libFp, "  }\n}\n\n");
-  }
-  createConf(instance, numOutputs, metric);
-}
-
-void ChpLibGenerator::createArbiter(const char *procName,
-                                    const char *instance,
-                                    double *metric,
-                                    int numInputs) {
-  if (!hasProcess(procName)) {
-    fprintf(libFp, "template<pint W1, W2>\n");
-    fprintf(libFp, "defproc %s(", procName);
-    int i = 0;
-    for (i = 0; i < numInputs; i++) {
-      fprintf(libFp, "chan?(int<W1>) in%d; ", i);
-    }
-    fprintf(libFp, "chan!(int<W1>) out; chan!(int<W2>) cout) {\n");
-    fprintf(libFp, "  int<W2> x;\n");
-    if (PIPELINE) {
-      printf("TODO\n");
-      exit(-1);
-    } else {
-      fprintf(libFp, "  chp {\n");
-      fprintf(libFp, "    *[ [| ");
-      for (i = 0; i < numInputs; i++) {
-        fprintf(libFp, "#in%d -> x:=in%d; log(\"send %d, \", x);"
-                       " out!x,cout!%d,in%d?", i, i, i, i, i);
-        if (i != (numInputs - 1)) {
-          fprintf(libFp, " [] ");
-        }
-      }
-      fprintf(libFp, " |] ]\n");
-    }
-    fprintf(libFp, "  }\n}\n\n");
-  }
+void ChpLibGenerator::createMerge(const char *instance, double *metric) {
   createConf(instance, metric);
 }
 
-void ChpLibGenerator::createMixer(const char *procName,
-                                  const char *instance,
+void ChpLibGenerator::createSplit(const char *instance,
                                   double *metric,
-                                  int numInputs) {
-  if (!hasProcess(procName)) {
-    fprintf(libFp, "template<pint W1>\n");
-    fprintf(libFp, "defproc %s(", procName);
-    for (int i = 0; i < numInputs; i++) {
-      fprintf(libFp, "chan?(int<W1>) in%d; ", i);
-    }
-    fprintf(libFp, "chan!(int<W1>) out) {\n");
-    if (PIPELINE) {
-      //TODO
-      printf("Pipelined Mixer implementation is coming soon!\n");
-      exit(-1);
-    } else {
-      fprintf(libFp, "  chp {\n");
-      fprintf(libFp, "    *[ [");
-      for (int i = 0; i < numInputs; i++) {
-        fprintf(libFp, "#in%d -> out!in%d; in%d?\n", i, i, i);
-        if (i != (numInputs - 1)) {
-          fprintf(libFp, " [] ");
-        }
-      }
-      fprintf(libFp, " ] ]\n");
-    }
-    fprintf(libFp, "  }\n}\n\n");
-  }
+                                  int numOutputs) {
+  createConf(instance, numOutputs, metric);
+}
+
+void ChpLibGenerator::createArbiter(const char *instance, double *metric) {
+  createConf(instance, metric);
+}
+
+void ChpLibGenerator::createMixer(const char *instance, double *metric) {
   createConf(instance, metric);
 }
 
 void ChpLibGenerator::createSource(const char *instance, double *metric) {
-  if (!hasProcess("source")) {
-    fprintf(libFp, "template<pint V, W>\n");
-    fprintf(libFp, "defproc source(chan!(int<W>)out) {\n");
-    fprintf(libFp, "  chp {\n");
-    fprintf(libFp, "    *[log(\"send \", V); out!V]\n");
-    fprintf(libFp, "  }\n}\n\n");
-  }
   createConf(instance, metric);
 }
 
 void ChpLibGenerator::createInit(const char *instance, double *metric) {
-  if (!hasProcess("init")) {
-    fprintf(libFp, R"(
-template<pint V, W>
-defproc init(chan?(int<W>)in; chan!(int<W>) out) {
-  int<W> x;
-  chp {
-    out!V;
-    log("send initVal ", V);
-    *[in?x; out!x; log("send ", x)]
-  }
-}
-
-    )");
-  }
   createConf(instance, metric);
 }
 
 void ChpLibGenerator::createOneBuff(const char *instance, double *metric) {
-  if (!hasProcess("onebuf")) {
-    fprintf(libFp, R"(
-template<pint W>
-defproc onebuf(chan?(int<W>)in; chan!(int<W>) out) {
-  int<W> x;
-  chp {
-    *[in?x; out!x]
-  }
-}
-
-)");
-  }
   createConf(instance, metric);
 }
 
@@ -395,87 +270,32 @@ void ChpLibGenerator::createBuff(Vector<BuffInfo> &buffInfos) {
     unsigned numBuff = buffInfo.nBuff;
     unsigned bw = buffInfo.bw;
     bool hasInitVal = buffInfo.hasInitVal;
-    double* metric = buffInfo.metric;
+    double *metric = buffInfo.metric;
     if ((numBuff > 1) || (!hasInitVal)) {
       char *buffInstance = new char[1024];
-      sprintf(buffInstance, "onebuf<%u>", bw);
+      sprintf(buffInstance, "dflowstd::onebuf<%u>", bw);
       createOneBuff(buffInstance, metric);
     }
     if (hasInitVal) {
       char *initInstance = new char[1024];
       unsigned long initVal = buffInfo.initVal;
-      sprintf(initInstance, "init<%lu,%u>", initVal, bw);
+      sprintf(initInstance, "dflowstd::init<%lu,%u>", initVal, bw);
       createInit(initInstance, metric);
     }
   }
 }
 
 void ChpLibGenerator::createSink(const char *instance, double *metric) {
-  if (!hasProcess("sink")) {
-    fprintf(libFp, "template<pint W>\n");
-    fprintf(libFp, "defproc sink(chan?(int<W>) in) {\n");
-    fprintf(libFp, "  int<W> t;");
-    fprintf(libFp, "  chp {\n");
-    if (debug_verbose) {
-      fprintf(libFp, "  *[in?t; log (\"got \", t)]\n");
-    } else {
-      fprintf(libFp, "  *[in?t]\n");
-    }
-    fprintf(libFp, "  }\n}\n");
-  }
-
-  if (!hasInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
-    }
-    fprintf(confFp, "begin %s\n", instance);
-    fprintf(confFp, "  begin x\n");
-    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
-    fprintf(confFp, "    int E %ld\n", (long) metric[1]);
-    fprintf(confFp, "  end\n");
-    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
-    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
-    fprintf(confFp, "end\n");
-  }
+  createConf(instance, metric);
 }
 
 void ChpLibGenerator::createCopy(const char *instance, double *metric) {
-  if (!hasProcess("copy")) {
-    fprintf(libFp, "template<pint W, N>\n");
-    fprintf(libFp,
-            "defproc copy_leaf(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-    fprintf(libFp, "  int<W> x;\n");
-    fprintf(libFp, "  chp {\n");
-    fprintf(libFp,
-            "  *[ in?x; log(\"receive \", x); (,i:N: out[i]!x; log(\"send \", i, \",\", x) )]\n");
-    fprintf(libFp, "  }\n}\n");
-    fprintf(libFp, "template<pint W, N>\n");
-    fprintf(libFp, "defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {\n");
-    fprintf(libFp, "  [ N <= 8 -> copy_leaf<W,N> l(in,out);\n");
-    fprintf(libFp, "   [] else ->\n");
-    fprintf(libFp, "      pint M = N/8;\n");
-    fprintf(libFp, "      pint F = N - M*8;\n");
-    fprintf(libFp, "      copy_leaf<W,8> t[M];\n");
-    fprintf(libFp, "      (i:M: t[i].out=out[8*i..8*i+7];)\n");
-    fprintf(libFp, "      [ F > 0 -> copy_leaf<W,F> u;\n");
-    fprintf(libFp, "                 copy<W,M+1> m(in);\n");
-    fprintf(libFp, "                 (i:M: m.out[i] = t[i].in;)\n");
-    fprintf(libFp, "                 m.out[M] = u.in;\n");
-    fprintf(libFp, "                 u.out=out[M*8..N-1];\n");
-    fprintf(libFp, "      [] else -> copy<W,M> n(in);\n");
-    fprintf(libFp, "                 (i:M: n.out[i] = t[i].in;)\n");
-    fprintf(libFp, "      ]\n  ]\n}\n");
-  }
   createConf(instance, metric);
 }
 
 void ChpLibGenerator::createChpBlock(Process *p) {
   if (!p->getlang()->getchp()) {
-    printf("Process %s does NOT have CHP block!\n");
+    printf("Process %s does NOT have CHP block!\n", p->getName());
     exit(-1);
   }
   p->Print(libFp);

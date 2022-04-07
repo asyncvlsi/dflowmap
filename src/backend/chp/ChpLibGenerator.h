@@ -60,20 +60,15 @@ class ChpLibGenerator {
                    UIntVec &resBW,
                    UIntVec &outBW);
 
-  void createSplit(const char *procName,
-                   const char *instance,
+  void createMerge(const char *instance, double *metric);
+
+  void createSplit(const char *instance,
                    double *metric,
                    int numOutputs);
 
-  void createArbiter(const char *procName,
-                     const char *instance,
-                     double *metric,
-                     int numInputs);
+  void createArbiter(const char *instance, double *metric);
 
-  void createMixer(const char *procName,
-                     const char *instance,
-                     double *metric,
-                     int numInputs);
+  void createMixer(const char *instance, double *metric);
 
   void createSource(const char *instance, double *metric);
 

@@ -178,7 +178,7 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   char *instance = new char[1500];
   sprintf(instance, "copy<%u,%u>", bitwidth, numOut);
   double *metric = getOpMetric(instance);
-  if (!metric && LOGIC_OPTIMIZER) {
+  if (!metric) {
     char *equivInstance = new char[1500];
     int equivN = int(ceil(log2(numOut))) - 1;
     if (equivN < 1) {
@@ -221,8 +221,8 @@ double *Metrics::getSinkMetric(unsigned bitwidth) {
   char *unitInstance = new char[1500];
   sprintf(unitInstance, "sink_1_");
   double *metric = getOpMetric(unitInstance);
-  if (!metric && LOGIC_OPTIMIZER) {
-    printf("We fail to find metric for %s!\n", instance);
+  if (!metric) {
+    printf("We fail to find metric for the stdlib process %s!\n", instance);
     exit(-1);
   }
   if (metric) {
@@ -236,8 +236,8 @@ double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
   char *unitInstance = new char[8];
   sprintf(unitInstance, "source1");
   double *metric = getOpMetric(unitInstance);
-  if (!metric && LOGIC_OPTIMIZER) {
-    printf("We fail to find metric for %s!\n", instance);
+  if (!metric) {
+    printf("We fail to find metric for the stdlib process %s!\n", instance);
     exit(-1);
   }
   if (metric) {
@@ -487,25 +487,14 @@ double *Metrics::getOrGenFUMetric(const char *instance,
 double *Metrics::getOrGenMergeMetric(unsigned guardBW,
                                      unsigned inBW,
                                      unsigned numIn) {
-  if (!LOGIC_OPTIMIZER) {
-    return nullptr;
+  char *procName = new char[MAX_INSTANCE_LEN];
+  if (PIPELINE) {
+    sprintf(procName, "pipe%s_%d", Constant::MERGE_PREFIX, numIn);
+  } else {
+    sprintf(procName, "unpipe%s_%d", Constant::MERGE_PREFIX, numIn);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  if (PIPELINE) {
-    sprintf(instance,
-            "pipe%s_%d<%d,%d>",
-            Constant::MERGE_PREFIX,
-            numIn,
-            guardBW,
-            inBW);
-  } else {
-    sprintf(instance,
-            "unpipe%s_%d<%d,%d>",
-            Constant::MERGE_PREFIX,
-            numIn,
-            guardBW,
-            inBW);
-  }
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
   double *metric = getOpMetric(instance);
   if (!metric) {
     char *equivInstance = new char[MAX_INSTANCE_LEN];
@@ -635,25 +624,14 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
 double *Metrics::getOrGenSplitMetric(unsigned guardBW,
                                      unsigned inBW,
                                      unsigned numOut) {
-  if (!LOGIC_OPTIMIZER) {
-    return nullptr;
+  char *procName = new char[MAX_INSTANCE_LEN];
+  if (PIPELINE) {
+    sprintf(procName, "pipe%s_%d", Constant::SPLIT_PREFIX, numOut);
+  } else {
+    sprintf(procName, "unpipe%s_%d", Constant::SPLIT_PREFIX, numOut);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  if (PIPELINE) {
-    sprintf(instance,
-            "pipe%s_%d<%d,%d>",
-            Constant::SPLIT_PREFIX,
-            numOut,
-            guardBW,
-            inBW);
-  } else {
-    sprintf(instance,
-            "unpipe%s_%d<%d,%d>",
-            Constant::SPLIT_PREFIX,
-            numOut,
-            guardBW,
-            inBW);
-  }
+  sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
   double *metric = getOpMetric(instance);
   if (!metric) {
     char *equivInstance = new char[MAX_INSTANCE_LEN];

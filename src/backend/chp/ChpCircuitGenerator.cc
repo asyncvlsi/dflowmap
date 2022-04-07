@@ -29,23 +29,21 @@ ChpCircuitGenerator::ChpCircuitGenerator(FILE *resFp) {
   this->resFp = resFp;
 }
 
-void ChpCircuitGenerator::printSink(const char *inName, unsigned bitwidth) {
+void ChpCircuitGenerator::printSink(const char *instance, const char *inName) {
   if (inName == nullptr) {
     printf("sink name is NULL!\n");
     exit(-1);
   }
   const char *normalizedName = getNormActIdName(inName);
-  fprintf(resFp, "sink<%u> %s_sink(%s);\n", bitwidth, normalizedName, inName);
+  fprintf(resFp, "%s %s_sink(%s);\n", instance, normalizedName, inName);
 }
 
-void ChpCircuitGenerator::printCopy(const char *inputName,
-                                    unsigned int bw,
-                                    unsigned int numOut) {
+void ChpCircuitGenerator::printCopy(const char *instance,
+                                    const char *inputName) {
   const char *normOutName = getNormActIdName(inputName);
   fprintf(resFp,
-          "copy<%u,%u> %scopy(%s);\n",
-          bw,
-          numOut,
+          "%s %scopy(%s);\n",
+          instance,
           normOutName,
           inputName);
   if (debug_verbose) {
@@ -57,15 +55,14 @@ void ChpCircuitGenerator::printEmptyLine() {
   fprintf(resFp, "\n");
 }
 
-void ChpCircuitGenerator::printInit(const char *inName,
-                                    const char *outName,
-                                    unsigned bitwidth,
-                                    unsigned long initVal) {
+void ChpCircuitGenerator::printInit(const char *instance,
+                                    const char *inName,
+                                    const char *outName) {
+  const char *normOutput = getNormActIdName(outName);
   fprintf(resFp,
-          "init<%lu,%u> %s_inst(%s, %s);\n",
-          initVal,
-          bitwidth,
-          outName,
+          "%s %s_inst(%s, %s);\n",
+          instance,
+          normOutput,
           inName,
           outName);
   if (debug_verbose) {
@@ -73,12 +70,12 @@ void ChpCircuitGenerator::printInit(const char *inName,
   }
 }
 
-void ChpCircuitGenerator::printOneBuff(const char *inName,
-                                       const char *outName,
-                                       unsigned bitwidth) {
+void ChpCircuitGenerator::printOneBuff(const char *instance,
+                                       const char *inName,
+                                       const char *outName) {
   fprintf(resFp,
-          "onebuf<%u> %s_inst(%s, %s);\n",
-          bitwidth,
+          "%s %s_inst(%s, %s);\n",
+          instance,
           outName,
           inName,
           outName);
@@ -107,17 +104,21 @@ void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
     bool hasInitVal = buffInfo.hasInitVal;
     char *prevInName = new char[strlen(finalOutput) + 7];
     sprintf(prevInName, "%s_bufIn", finalOutput);
+    char *onebufInstance = new char[1024];
+    sprintf(onebufInstance, "dflowstd::onebuf<%u>", bw);
     for (unsigned i = 0; i < nBuff - 1; i++) {
       char *chanName = new char[strlen(finalOutput) + 1024];
       sprintf(chanName, "%s_buf%u", finalOutput, i);
       printChannel(chanName, bw);
-      printOneBuff(prevInName, chanName, bw);
+      printOneBuff(onebufInstance, prevInName, chanName);
       prevInName = chanName;
     }
     if (hasInitVal) {
-      printInit(prevInName, finalOutput, bw, initVal);
+      char *initProcName = new char[1024];
+      sprintf(initProcName, "dflowstd::init<%lu,%u>", initVal, bw);
+      printInit(initProcName, prevInName, finalOutput);
     } else {
-      printOneBuff(prevInName, finalOutput, bw);
+      printOneBuff(onebufInstance, prevInName, finalOutput);
     }
   }
 }
@@ -198,45 +199,25 @@ void ChpCircuitGenerator::printFunc(const char *instance,
   }
 }
 
-void ChpCircuitGenerator::printSplit(const char *procName,
+void ChpCircuitGenerator::printSplit(const char *instance,
                                      const char *splitName,
-                                     const char *guardStr,
-                                     const char *inputStr,
-                                     unsigned guardBW,
-                                     unsigned outBW,
+                                     const char *guardName,
+                                     const char *inputName,
                                      CharPtrVec &outNameVec) {
-  fprintf(resFp, "%s<%d,%d> %s(", procName, guardBW, outBW, splitName);
-  fprintf(resFp, "%s, %s", guardStr, inputStr);
+  fprintf(resFp, "%s %s(", instance, splitName);
+  fprintf(resFp, "%s, %s", guardName, inputName);
   for (auto outName: outNameVec) {
     fprintf(resFp, ", %s", outName);
   }
   fprintf(resFp, ");\n");
 }
 
-void ChpCircuitGenerator::printMerge(const char *outName,
+void ChpCircuitGenerator::printMerge(const char *instance,
+                                     const char *outName,
                                      const char *guardStr,
-                                     unsigned guardBW,
-                                     unsigned inBW,
                                      CharPtrVec &inNameVec) {
-  unsigned numInputs = inNameVec.size();
   const char *normOutput = getNormActIdName(outName);
-  if (PIPELINE) {
-    fprintf(resFp,
-            "dflowstd::pipe_%s%d<%d,%d> %s_inst(",
-            Constant::MERGE_PREFIX,
-            numInputs,
-            guardBW,
-            inBW,
-            normOutput);
-  } else {
-    fprintf(resFp,
-            "dflowstd::unpipe_%s%d<%d,%d> %s_inst(",
-            Constant::MERGE_PREFIX,
-            numInputs,
-            guardBW,
-            inBW,
-            normOutput);
-  }
+  fprintf(resFp, "%s %s_inst(", instance, normOutput);
   fprintf(resFp, "%s, ", guardStr);
   for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
@@ -244,42 +225,23 @@ void ChpCircuitGenerator::printMerge(const char *outName,
   fprintf(resFp, "%s);\n", outName);
 }
 
-void ChpCircuitGenerator::printArbiter(const char *outName,
+void ChpCircuitGenerator::printArbiter(const char *instance,
+                                       const char *outName,
                                        const char *coutName,
-                                       unsigned outBW,
-                                       unsigned coutBW,
-                                       int numIn,
                                        CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
-  if (PIPELINE) {
-    fprintf(resFp,
-            "pipe%s_%d<%d,%d> %s_inst(",
-            Constant::ARBITER_PREFIX,
-            numIn,
-            outBW,
-            coutBW,
-            normOutput);
-  } else {
-    fprintf(resFp,
-            "unpipe%s_%d<%d,%d> %s_inst(",
-            Constant::ARBITER_PREFIX,
-            numIn,
-            outBW,
-            coutBW,
-            normOutput);
-  }
+  fprintf(resFp, "%s %s_inst(", instance, normOutput);
   for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }
   fprintf(resFp, "%s, %s);\n", outName, coutName);
 }
 
-void ChpCircuitGenerator::printMixer(const char *procName,
+void ChpCircuitGenerator::printMixer(const char *instance,
                                      const char *outName,
-                                     unsigned dataBW,
                                      CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
-  fprintf(resFp, "%s<%d> %s_inst(", procName, dataBW, normOutput);
+  fprintf(resFp, "%s %s_inst(", instance, normOutput);
   for (auto inName: inNameVec) {
     fprintf(resFp, "%s, ", inName);
   }

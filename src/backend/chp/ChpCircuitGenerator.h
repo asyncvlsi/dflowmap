@@ -34,20 +34,20 @@ class ChpCircuitGenerator {
  public:
   explicit ChpCircuitGenerator(FILE *resFp);
 
-  void printSink(const char *inName, unsigned bitwidth);
+  void printSink(const char *instance, const char *inName);
 
-  void printCopy(const char *inputName,
-                 unsigned int bw,
-                 unsigned int numOut);
+  void printCopy(const char *instance,
+                 const char *inputName);
 
   void printEmptyLine();
 
-  void printInit(const char *inName,
-                 const char *outName,
-                 unsigned bitwidth,
-                 unsigned long initVal);
+  void printInit(const char *instance,
+                 const char *inName,
+                 const char *outName);
 
-  void printOneBuff(const char *inName, const char *outName, unsigned bitwidth);
+  void printOneBuff(const char *instance,
+                    const char *inName,
+                    const char *outName);
 
   void printBuff(Vector<BuffInfo> &buffInfos);
 
@@ -63,30 +63,24 @@ class ChpCircuitGenerator {
                  StringVec &outList,
                  Vector<BuffInfo> &buffInfos);
 
-  void printSplit(const char *procName,
+  void printSplit(const char *instance,
                   const char *splitName,
-                  const char *guardStr,
-                  const char *inputStr,
-                  unsigned guardBW,
-                  unsigned outBW,
+                  const char *guardName,
+                  const char *inputName,
                   CharPtrVec &outNameVec);
 
-  void printMerge(const char *outName,
+  void printMerge(const char *instance,
+                  const char *outName,
                   const char *guardStr,
-                  unsigned guardBW,
-                  unsigned inBW,
                   CharPtrVec &inNameVec);
 
-  void printArbiter(const char *outName,
+  void printArbiter(const char *instance,
+                    const char *outName,
                     const char *coutName,
-                    unsigned outBW,
-                    unsigned coutBW,
-                    int numIn,
                     CharPtrVec &inNameVec);
 
-  void printMixer(const char *procName,
+  void printMixer(const char *instance,
                   const char *outName,
-                  unsigned dataBW,
                   CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
