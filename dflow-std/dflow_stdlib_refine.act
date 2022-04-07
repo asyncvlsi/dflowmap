@@ -19,11 +19,13 @@
  * Boston, MA  02110-1301, USA.
  */
 import globals;
-import std::channel;
 import std::cells;
+import std::channel;
+import std::gates;
 
-open std::channel;
+open std::gates;
 open std::cells;
+open std::channel;
 
 import "dflow_stdlib.act";
 
@@ -94,6 +96,36 @@ defproc pulse(bool? in; bool! out)
   spec {
     timing in+: out+ <[1] and.B-
     // this delay margin is a placeholder, its actual value depends on the delay of LATCH
+  }
+}
+
+/* 
+ * This is a data capture unit, which consists of a local variable ``d'' and a 
+ * control channel ``go''. When the signal ``go.r'' changes from 0 to 1, this unit 
+ * starts sampling the input data ``din''. When the signal ``go.a'' changes from
+ * 0 to 1, the data is successfully captured, and can be read from the output ``dout''.
+ * 
+ * Some parameters, ``W'' is the width of the data; ``CD'' is the capture delay;
+ * ``PW'' is the time for latch to successfully store the data.
+ */
+export template <pint W, CD, PW>
+defproc capture(a1of1 go; bool? din[W]; bool! dout[W])
+{
+  delay_line<CD> capture_delay;
+  go.r = capture_delay.in;
+  go.a = capture_delay.out;
+
+  pulse<PW> pulse_generator;
+  go.r = pulse_generator.in;
+
+  sigbuf<W> fanout_tree;
+  pulse_generator.out = fanout_tree.in;
+
+  LATCH x[W];
+  (i:W: din[i] = x[i].D; x[i].CLK = fanout_tree.out[i]; x[i].Q = dout[i];)
+
+  spec {
+    timing go.r+: dout < go.a+
   }
 }
 
