@@ -49,9 +49,8 @@ template<pint V, W>
 defproc init(chan?(int<W>)in; chan!(int<W>) out) {
   int<W> x;
   chp {
-    out!V;
-    log("send initVal ", V);
-    *[in?x; out!x; log("send ", x)]
+    x := V;
+    *[out!x; log("send ", x); in?x]
   }
 }
 
