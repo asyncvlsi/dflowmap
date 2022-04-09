@@ -40,6 +40,7 @@
 #include "src/common/common.h"
 #include "src/common/Helper.h"
 #include "src/core/DflowGenerator.h"
+#include "src/core/NameGenerator.h"
 
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>

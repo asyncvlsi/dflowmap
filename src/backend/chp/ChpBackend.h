@@ -33,12 +33,13 @@ class ChpBackend {
     this->libGenerator = libGenerator;
   }
 
-  void createCopyProcs(const char *inName,
-                       unsigned bw,
-                       unsigned numOut,
+  void createCopyProcs(const char *instance,
+                       const char *inName,
                        double *metric);
 
-  void printSink(const char *inName, unsigned bw, double metric[4]);
+  void printSink(const char *instance,
+                 const char *inName,
+                 double metric[4]);
 
   void printBuff(Vector<BuffInfo> &buffInfos);
 
@@ -60,33 +61,28 @@ class ChpBackend {
                Vector<BuffInfo> &buffInfos,
                double *fuMetric);
 
-  void printSplit(const char *splitName,
+  void printSplit(const char *instance,
+                  const char *splitName,
                   const char *guardName,
                   const char *inputName,
-                  unsigned guardBW,
-                  unsigned outBW,
                   CharPtrVec &outNameVec,
                   int numOut,
                   double *metric);
 
-  void printMerge(const char *outName,
+  void printMerge(const char *instance,
+                  const char *outName,
                   const char *guardName,
-                  unsigned guardBW,
-                  unsigned inBW,
                   CharPtrVec &inNameVec,
-                  int numInputs,
                   double *metric);
 
-  void printArbiter(const char *outName,
+  void printArbiter(const char *instance,
+                    const char *outName,
                     const char *coutName,
-                    unsigned outBW,
-                    unsigned coutBW,
-                    int numInputs,
                     CharPtrVec &inNameVec,
                     double *metric);
 
-  void printMixer(const char *outName,
-                  unsigned dataBW,
+  void printMixer(const char *instance,
+                  const char *outName,
                   CharPtrVec &inNameVec,
                   double *metric);
 

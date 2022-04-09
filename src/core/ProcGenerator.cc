@@ -941,21 +941,23 @@ void ProcGenerator::createCopyProcs() {
       char *inName = new char[10240];
       getActConnectionName(actConnection, inName, 10240);
       double *metric = metrics->getOrGenCopyMetric(bitwidth, numOut);
-      chpBackend->createCopyProcs(inName, bitwidth, numOut, metric);
+      const char
+          *instance = NameGenerator::genCopyInstName(bitwidth, numOut);
+      chpBackend->createCopyProcs(instance, inName, metric);
     }
   }
 }
 
 void ProcGenerator::createSink(const char *name, unsigned bitwidth) {
   double *metric = metrics->getSinkMetric(bitwidth);
-  chpBackend->printSink(name, bitwidth, metric);
+  const char *instance = NameGenerator::genSinkInstName(bitwidth);
+  chpBackend->printSink(instance, name, metric);
 }
 
 void ProcGenerator::createSource(const char *outName,
                                  unsigned long val,
                                  unsigned bitwidth) {
-  char *instance = new char[1500];
-  sprintf(instance, "dflowstd::source<%lu,%u>", val, bitwidth);
+  const char *instance = NameGenerator::genSourceInstName(val, bitwidth);
   double *metric = metrics->getSourceMetric(instance, bitwidth);
   chpBackend->printSource(instance, outName, metric);
 }
@@ -1308,11 +1310,12 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       double *metric = metrics->getOrGenSplitMetric(guardBW,
                                                     outBW,
                                                     numOutputs);
-      chpBackend->printSplit(splitName,
+      const char *instance =
+          NameGenerator::genSplitInstName(guardBW, outBW, numOutputs);
+      chpBackend->printSplit(instance,
+                             splitName,
                              guardStr,
                              inputStr,
-                             guardBW,
-                             outBW,
                              outNameVec,
                              numOutputs,
                              metric);
@@ -1330,12 +1333,12 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       double *metric = metrics->getOrGenMergeMetric(ctrlBW,
                                                     dataBW,
                                                     numInputs);
-      chpBackend->printMerge(outputName,
+      const char *instance =
+          NameGenerator::genMergeInstName(ctrlBW, dataBW, numInputs);
+      chpBackend->printMerge(instance,
+                             outputName,
                              ctrlInName,
-                             ctrlBW,
-                             dataBW,
                              inNameVec,
-                             numInputs,
                              metric);
       break;
     }
@@ -1346,7 +1349,8 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       int numInputs = 0;
       handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
       double *metric = metrics->getMixerMetric(numInputs, dataBW);
-      chpBackend->printMixer(outputName, dataBW, inNameVec, metric);
+      const char *instance = NameGenerator::genMixerInstName(dataBW, numInputs);
+      chpBackend->printMixer(instance, outputName, inNameVec, metric);
       break;
     }
     case ACT_DFLOW_ARBITER: {
@@ -1355,31 +1359,20 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       unsigned dataBW = 0;
       int numInputs = 0;
       handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
-
-      char *procName = new char[MAX_PROC_NAME_LEN];
-      if (PIPELINE) {
-        sprintf(procName, "pipe%s_%d", Constant::ARBITER_PREFIX, numInputs);
-      } else {
-        sprintf(procName, "unpipe%s_%d", Constant::ARBITER_PREFIX, numInputs);
-      }
       ActId *ctrlOut = d->u.splitmerge.nondetctrl;
       unsigned ctrlBW = getActIdBW(ctrlOut);
       char *ctrlOutName = new char[10240];
       getActIdName(sc, ctrlOut, ctrlOutName, 10240);
-      char *instance = new char[MAX_INSTANCE_LEN];
-      sprintf(instance, "%s<%d,%d>", procName, dataBW, ctrlBW);
-
+      const char *instance =
+          NameGenerator::genArbiterInstName(ctrlBW, dataBW, numInputs);
       double *metric = metrics->getArbiterMetric(
           numInputs,
           dataBW,
           ctrlBW);
-      //TODO: generate procName and instance inside chpBackend!
       chpBackend->printArbiter(
+          instance,
           outputName,
           ctrlOutName,
-          dataBW,
-          ctrlBW,
-          numInputs,
           inNameVec,
           metric);
       break;
