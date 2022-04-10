@@ -1169,7 +1169,9 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                       buffInfos);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
-        const char *procName = NameGenerator::genExprName(d->u.func.lhs);
+        const char *auto_procName = NameGenerator::genExprName(d->u.func.lhs);
+        char *procName = new char[6 + strlen(auto_procName)];
+        sprintf(procName, "func_%s", auto_procName);
         printDFlowFunc(dflowGenerator,
                        procName,
                        outBWList,
@@ -1363,7 +1365,10 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
       exit(-1);
     }
   }
-  const char *clusterName = NameGenerator::genExprClusterName(dflow_cluster);
+  const char
+      *auto_clusterName = NameGenerator::genExprClusterName(dflow_cluster);
+  char *clusterName = new char[6 + strlen(auto_clusterName)];
+  sprintf(clusterName, "func_%s", auto_clusterName);
   if (debug_verbose) {
     printf("Process cluster dflow_cluster:\n");
     print_dflow(stdout, dflow_cluster);
