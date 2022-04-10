@@ -110,7 +110,6 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
 const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                       Expr *expr,
                                       const char *sym,
-                                      char *procName,
                                       int &resSuffix,
                                       unsigned &resBW) {
   if (debug_verbose) {
@@ -121,23 +120,17 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
   Expr *cExpr = expr->u.e.l;
   Expr *lExpr = expr->u.e.r->u.e.l;
   Expr *rExpr = expr->u.e.r->u.e.r;
-  if (procName[0] == '\0') {
-    sprintf(procName, "func");
-  }
   unsigned cBW = 1;
   const char *cexpr_name = printExpr(dflowGenerator,
                                      cExpr,
-                                     procName,
                                      resSuffix,
                                      cBW);
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
-                                     procName,
                                      resSuffix,
                                      resBW);
   const char *rexpr_name = printExpr(dflowGenerator,
                                      rExpr,
-                                     procName,
                                      resSuffix,
                                      resBW);
   {
@@ -154,9 +147,6 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
       printf("!\n");
       exit(-1);
     }
-    char *subProcName = new char[1500];
-    sprintf(subProcName, "_%s%s%s%s", lVal, sym, cVal, rVal);
-    strcat(procName, subProcName);
   }
   char *finalExprName = new char[100];
   resSuffix++;
@@ -190,7 +180,6 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                     const char *sym,
                                     const char *op,
                                     int type,
-                                    char *procName,
                                     int &resSuffix,
                                     unsigned &resBW) {
   if (debug_verbose) {
@@ -200,17 +189,12 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   }
   Expr *lExpr = expr->u.e.l;
   Expr *rExpr = expr->u.e.r;
-  if (procName[0] == '\0') {
-    sprintf(procName, "func");
-  }
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
-                                     procName,
                                      resSuffix,
                                      resBW);
   const char *rexpr_name = printExpr(dflowGenerator,
                                      rExpr,
-                                     procName,
                                      resSuffix,
                                      resBW);
   {
@@ -219,13 +203,6 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
     getCurProc(lexpr_name, lVal);
     char *rVal = new char[100];
     getCurProc(rexpr_name, rVal);
-    char *subProcName = new char[1500];
-    if (!strcmp(lexpr_name, rexpr_name)) {
-      sprintf(subProcName, "_%s%s2%s", lVal, sym, rVal);
-    } else {
-      sprintf(subProcName, "_%s%s%s", lVal, sym, rVal);
-    }
-    strcat(procName, subProcName);
   }
   char *finalExprName = new char[100];
   resSuffix++;
@@ -253,7 +230,6 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                     Expr *expr,
                                     const char *sym,
                                     const char *op,
-                                    char *procName,
                                     int &resSuffix,
                                     unsigned &resBW) {
   if (debug_verbose) {
@@ -262,19 +238,14 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
     printf("\n");
   }
   Expr *lExpr = expr->u.e.l;
-  if (procName[0] == '\0') {
-    sprintf(procName, "func");
-  }
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
-                                     procName,
                                      resSuffix,
                                      resBW);
   {
     /* generate subProc name */
     char *val = new char[100];
     getCurProc(lexpr_name, val);
-    sprintf(procName, "%s_%s%s", procName, sym, val);
   }
   char *finalExprName = new char[100];
   resSuffix++;
@@ -292,7 +263,6 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
 
 const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                                      Expr *expr,
-                                     char *procName,
                                      int &resSuffix,
                                      unsigned &resBW) {
   int type = expr->type;
@@ -327,7 +297,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "and",
                       "&",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -337,7 +306,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "or",
                       "|",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -346,7 +314,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       expr,
                       "not",
                       "~",
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -356,7 +323,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "add",
                       "+",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -366,7 +332,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "minus",
                       "-",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -376,7 +341,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "mul",
                       "*",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -386,7 +350,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "div",
                       "/",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -396,7 +359,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "mod",
                       "%",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -406,7 +368,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "lsl",
                       "<<",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -416,7 +377,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "lsr",
                       ">>",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -426,7 +386,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "asr",
                       ">>>",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -435,7 +394,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       expr,
                       "neg",
                       "-",
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -445,7 +403,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "xor",
                       "^",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -455,7 +412,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "lt",
                       "<",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -465,7 +421,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "gt",
                       ">",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -475,7 +430,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "le",
                       "<=",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -485,7 +439,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "ge",
                       ">=",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -495,7 +448,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "eq",
                       "=",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -505,7 +457,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       "ne",
                       "!=",
                       type,
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -514,7 +465,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                       expr,
                       "compl",
                       "~",
-                      procName,
                       resSuffix,
                       resBW);
     }
@@ -535,7 +485,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       }
       return printExpr(dflowGenerator,
                        lExpr,
-                       procName,
                        resSuffix,
                        resBW);
     }
@@ -544,7 +493,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       resBW = 1;
       return printExpr(dflowGenerator,
                        lExpr,
-                       procName,
                        resSuffix,
                        resBW);
     }
@@ -552,7 +500,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       return EMIT_QUERY(dflowGenerator,
                         expr,
                         "q",
-                        procName,
                         resSuffix,
                         resBW);
     }
@@ -1035,7 +982,6 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
 
 void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     act_dataflow_element *d,
-                                    char *procName,
                                     int &resSuffix,
                                     StringVec &outList,
                                     UIntVec &outBWList,
@@ -1080,33 +1026,19 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
     unsigned resBW = outBW;
     const char *exprName = printExpr(dflowGenerator,
                                      expr,
-                                     procName,
                                      resSuffix,
                                      resBW);
-    handlePort(expr,
-               procName,
-               resSuffix,
-               resBW,
-               exprName,
-               dflowGenerator);
+    handlePort(expr, resSuffix, resBW, exprName, dflowGenerator);
     outList.push_back(outName);
     outBWList.push_back(outBW);
     unsigned outID = outList.size() - 1;
     outRecord.insert({outID, resSuffix});
-
-    if (bufExpr) {
-      handleBuff(bufExpr, initExpr, procName, outName, outID, outBW, buffInfos);
-    }
-    {
-      char outWidthStr[1024];
-      sprintf(outWidthStr, "_%d", outBW);
-      strcat(procName, outWidthStr);
-    }
+    if (bufExpr)
+      handleBuff(bufExpr, initExpr, outName, outID, outBW, buffInfos);
     if (debug_verbose) {
       printf("For dataflow element: ");
       dflow_print(stdout, d);
       printf("\n___________________________________________\n");
-      printf("procName: %s\n", procName);
       printf("out bw: %d\n", outBW);
       printf("resSuffix: %d\n", resSuffix);
       printf("out: %s\n", outName);
@@ -1120,7 +1052,6 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
 
 void ProcGenerator::handleBuff(Expr *bufExpr,
                                Expr *initExpr,
-                               char *procName,
                                const char *outName,
                                unsigned outID,
                                unsigned outBW,
@@ -1136,11 +1067,6 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
     }
     initVal = initExpr->u.v;
     hasInitVal = true;
-    {
-      char *subProcName = new char[1500];
-      sprintf(subProcName, "_init%lu", initVal);
-      strcat(procName, subProcName);
-    }
   }
   double *buffMetric = metrics->getBuffMetric(numBuff, outBW);
   BuffInfo buff_info;
@@ -1158,7 +1084,6 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
 /* check if the expression only has E_VAR. Note that it could be built-in
  * int/bool, e.g., int(varName, bw). In this case, it still only has E_VAR expression. */
 void ProcGenerator::handlePort(const Expr *expr,
-                               char *procName,
                                int &resSuffix,
                                unsigned resBW,
                                const char *exprName,
@@ -1175,15 +1100,6 @@ void ProcGenerator::handlePort(const Expr *expr,
       printf("The expression ");
       print_expr(stdout, expr);
       printf(" is port!\n");
-    }
-    {
-      char *subProc = new char[10];
-      if (procName[0] != '\0') {
-        sprintf(subProc, "_port");
-      } else {
-        sprintf(subProc, "func_port");
-      }
-      strcat(procName, subProc);
     }
     resSuffix++;
     dflowGenerator->printChpPort(exprName, resSuffix, resBW);
@@ -1223,8 +1139,6 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         dflow_print(stdout, d);
         printf("\n");
       }
-      char *procName = new char[MAX_PROC_NAME_LEN];
-      procName[0] = '\0';
       StringVec argList;
       StringVec oriArgList;
       UIntVec argBWList;
@@ -1248,7 +1162,6 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                                hiddenExprs);
       handleDFlowFunc(dflowGenerator,
                       d,
-                      procName,
                       resSuffix,
                       outList,
                       outBWList,
@@ -1256,6 +1169,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                       buffInfos);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
+        const char *procName = NameGenerator::genExprName(d->u.func.lhs);
         printDFlowFunc(dflowGenerator,
                        procName,
                        outBWList,
@@ -1402,12 +1316,8 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
   }
 }
 
-void ProcGenerator::handleDFlowCluster(list_t *dflow) {
-  char *procName = new char[MAX_CLUSTER_PROC_NAME_LEN];
-  procName[0] = '\0';
-  IntVec boolResSuffixs;
+void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
   char *def = new char[10240];
-  def[0] = '\0';
   sprintf(def, "\n");
   StringVec argList;
   StringVec oriArgList;
@@ -1422,7 +1332,6 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
   StringMap<unsigned> hiddenBW;
   Map<unsigned int, unsigned int> outRecord;
   Map<Expr *, Expr *> hiddenExprs;
-  unsigned elementCnt = 0;
   auto dflowGenerator = new DflowGenerator(argList,
                                            oriArgList,
                                            argBWList,
@@ -1432,46 +1341,39 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow) {
                                            hiddenBW,
                                            hiddenExprs);
   listitem_t *li;
-  for (li = list_first (dflow); li; li = list_next (li)) {
+  for (li = list_first (dflow_cluster); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (debug_verbose) {
       printf("Start to process dflow_cluster element ");
       dflow_print(stdout, d);
-      printf(", current proc name: %s\n", procName);
+      printf("\n");
     }
     if (d->t == ACT_DFLOW_FUNC) {
       handleDFlowFunc(dflowGenerator,
                       d,
-                      procName,
                       resSuffix,
                       outList,
                       outBWList,
                       outRecord,
                       buffInfos);
-      char *subProc = new char[1024];
-      sprintf(subProc, "_p%d", elementCnt);
-      elementCnt++;
-      strcat(procName, subProc);
     } else {
       dflow_print(stdout, d);
-      printf("This dflow statement should not appear in dflow-cluster!\n");
+      printf(
+          "This dflow_cluster statement should not appear in dflow_cluster-cluster!\n");
       exit(-1);
     }
-    if (debug_verbose) {
-      printf("After processing dflow_cluster element ");
-      dflow_print(stdout, d);
-      printf(", the proc name: %s\n", procName);
-    }
   }
+  const char *clusterName = NameGenerator::genExprClusterName(dflow_cluster);
   if (debug_verbose) {
-    printf("Process cluster dflow:\n");
-    print_dflow(stdout, dflow);
+    printf("Process cluster dflow_cluster:\n");
+    print_dflow(stdout, dflow_cluster);
     printf("\n");
+    printf("Its name is %s\n", clusterName);
   }
   const char *calc = dflowGenerator->getCalc();
   if (strlen(calc) > 1) {
     printDFlowFunc(dflowGenerator,
-                   procName,
+                   clusterName,
                    outBWList,
                    outList,
                    outRecord,

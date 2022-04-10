@@ -24,6 +24,7 @@
 
 #include <act/act.h>
 #include <act/lang.h>
+#include <cstring>
 #include "src/common/common.h"
 #include "src/common/Constant.h"
 

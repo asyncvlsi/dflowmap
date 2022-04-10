@@ -65,7 +65,6 @@ class ProcGenerator {
   const char *EMIT_QUERY(DflowGenerator *dflowGenerator,
                          Expr *expr,
                          const char *sym,
-                         char *procName,
                          int &resSuffix,
                          unsigned &resBW);
 
@@ -74,7 +73,6 @@ class ProcGenerator {
                        const char *sym,
                        const char *op,
                        int type,
-                       char *procName,
                        int &resSuffix,
                        unsigned &resBW);
 
@@ -82,13 +80,11 @@ class ProcGenerator {
                        Expr *expr,
                        const char *sym,
                        const char *op,
-                       char *procName,
                        int &resSuffix,
                        unsigned &resBW);
 
   const char *printExpr(DflowGenerator *dflowGenerator,
                         Expr *expr,
-                        char *procName,
                         int &resSuffix,
                         unsigned &resBW);
 
@@ -131,7 +127,6 @@ class ProcGenerator {
 
   void handleDFlowFunc(DflowGenerator *dflowGenerator,
                        act_dataflow_element *d,
-                       char *procName,
                        int &resSuffix,
                        StringVec &outList,
                        UIntVec &outBWList,
@@ -146,20 +141,18 @@ class ProcGenerator {
 
   void handleNormDflowElement(act_dataflow_element *d, unsigned &sinkCnt);
 
-  void handleDFlowCluster(list_t *dflow);
+  void handleDFlowCluster(list_t *dflow_cluster);
 
   bool isOpUsed(ActId *actId);
 
   void handleBuff(Expr *bufExpr,
                   Expr *initExpr,
-                  char *procName,
                   const char *outName,
                   unsigned outID,
                   unsigned outBW,
                   Vector<BuffInfo> &buffInfos);
 
   static void handlePort(const Expr *expr,
-                         char *procName,
                          int &resSuffix,
                          unsigned resBW,
                          const char *exprName,
