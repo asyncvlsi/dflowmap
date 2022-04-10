@@ -50,102 +50,37 @@ class NameGenerator {
   static const char *genSourceInstName(unsigned long val, unsigned bitwidth);
 
   static const char *genExprName(Expr *expr) {
-    list_t *in_expr_list = list_new();
-    parseExpr(expr, in_expr_list);
-    return act_expr_to_string(in_expr_list, expr);
+    list_t *arg_list = list_new();
+    act_expr_collect_ids(arg_list, expr);
+    return act_expr_to_string(arg_list, expr);
   }
 
- private:
-  static void parseQueryExpr(const Expr *expr, list_t *in_expr_list) {
-    Expr *cExpr = expr->u.e.l;
-    parseExpr(cExpr, in_expr_list);
-    Expr *lExpr = expr->u.e.r->u.e.l;
-    parseExpr(lExpr, in_expr_list);
-    Expr *rExpr = expr->u.e.r->u.e.r;
-    parseExpr(rExpr, in_expr_list);
-  }
-
-  static void parseBinExpr(const Expr *expr, list_t *in_expr_list) {
-    Expr *lExpr = expr->u.e.l;
-    parseExpr(lExpr, in_expr_list);
-    Expr *rExpr = expr->u.e.r;
-    parseExpr(rExpr, in_expr_list);
-  }
-
-  static void parseUniExpr(const Expr *expr, list_t *in_expr_list) {
-    const Expr *lExpr = expr->u.e.l;
-    parseExpr(lExpr, in_expr_list);
-  }
-
-  static void parseExpr(const Expr *expr, list_t *in_expr_list) {
-    int type = expr->type;
-    switch (type) {
-      case E_VAR: {
-        //TODO: duplicate variables in the expr, e.g., "x + x * y"
-        bool duplicate = false;
-        listitem_t *li;
-        for (li = list_first (in_expr_list); li; li = list_next (li)) {
-	  ActId *tmp = (ActId *) list_value (li);
-          if (tmp == (ActId *)expr->u.e.l) {
-            duplicate = true;
-            break;
-          }
-          if (tmp->isEqual ((ActId *)expr->u.e.l)) {
-            duplicate = true;
-            break;
-          }
-        }
-        if (!duplicate) list_append(in_expr_list, expr->u.e.l);
-        break;
-      }
-      case E_NOT:
-      case E_UMINUS:
-      case E_COMPLEMENT: {
-        parseUniExpr(expr, in_expr_list);
-        break;
-      }
-      case E_QUERY: {
-        parseQueryExpr(expr, in_expr_list);
-        break;
-      }
-      case E_AND:
-      case E_OR:
-      case E_PLUS:
-      case E_MINUS:
-      case E_MULT:
-      case E_DIV:
-      case E_MOD:
-      case E_LSL:
-      case E_LSR:
-      case E_ASR:
-      case E_XOR:
-      case E_LT:
-      case E_GT:
-      case E_LE:
-      case E_GE:
-      case E_EQ:
-      case E_NE: {
-        parseBinExpr(expr, in_expr_list);
-        break;
-      }
-      case E_INT: {
-        break;
-      }
-      case E_BUILTIN_INT:
-      case E_BUILTIN_BOOL: {
-        Expr *lExpr = expr->u.e.l;
-        parseExpr(lExpr, in_expr_list);
-        break;
-      }
-      default: {
-        printf("Encountered unsupported expr (%d) for generating name\n", type);
-        print_expr(stdout, expr);
-        printf("\n");
+  static const char *genExprClusterName(list_t *dflow_cluster) {
+    Vector<Expr *> exprList;
+    for (listitem_t *li = list_first (dflow_cluster); li; li = list_next (li)) {
+      auto *d = (act_dataflow_element *) list_value (li);
+      if (d->t != ACT_DFLOW_FUNC) {
+        dflow_print(stdout, d);
+        printf("\nThis dflow statement should not appear in dflow-cluster!\n");
         exit(-1);
       }
+      Expr *expr = d->u.func.lhs;
+      exprList.push_back(expr);
     }
+    list_t *argList = list_new();
+    for (auto &e: exprList) {
+      act_expr_collect_ids(argList, e);
+    }
+    char *name = new char[MAX_CLUSTER_PROC_NAME_LEN];
+    name[0] = '\0';
+    char *delimiter = new char[1];
+    sprintf(delimiter, "_");
+    for (auto &e: exprList) {
+      if (name[0] != '\0') strcat(name, delimiter);
+      strcat(name, act_expr_to_string(argList, e));
+    }
+    return name;
   }
-
 };
 
 #endif //DFLOWMAP_SRC_CORE_NAMEGENERATOR_H_
