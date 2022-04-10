@@ -46,7 +46,6 @@ class ChpLibGenerator {
                 const char *instance,
                 double *fuMetric,
                 UIntVec &resBW,
-                UIntVec &outBW,
                 Map<unsigned int, unsigned int> &outRecord,
                 Vector<BuffInfo> &buffInfos);
 
@@ -57,8 +56,7 @@ class ChpLibGenerator {
                    unsigned int numOuts,
                    const char *instance,
                    double *metric,
-                   UIntVec &resBW,
-                   UIntVec &outBW);
+                   UIntVec &resBW);
 
   void createMerge(const char *instance, double *metric);
 

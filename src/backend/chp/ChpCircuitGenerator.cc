@@ -125,9 +125,6 @@ void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
 
 void ChpCircuitGenerator::printFunc(const char *instance,
                                     StringVec &argList,
-                                    UIntVec &argBWList,
-                                    UIntVec &resBWList,
-                                    UIntVec &outBWList,
                                     StringVec &outList,
                                     Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
@@ -144,7 +141,6 @@ void ChpCircuitGenerator::printFunc(const char *instance,
     unsigned bw = buffInfo.bw;
     printChannel(actualOut, bw);
   }
-
   Vector<unsigned> buffOutIDs;
   for (auto &buffInfo: buffInfos) {
     buffOutIDs.push_back(buffInfo.outputID);

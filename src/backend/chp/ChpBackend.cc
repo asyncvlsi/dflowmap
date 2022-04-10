@@ -54,9 +54,7 @@ void ChpBackend::printSource(const char *instance,
 void ChpBackend::printFU(const char *procName,
                          const char *instance,
                          StringVec &argList,
-                         UIntVec &argBWList,
                          UIntVec &resBWList,
-                         UIntVec &outBWList,
                          const char *calc,
                          StringVec &outList,
                          Map<unsigned int, unsigned int> &outRecord,
@@ -65,9 +63,6 @@ void ChpBackend::printFU(const char *procName,
   /* handle normal fu */
   circuitGenerator->printFunc(instance,
                               argList,
-                              argBWList,
-                              resBWList,
-                              outBWList,
                               outList,
                               buffInfos);
   unsigned numArgs = argList.size();
@@ -79,7 +74,6 @@ void ChpBackend::printFU(const char *procName,
                          instance,
                          fuMetric,
                          resBWList,
-                         outBWList,
                          outRecord,
                          buffInfos);
 }

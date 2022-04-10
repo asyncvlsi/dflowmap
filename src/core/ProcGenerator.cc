@@ -945,19 +945,25 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   StringMap<unsigned> &inBW = dflowGenerator->getInBW();
   StringMap<unsigned> &hiddenBW = dflowGenerator->getHiddenBWs();
   Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
-
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<", procName);
-  unsigned numArgs = argList.size();
-  unsigned i = 0;
-  for (; i < numArgs; i++) {
-    char *subInstance = new char[100];
-    if (i == (numArgs - 1)) {
-      sprintf(subInstance, "%u>", argBWList[i]);
-    } else {
+  {
+    sprintf(instance, "%s<", procName);
+    unsigned numArgs = argList.size();
+    unsigned numOuts = outBWList.size();
+    for (int i = 0; i < numArgs; i++) {
+      char *subInstance = new char[100];
       sprintf(subInstance, "%u,", argBWList[i]);
+      strcat(instance, subInstance);
     }
-    strcat(instance, subInstance);
+    for (int i = 0; i < numOuts; i++) {
+      char *subInstance = new char[100];
+      if (i == (numOuts - 1)) {
+        sprintf(subInstance, "%u>", outBWList[i]);
+      } else {
+        sprintf(subInstance, "%u,", outBWList[i]);
+      }
+      strcat(instance, subInstance);
+    }
   }
   double *fuMetric = metrics->getOrGenFUMetric(instance,
                                                inBW,
@@ -969,9 +975,7 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   chpBackend->printFU(procName,
                       instance,
                       argList,
-                      argBWList,
                       resBWList,
-                      outBWList,
                       calc,
                       outList,
                       outRecord,

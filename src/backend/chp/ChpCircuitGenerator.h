@@ -57,9 +57,6 @@ class ChpCircuitGenerator {
 
   void printFunc(const char *instance,
                  StringVec &argList,
-                 UIntVec &argBWList,
-                 UIntVec &resBWList,
-                 UIntVec &outBWList,
                  StringVec &outList,
                  Vector<BuffInfo> &buffInfos);
 

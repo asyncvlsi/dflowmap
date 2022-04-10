@@ -124,7 +124,6 @@ void ChpLibGenerator::createFU(const char *procName,
                                const char *instance,
                                double *fuMetric,
                                UIntVec &resBW,
-                               UIntVec &outBW,
                                Map<unsigned int, unsigned int> &outRecord,
                                Vector<BuffInfo> &buffInfos) {
   if (strlen(instance) < 5) {
@@ -135,7 +134,7 @@ void ChpLibGenerator::createFU(const char *procName,
   sprintf(outSend, "      ");
   int i = 0;
   Vector<unsigned> resSuffixVec;
-  for (auto &outRecordIt : outRecord) {
+  for (auto &outRecordIt: outRecord) {
     unsigned outID = outRecordIt.first;
     unsigned resSuffix = outRecordIt.second;
     resSuffixVec.push_back(resSuffix);
@@ -150,7 +149,7 @@ void ChpLibGenerator::createFU(const char *procName,
   }
   char *log = new char[1500];
   sprintf(log, "      log(\"send (\", ");
-  for (auto &outResSuffix : resSuffixVec) {
+  for (auto &outResSuffix: resSuffixVec) {
     char *subLog = new char[100];
     sprintf(subLog, "res%u, \",\", ", outResSuffix);
     strcat(log, subLog);
@@ -166,8 +165,7 @@ void ChpLibGenerator::createFU(const char *procName,
               numOuts,
               instance,
               fuMetric,
-              resBW,
-              outBW);
+              resBW);
 //  createBuff(buffInfos, buffMetric);
 }
 
@@ -178,56 +176,60 @@ void ChpLibGenerator::createFULib(const char *procName,
                                   unsigned int numOuts,
                                   const char *instance,
                                   double *metric,
-                                  UIntVec &resBW,
-                                  UIntVec &outBW) {
+                                  UIntVec &resBW) {
   if (!hasProcess(procName)) {
     fprintf(libFp, "template<pint ");
-    int i = 0;
-    // generate template for input channels
-    for (; i < numArgs; i++) {
+    unsigned numTemplateVars = numArgs + numOuts;
+    /* generate template for input/output channels */
+    for (int i = 0; i < numTemplateVars; i++) {
       fprintf(libFp, "W%d", i);
-      if (i == (numArgs - 1)) {
+      if (i == (numTemplateVars - 1)) {
         fprintf(libFp, ">\n");
       } else {
         fprintf(libFp, ", ");
       }
     }
-    // generate defproc
+    /* generate defproc */
     fprintf(libFp, "defproc %s(", procName);
-    for (i = 0; i < numArgs; i++) {
+    for (int i = 0; i < numArgs; i++) {
       fprintf(libFp, "chan?(int<W%d>)arg%d; ", i, i);
     }
-    for (i = 0; i < numOuts; i++) {
-      fprintf(libFp, "chan!(int<%d>) out%d", outBW[i], i);
+    for (int i = 0; i < numOuts; i++) {
+      fprintf(libFp, "chan!(int<W%d>) out%d", (i + numArgs), i);
       if (i == (numOuts - 1)) {
         fprintf(libFp, ") {\n");
       } else {
         fprintf(libFp, "; ");
       }
     }
-    // define internal variables for the input channel
-    for (i = 0; i < numArgs; i++) {
+    /* define internal variables for the input channel */
+    for (int i = 0; i < numArgs; i++) {
       fprintf(libFp, "  int<W%d> x%d;\n", i, i);
     }
-    // define intermediate variables
+    /* define intermediate variables */
     unsigned numRes = resBW.size();
-    for (i = 0; i < numRes; i++) {
+    for (int i = 0; i < numRes; i++) {
       unsigned int resbw = resBW[i];
       fprintf(libFp, "  int<%u> res%d;\n", resbw, i);
     }
-    // generate CHP's actual code
+    /* generate CHP block */
     fprintf(libFp, "  chp {\n");
     fprintf(libFp, "    *[\n      ");
-    for (i = 0; i < numArgs - 1; i++) {
-      fprintf(libFp, "arg%d?x%d, ", i, i);
+    for (int i = 0; i < numArgs; i++) {
+      if (i == numArgs - 1) {
+        fprintf(libFp, "arg%d?x%d;\n", i, i);
+      } else {
+        fprintf(libFp, "arg%d?x%d, ", i, i);
+      }
     }
-    fprintf(libFp, "arg%d?x%d;\n", i, i);
     fprintf(libFp, "      log(\"receive (\", ");
-    for (i = 0; i < numArgs - 1; i++) {
-      fprintf(libFp, "x%d, \",\", ", i);
+    for (int i = 0; i < numArgs; i++) {
+      if (i == numArgs - 1) {
+        fprintf(libFp, "x%d, \")\");\n", i);
+      } else {
+        fprintf(libFp, "x%d, \",\", ", i);
+      }
     }
-    fprintf(libFp, "x%d, \")\");\n", i);
-
     fprintf(libFp, "%s", calc);
     fprintf(libFp, "%s", outSend);
     fprintf(libFp, "\n    ]\n  }\n}\n\n");
@@ -266,7 +268,7 @@ void ChpLibGenerator::createOneBuff(const char *instance, double *metric) {
 }
 
 void ChpLibGenerator::createBuff(Vector<BuffInfo> &buffInfos) {
-  for (auto &buffInfo : buffInfos) {
+  for (auto &buffInfo: buffInfos) {
     unsigned numBuff = buffInfo.nBuff;
     unsigned bw = buffInfo.bw;
     bool hasInitVal = buffInfo.hasInitVal;
