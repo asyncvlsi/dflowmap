@@ -8,6 +8,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 
 using namespace std;
 using std::filesystem::directory_iterator;

@@ -85,12 +85,17 @@ class NameGenerator {
         bool duplicate = false;
         listitem_t *li;
         for (li = list_first (in_expr_list); li; li = list_next (li)) {
-          if ((long) list_value(li) == (long) expr) {
+	  ActId *tmp = (ActId *) list_value (li);
+          if (tmp == (ActId *)expr->u.e.l) {
+            duplicate = true;
+            break;
+          }
+          if (tmp->isEqual ((ActId *)expr->u.e.l)) {
             duplicate = true;
             break;
           }
         }
-        if (!duplicate) list_append(in_expr_list, expr);
+        if (!duplicate) list_append(in_expr_list, expr->u.e.l);
         break;
       }
       case E_NOT:
