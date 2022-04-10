@@ -988,8 +988,6 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     Map<unsigned int, unsigned int> &outRecord,
                                     Vector<BuffInfo> &buffInfos) {
   Expr *expr = d->u.func.lhs;
-  print_expr(stdout, expr);
-  printf(" => %s\n", NameGenerator::genExprName(expr));
   int type = expr->type;
   ActId *rhs = d->u.func.rhs;
   char outName[10240];
