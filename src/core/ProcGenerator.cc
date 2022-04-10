@@ -133,20 +133,17 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                      rExpr,
                                      resSuffix,
                                      resBW);
-  {
-    /* generate subProc name */
-    char *cVal = new char[100];
-    getCurProc(cexpr_name, cVal);
-    char *lVal = new char[100];
-    getCurProc(lexpr_name, lVal);
-    char *rVal = new char[100];
-    getCurProc(rexpr_name, rVal);
-    if (!strcmp(lexpr_name, rexpr_name)) {
-      printf("This query expr has the same true/false branch!\n");
-      print_expr(stdout, expr);
-      printf("!\n");
-      exit(-1);
-    }
+  char *cVal = new char[100];
+  getCurProc(cexpr_name, cVal);
+  char *lVal = new char[100];
+  getCurProc(lexpr_name, lVal);
+  char *rVal = new char[100];
+  getCurProc(rexpr_name, rVal);
+  if (!strcmp(lexpr_name, rexpr_name)) {
+    printf("This query expr has the same true/false branch!\n");
+    print_expr(stdout, expr);
+    printf("!\n");
+    exit(-1);
   }
   char *finalExprName = new char[100];
   resSuffix++;
@@ -197,13 +194,10 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                      rExpr,
                                      resSuffix,
                                      resBW);
-  {
-    /* generate subProc name */
-    char *lVal = new char[100];
-    getCurProc(lexpr_name, lVal);
-    char *rVal = new char[100];
-    getCurProc(rexpr_name, rVal);
-  }
+  char *lVal = new char[100];
+  getCurProc(lexpr_name, lVal);
+  char *rVal = new char[100];
+  getCurProc(rexpr_name, rVal);
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
@@ -242,11 +236,8 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                      lExpr,
                                      resSuffix,
                                      resBW);
-  {
-    /* generate subProc name */
-    char *val = new char[100];
-    getCurProc(lexpr_name, val);
-  }
+  char *val = new char[100];
+  getCurProc(lexpr_name, val);
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
@@ -945,26 +936,8 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   StringMap<unsigned> &inBW = dflowGenerator->getInBW();
   StringMap<unsigned> &hiddenBW = dflowGenerator->getHiddenBWs();
   Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
-  char *instance = new char[MAX_INSTANCE_LEN];
-  {
-    sprintf(instance, "%s<", procName);
-    unsigned numArgs = argList.size();
-    unsigned numOuts = outBWList.size();
-    for (int i = 0; i < numArgs; i++) {
-      char *subInstance = new char[100];
-      sprintf(subInstance, "%u,", argBWList[i]);
-      strcat(instance, subInstance);
-    }
-    for (int i = 0; i < numOuts; i++) {
-      char *subInstance = new char[100];
-      if (i == (numOuts - 1)) {
-        sprintf(subInstance, "%u>", outBWList[i]);
-      } else {
-        sprintf(subInstance, "%u,", outBWList[i]);
-      }
-      strcat(instance, subInstance);
-    }
-  }
+  const char *instance =
+      NameGenerator::genFUName(procName, argList, outBWList, argBWList);
   double *fuMetric = metrics->getOrGenFUMetric(instance,
                                                inBW,
                                                hiddenBW,
@@ -972,8 +945,8 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                                                hiddenExprs,
                                                outRecord,
                                                outBWList);
-  chpBackend->printFU(procName,
-                      instance,
+  chpBackend->printFU(instance,
+                      procName,
                       argList,
                       resBWList,
                       calc,

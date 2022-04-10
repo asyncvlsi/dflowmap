@@ -117,11 +117,11 @@ void ChpLibGenerator::createConf(const char *instance, double *metric) {
   }
 }
 
-void ChpLibGenerator::createFU(const char *procName,
+void ChpLibGenerator::createFU(const char *instance,
+                               const char *procName,
                                const char *calc,
                                unsigned int numArgs,
                                unsigned int numOuts,
-                               const char *instance,
                                double *fuMetric,
                                UIntVec &resBW,
                                Map<unsigned int, unsigned int> &outRecord,
@@ -158,23 +158,23 @@ void ChpLibGenerator::createFU(const char *procName,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-  createFULib(procName,
+  createFULib(instance,
+              procName,
               calc,
               outSend,
               numArgs,
               numOuts,
-              instance,
               fuMetric,
               resBW);
 //  createBuff(buffInfos, buffMetric);
 }
 
-void ChpLibGenerator::createFULib(const char *procName,
+void ChpLibGenerator::createFULib(const char *instance,
+                                  const char *procName,
                                   const char *calc,
                                   const char *outSend,
                                   unsigned int numArgs,
                                   unsigned int numOuts,
-                                  const char *instance,
                                   double *metric,
                                   UIntVec &resBW) {
   if (!hasProcess(procName)) {

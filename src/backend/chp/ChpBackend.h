@@ -49,8 +49,8 @@ class ChpBackend {
                    const char *outName,
                    double metric[4]);
 
-  void printFU(const char *procName,
-               const char *instance,
+  void printFU(const char *instance,
+               const char *procName,
                StringVec &argList,
                UIntVec &resBWList,
                const char *calc,

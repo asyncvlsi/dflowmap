@@ -82,6 +82,31 @@ class NameGenerator {
     }
     return name;
   }
+
+  static const char *genFUName(const char *procName,
+                               StringVec &argList,
+                               UIntVec &outBWList,
+                               UIntVec &argBWList) {
+    char *instance = new char[MAX_INSTANCE_LEN];
+    sprintf(instance, "%s<", procName);
+    unsigned numArgs = argList.size();
+    unsigned numOuts = outBWList.size();
+    for (int i = 0; i < numArgs; i++) {
+      char *subInstance = new char[100];
+      sprintf(subInstance, "%u,", argBWList[i]);
+      strcat(instance, subInstance);
+    }
+    for (int i = 0; i < numOuts; i++) {
+      char *subInstance = new char[100];
+      if (i == (numOuts - 1)) {
+        sprintf(subInstance, "%u>", outBWList[i]);
+      } else {
+        sprintf(subInstance, "%u,", outBWList[i]);
+      }
+      strcat(instance, subInstance);
+    }
+    return instance;
+  }
 };
 
 #endif //DFLOWMAP_SRC_CORE_NAMEGENERATOR_H_

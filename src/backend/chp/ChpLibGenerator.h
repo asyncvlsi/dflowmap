@@ -39,22 +39,22 @@ class ChpLibGenerator {
 
   void createConf(const char *instance, double *metric);
 
-  void createFU(const char *procName,
+  void createFU(const char *instance,
+                const char *procName,
                 const char *calc,
                 unsigned int numArgs,
                 unsigned int numOuts,
-                const char *instance,
                 double *fuMetric,
                 UIntVec &resBW,
                 Map<unsigned int, unsigned int> &outRecord,
                 Vector<BuffInfo> &buffInfos);
 
-  void createFULib(const char *procName,
+  void createFULib(const char *instance,
+                   const char *procName,
                    const char *calc,
                    const char *outSend,
                    unsigned int numArgs,
                    unsigned int numOuts,
-                   const char *instance,
                    double *metric,
                    UIntVec &resBW);
 
