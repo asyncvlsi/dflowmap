@@ -212,6 +212,7 @@ defproc init_dflow <: init()
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = cele.out;
+  reset_nor.Y = out.r;
 
   capture_init<V, W, CD, PW> data_capture;
   cele.out = data_capture.go.r;
@@ -222,6 +223,34 @@ defproc init_dflow <: init()
   spec {
     timing cele.out+: out.d < in.a+
   }
+}
+
+/*
+ * The control unit of M-in-N-out function.
+ * In this design, all outputs share the same delay line.
+ * Timing constraints need to be specified when this circuit is used to construct the actual function.
+ *
+ */
+export template<pint M, N, CD, PW>
+defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
+{
+  ctree<N, false> ack_ctree;
+  (i:N: ack_ctree.in[i] = out[i].a;)
+
+  OR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = ack_ctree.out;
+
+  CELE celes[M];
+  (i:M: in[i].r = celes[i].in[0]; reset_nor.Y = celes[i].in[1]; dc[i].r = celes[i].out;)
+
+  ctree<M, false> data_ctree;
+  (i:M: data_ctree.in[i] = dc[i].a;)
+  data_ctree.out = f.r;
+
+  sigbuf<N> out_ftree;
+  f.a = out_ftree.in;
+  (i:N: out_ftree.out[i] = out[i].r;)
 }
 
 }
