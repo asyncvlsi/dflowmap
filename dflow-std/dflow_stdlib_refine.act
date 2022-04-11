@@ -129,6 +129,39 @@ defproc capture(a1of1 go; bool? din[W]; bool! dout[W])
   }
 }
 
+template <pint V, W>
+defproc variable_value(bool? R, CLK, D[W]; bool! Q[W])
+{
+  sigbuf<W> clk_ftree;
+  clk_ftree.in = CLK;
+  (i:W: 
+    [((V >> i) & 1) = 0 -> LATCHLO latch_low[i..i]; latch_low[i].R = R; latch_low[i].CLK = clk_ftree.out[i]; latch_low[i].D = D[i]; latch_low[i].Q = Q[i];
+    [] else -> LATCHHI latch_hi[i..i]; latch_hi[i].S = R; latch_hi[i].CLK = clk_ftree.out[i]; latch_hi[i].D = D[i]; latch_hi[i].Q = Q[i];
+    ]
+  )
+}
+
+export template <pint V, W, CD, PW>
+defproc capture_init(a1of1 go; bool? din[W]; bool! dout[W])
+{
+  delay_line<CD> capture_delay;
+  go.r = capture_delay.in;
+  go.a = capture_delay.out;
+
+  pulse<PW> pulse_generator;
+  go.r = pulse_generator.in;
+
+  variable_value<V, W> x;
+  x.R = Reset;
+  x.CLK = pulse_generator.out;
+  x.D = din;
+  x.Q = dout;
+
+  spec {
+    timing go.r+: dout < go.a+
+  }
+}
+
 export defproc CELE <: ctree<2, false> () {}
 export defproc INVCELE <: ctree<2, true> () {}
 
@@ -158,6 +191,36 @@ defproc onebuf_dflow <: onebuf()
 
   spec {
     timing cele.out+: out.d < out.r+
+  }
+}
+
+/*
+ * This is a one-place buffer with an initial token.
+ * This implementation uses a weird reshuffling, and will be replaced soon. 
+ *
+ */
+export template<pint CD, PW>
+defproc init_dflow <: init() 
++{
+  bd<W> in, out;
+}
+{
+  CELE cele;
+  cele.in[0] = in.r;
+  cele.in[1] = out.a;
+
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = cele.out;
+
+  capture_init<V, W, CD, PW> data_capture;
+  cele.out = data_capture.go.r;
+  data_capture.go.a = in.a;
+  data_capture.din = in.d;
+  data_capture.dout = out.d;
+
+  spec {
+    timing cele.out+: out.d < in.a+
   }
 }
 
