@@ -368,7 +368,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
       b_width->i = (int) bw;
       processedResIDs.push_back(resID);
     }
-    auto optimizer = new ExternalExprOpt(genus, bd, false);
+    /* Call the logic optimizer */
     if (debug_verbose) {
       listitem_t *li;
       printf("in_expr_bundle:\n");
@@ -409,8 +409,15 @@ double *Metrics::getOrGenFUMetric(const char *instance,
     if (debug_verbose) {
       printf("Run logic optimizer for %s\n", normalizedOp);
     }
-    char *rtlModuleName = new char[1000];
-    sprintf(rtlModuleName, "op");
+    char *rtlModuleName = new char[strlen(normalizedOp) + 1];
+    sprintf(rtlModuleName, normalizedOp);
+    char *optimized_process_path = new char[strlen(rtlModuleName) + 5];
+    sprintf(optimized_process_path, "%s.act", rtlModuleName);
+    expr_mapping_software software = yosys;
+    if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
+    bool tie_cells = false;
+    auto optimizer =
+        new ExternalExprOpt(software, bd, tie_cells, optimized_process_path);
     ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
                                                       in_expr_list,
                                                       in_expr_map,

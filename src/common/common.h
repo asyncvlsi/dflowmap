@@ -34,6 +34,11 @@
 #else
 #define LOGIC_OPTIMIZER false
 #endif
+#ifdef FOUND_exproptcommercial
+#define COMMERCIAL_LOGIC_OPTIMIZER true
+#else
+#define COMMERCIAL_LOGIC_OPTIMIZER false
+#endif
 #define MAX_PROC_NAME_LEN 102400
 #define SHORT_STRING_LEN 1024
 #define MAX_INSTANCE_LEN 204800
