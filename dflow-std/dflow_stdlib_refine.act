@@ -300,7 +300,7 @@ defproc copy_dflow <: copy()
       pint M_dflow = N/8;
       pint F_dflow = N - M_dflow*8;
       copy_leaf_dflow<CD,PW,W,8> t_dflow[M_dflow];
-      (i:M_dflow: t_dflow[i].out=out[8*i..8*i+7];)
+      (i:M_dflow: t_dflow[i].out = out[8*i..8*i+7];)
       [ F_dflow > 0 -> copy_leaf_dflow<CD,PW,W,F_dflow> u_dflow;
                  copy_dflow<CD,PW,W,M_dflow+1> m_dflow(in);
                  (i:M_dflow: m_dflow.out[i] = t_dflow[i].in;)
@@ -311,5 +311,47 @@ defproc copy_dflow <: copy()
       ]
   ]
 }
+
+export template<pint W> 
+defproc and_tree(bool? in[W]; bool! out)
+{
+  [ W > 2 ->
+      AND2X1 and;
+      and.Y = out;
+      and_tree<W/2> l(in[0..W/2-1], and.A);
+      and_tree<W-W/2> r(in[W/2..W-1], and.B);
+  [] W = 2 ->
+      AND2X1 and;
+      and.A = in[0];
+      and.B = in[1];
+      and.Y = out;
+  [] else ->
+      //in[0] = out;
+      // this signal buffer is needed because it is not allowed to directly connect `in[0]' with `out'.
+      BUFX2 sig_buf;
+      sig_buf.A = in[0];
+      sig_buf.Y = out;
+  ]
+}
+
+export template<pint W; pint N>
+defproc address_decoder(bool? in[W]; bool! out[N])
+{
+  INVX1 invs0[W];
+  INVX1 invs1[W];
+  (i:W: invs0[i].A = in[i]; invs0[i].Y = invs1[i].A;)
+
+  and_tree<W> atrees[N];
+  (i:N:
+    (b:W: 
+      [((i >> b) & 1) = 0 -> atrees[i].in[b] = invs0[b].Y;
+      [] else -> atrees[i].in[b] = invs1[b].Y;
+      ]
+    )
+    atrees[i].out = out[i];
+  )
+}
+
+
 
 }
