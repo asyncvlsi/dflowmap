@@ -254,10 +254,6 @@ defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
   (i:N: out_ftree.out[i] = out[i].r;)
 }
 
-/*
- * This is not usable now.
- *
- */
 export template<pint CD, PW>
 defproc copy_leaf_dflow <: copy_leaf() 
 +{
@@ -291,6 +287,29 @@ defproc copy_leaf_dflow <: copy_leaf()
   spec {
     timing cele.out+: out.d < in.a+
   }
+}
+
+export template<pint CD, PW>
+defproc copy_dflow <: copy()
++{
+  bd<W> in, out;
+}
+{
+  [ N <= 8 -> copy_leaf_dflow<CD,PW,W,N> l_dflow(in,out);
+   [] else ->
+      pint M_dflow = N/8;
+      pint F_dflow = N - M_dflow*8;
+      copy_leaf_dflow<CD,PW,W,8> t_dflow[M_dflow];
+      (i:M_dflow: t_dflow[i].out=out[8*i..8*i+7];)
+      [ F_dflow > 0 -> copy_leaf_dflow<CD,PW,W,F_dflow> u_dflow;
+                 copy_dflow<CD,PW,W,M_dflow+1> m_dflow(in);
+                 (i:M_dflow: m_dflow.out[i] = t_dflow[i].in;)
+                 m_dflow.out[M_dflow] = u_dflow.in;
+                 u_dflow.out=out[M_dflow*8..N-1];
+      [] else -> copy_dflow<CD,PW,W,M_dflow> n_dflow(in);
+                 (i:M_dflow: n_dflow.out[i] = t_dflow[i].in;)
+      ]
+  ]
 }
 
 }
