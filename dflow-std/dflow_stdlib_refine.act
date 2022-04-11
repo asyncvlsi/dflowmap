@@ -185,9 +185,10 @@ defproc onebuf_dflow <: onebuf()
 
   capture<W, CD, PW> data_capture;
   cele.out = data_capture.go.r;
-  data_capture.go.a = in.a;
   data_capture.din = in.d;
   data_capture.dout = out.d;
+  data_capture.go.a = in.a;
+  data_capture.go.a = out.r;
 
   spec {
     timing cele.out+: out.d < out.r+
@@ -251,6 +252,45 @@ defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
   sigbuf<N> out_ftree;
   f.a = out_ftree.in;
   (i:N: out_ftree.out[i] = out[i].r;)
+}
+
+/*
+ * This is not usable now.
+ *
+ */
+export template<pint CD, PW>
+defproc copy_leaf_dflow <: copy_leaf() 
++{
+  bd<W> in, out[N];
+}
+{
+  ctree<N, false> ack_ctree;
+  (i:N: ack_ctree.in[i] = out[i].a;)
+
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = ack_ctree.out;
+
+  CELE cele;
+  cele.in[0] = in.r;
+  cele.in[1] = reset_nor.Y;
+
+  capture<W, CD, PW> data_capture;
+  cele.out = data_capture.go.r;
+  data_capture.din = in.d;
+  data_capture.dout = out.d;
+  data_capture.go.a = in.a;
+
+  sigbuf<N> r_ftree;
+  in.a = r_ftree.in;
+  (i:N: r_ftree.out[i] = out[i].r;)
+
+  //sigbuf<N> d_ftrees[W];
+  // a buffer tree to drive multiple output for datapath
+
+  spec {
+    timing cele.out+: out.d < in.a+
+  }
 }
 
 }
