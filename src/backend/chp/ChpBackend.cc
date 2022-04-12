@@ -78,8 +78,7 @@ void ChpBackend::printFU(const char *instance,
                          argBWList,
                          resBWList,
                          outBWList,
-                         outRecord,
-                         buffInfos);
+                         outRecord);
 }
 
 void ChpBackend::printSplit(const char *instance,

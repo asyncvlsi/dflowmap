@@ -102,14 +102,12 @@ static void create_outfiles(const char *src,
   }
 }
 
-Metrics *createMetrics(const char *metricFile, const char *statsFilePath) {
-  char *metricFilePath = new char[1000];
+static Metrics *createMetrics(const char *metricFile,
+                              const char *statsFilePath) {
+  size_t metricFPLen = (metricFile) ? 1 + strlen(metricFile) : 1024;
+  char *metricFilePath = new char[metricFPLen];
   if (metricFile) {
-    if (strlen(metricFile) > 1000) {
-      printf("The metric file path %s is too long!\n", metricFile);
-      exit(-1);
-    }
-    snprintf(metricFilePath, 1000, "%s", metricFile);
+    sprintf(metricFilePath, "%s", metricFile);
   } else {
     sprintf(metricFilePath, "dflow-std/chp.metrics");
   }

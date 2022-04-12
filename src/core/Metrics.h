@@ -80,7 +80,7 @@ class Metrics {
                            Map<unsigned int, unsigned int> &outRecord,
                            UIntVec &outBWList);
 
-  double *getSourceMetric(const char *instance, unsigned int bitwidth);
+  double *getSourceMetric(const char *instance);
 
   double *getOrGenMergeMetric(unsigned guardBW, unsigned inBW, unsigned numIn);
 

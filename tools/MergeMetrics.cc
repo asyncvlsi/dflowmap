@@ -1,5 +1,3 @@
-
-
 /**
  * compile: g++ -std=c++17 MergeMetrics.cc
  */

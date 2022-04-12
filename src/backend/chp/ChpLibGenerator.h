@@ -49,8 +49,7 @@ class ChpLibGenerator {
                 UIntVec &argBWList,
                 UIntVec &resBWList,
                 UIntVec &outBWList,
-                Map<unsigned int, unsigned int> &outRecord,
-                Vector<BuffInfo> &buffInfos);
+                Map<unsigned int, unsigned int> &outRecord);
 
   void createNetListLib(const char *instance,
                         const char *procName,
