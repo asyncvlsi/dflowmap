@@ -31,7 +31,7 @@
 
 class ChpLibGenerator {
  public:
-  ChpLibGenerator(FILE *libFp, FILE *confFp);
+  ChpLibGenerator(FILE *libFp, FILE *netlistLibFp, FILE *confFp);
 
   void genMemConfiguration(const char *procName);
 
@@ -45,9 +45,16 @@ class ChpLibGenerator {
                 unsigned int numArgs,
                 unsigned int numOuts,
                 double *fuMetric,
-                UIntVec &resBW,
+                UIntVec &argBWList,
+                UIntVec &resBWList,
+                UIntVec &outBWList,
                 Map<unsigned int, unsigned int> &outRecord,
                 Vector<BuffInfo> &buffInfos);
+
+  void createNetListLib(const char *instance,
+                        const char *procName,
+                        UIntVec &argBWList,
+                        UIntVec &outBWList);
 
   void createFULib(const char *instance,
                    const char *procName,
@@ -91,11 +98,14 @@ class ChpLibGenerator {
   const char *instances[MAX_PROCESSES];
 
   FILE *libFp;
+  FILE *netlistLibFp;
   FILE *confFp;
 
   bool hasInstance(const char *instance);
 
-  bool hasProcess(const char *process);
+  bool checkAndUpdateInstance(const char *instance);
+
+  bool checkAndUpdateProcess(const char *process);
 
 };
 

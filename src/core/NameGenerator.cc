@@ -116,3 +116,61 @@ const char *NameGenerator::genSourceInstName(unsigned long val,
   sprintf(instance, "dflowstd::source<%lu,%u>", val, bitwidth);
   return instance;
 }
+
+const char *NameGenerator::genExprName(Expr *expr) {
+  list_t *arg_list = list_new();
+  act_expr_collect_ids(arg_list, expr);
+  return act_expr_to_string(arg_list, expr);
+}
+
+const char *NameGenerator::genExprClusterName(list_t *dflow_cluster) {
+  Vector<Expr *> exprList;
+  for (listitem_t *li = list_first (dflow_cluster); li; li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    if (d->t != ACT_DFLOW_FUNC) {
+      dflow_print(stdout, d);
+      printf("\nThis dflow statement should not appear in dflow-cluster!\n");
+      exit(-1);
+    }
+    Expr *expr = d->u.func.lhs;
+    exprList.push_back(expr);
+  }
+  list_t *argList = list_new();
+  for (auto &e: exprList) {
+    act_expr_collect_ids(argList, e);
+  }
+  char *name = new char[MAX_CLUSTER_PROC_NAME_LEN];
+  name[0] = '\0';
+  char *delimiter = new char[1];
+  sprintf(delimiter, "_");
+  for (auto &e: exprList) {
+    if (name[0] != '\0') strcat(name, delimiter);
+    strcat(name, act_expr_to_string(argList, e));
+  }
+  return name;
+}
+
+const char *NameGenerator::genFUName(const char *procName,
+                                     StringVec &argList,
+                                     UIntVec &outBWList,
+                                     UIntVec &argBWList) {
+  char *instance = new char[MAX_INSTANCE_LEN];
+  sprintf(instance, "%s<", procName);
+  unsigned numArgs = argList.size();
+  unsigned numOuts = outBWList.size();
+  for (int i = 0; i < numArgs; i++) {
+    char *subInstance = new char[100];
+    sprintf(subInstance, "%u,", argBWList[i]);
+    strcat(instance, subInstance);
+  }
+  for (int i = 0; i < numOuts; i++) {
+    char *subInstance = new char[100];
+    if (i == (numOuts - 1)) {
+      sprintf(subInstance, "%u>", outBWList[i]);
+    } else {
+      sprintf(subInstance, "%u,", outBWList[i]);
+    }
+    strcat(instance, subInstance);
+  }
+  return instance;
+}

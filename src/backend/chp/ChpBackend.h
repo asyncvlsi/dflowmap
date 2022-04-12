@@ -52,9 +52,11 @@ class ChpBackend {
   void printFU(const char *instance,
                const char *procName,
                StringVec &argList,
-               UIntVec &resBWList,
-               const char *calc,
                StringVec &outList,
+               UIntVec &argBWList,
+               UIntVec &resBWList,
+               UIntVec &outBWList,
+               const char *calc,
                Map<unsigned int, unsigned int> &outRecord,
                Vector<BuffInfo> &buffInfos,
                double *fuMetric);
