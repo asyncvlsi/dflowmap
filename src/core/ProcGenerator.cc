@@ -109,7 +109,6 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
 
 const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                       Expr *expr,
-                                      const char *sym,
                                       int &resSuffix,
                                       unsigned &resBW) {
   if (debug_verbose) {
@@ -174,7 +173,6 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
 
 const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                     Expr *expr,
-                                    const char *sym,
                                     const char *op,
                                     int type,
                                     int &resSuffix,
@@ -222,7 +220,6 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
 
 const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                     Expr *expr,
-                                    const char *sym,
                                     const char *op,
                                     int &resSuffix,
                                     unsigned &resBW) {
@@ -285,7 +282,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_AND: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "and",
                       "&",
                       type,
                       resSuffix,
@@ -294,7 +290,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_OR: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "or",
                       "|",
                       type,
                       resSuffix,
@@ -303,7 +298,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_NOT: {
       return EMIT_UNI(dflowGenerator,
                       expr,
-                      "not",
                       "~",
                       resSuffix,
                       resBW);
@@ -311,7 +305,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_PLUS: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "add",
                       "+",
                       type,
                       resSuffix,
@@ -320,7 +313,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_MINUS: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "minus",
                       "-",
                       type,
                       resSuffix,
@@ -329,7 +321,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_MULT: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "mul",
                       "*",
                       type,
                       resSuffix,
@@ -338,7 +329,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_DIV: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "div",
                       "/",
                       type,
                       resSuffix,
@@ -347,7 +337,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_MOD: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "mod",
                       "%",
                       type,
                       resSuffix,
@@ -356,7 +345,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_LSL: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "lsl",
                       "<<",
                       type,
                       resSuffix,
@@ -365,7 +353,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_LSR: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "lsr",
                       ">>",
                       type,
                       resSuffix,
@@ -374,7 +361,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_ASR: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "asr",
                       ">>>",
                       type,
                       resSuffix,
@@ -383,7 +369,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_UMINUS: {
       return EMIT_UNI(dflowGenerator,
                       expr,
-                      "neg",
                       "-",
                       resSuffix,
                       resBW);
@@ -391,7 +376,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_XOR: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "xor",
                       "^",
                       type,
                       resSuffix,
@@ -400,7 +384,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_LT: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "lt",
                       "<",
                       type,
                       resSuffix,
@@ -409,7 +392,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_GT: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "gt",
                       ">",
                       type,
                       resSuffix,
@@ -418,7 +400,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_LE: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "le",
                       "<=",
                       type,
                       resSuffix,
@@ -427,7 +408,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_GE: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "ge",
                       ">=",
                       type,
                       resSuffix,
@@ -436,7 +416,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_EQ: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "eq",
                       "=",
                       type,
                       resSuffix,
@@ -445,7 +424,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_NE: {
       return EMIT_BIN(dflowGenerator,
                       expr,
-                      "ne",
                       "!=",
                       type,
                       resSuffix,
@@ -454,7 +432,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_COMPLEMENT: {
       return EMIT_UNI(dflowGenerator,
                       expr,
-                      "compl",
                       "~",
                       resSuffix,
                       resBW);
@@ -490,7 +467,6 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     case E_QUERY: {
       return EMIT_QUERY(dflowGenerator,
                         expr,
-                        "q",
                         resSuffix,
                         resBW);
     }
@@ -896,7 +872,7 @@ void ProcGenerator::createSource(const char *outName,
                                  unsigned long val,
                                  unsigned bitwidth) {
   const char *instance = NameGenerator::genSourceInstName(val, bitwidth);
-  double *metric = metrics->getSourceMetric(instance, bitwidth);
+  double *metric = metrics->getSourceMetric(instance);
   chpBackend->printSource(instance, outName, metric);
 }
 
@@ -908,7 +884,7 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
                                    Vector<BuffInfo> &buffInfos) {
   if (debug_verbose) {
     printf("PRINT DFLOW FUNCTION\n");
-    printf("size: %d\n", strlen(procName));
+    printf("size: %zu\n", strlen(procName));
     printf("procName: %s\n", procName);
     printf("outBWList:\n");
     for (auto &outWidth: outBWList) {

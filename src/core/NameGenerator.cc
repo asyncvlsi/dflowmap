@@ -141,7 +141,7 @@ const char *NameGenerator::genExprClusterName(list_t *dflow_cluster) {
   }
   char *name = new char[MAX_CLUSTER_PROC_NAME_LEN];
   name[0] = '\0';
-  char *delimiter = new char[1];
+  char *delimiter = new char[2];
   sprintf(delimiter, "_");
   for (auto &e: exprList) {
     if (name[0] != '\0') strcat(name, delimiter);
@@ -158,12 +158,12 @@ const char *NameGenerator::genFUName(const char *procName,
   sprintf(instance, "%s<", procName);
   unsigned numArgs = argList.size();
   unsigned numOuts = outBWList.size();
-  for (int i = 0; i < numArgs; i++) {
+  for (unsigned i = 0; i < numArgs; i++) {
     char *subInstance = new char[100];
     sprintf(subInstance, "%u,", argBWList[i]);
     strcat(instance, subInstance);
   }
-  for (int i = 0; i < numOuts; i++) {
+  for (unsigned i = 0; i < numOuts; i++) {
     char *subInstance = new char[100];
     if (i == (numOuts - 1)) {
       sprintf(subInstance, "%u>", outBWList[i]);

@@ -38,9 +38,9 @@ void printULongVec(ULongVec &longVec);
 
 int searchStringVec(StringVec &strVec, const char *str);
 
-void genExprFromInt(unsigned long val, Expr *expr);
+Expr *genExprFromInt(unsigned long val);
 
-void genExprFromStr(const char *str, Expr *expr, int exprType);
+Expr *genExprFromStr(const char *str, int exprType);
 
 Expr *getExprFromName(const char *name,
                       Map<const char *, Expr *> &exprMap,

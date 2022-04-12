@@ -67,8 +67,7 @@ int searchStringVec(StringVec &strVec, const char *str) {
   }
 }
 
-Expr *genExprFromStr(const char *str,
-                     int exprType) {
+Expr *genExprFromStr(const char *str, int exprType) {
   Expr *expr = new Expr;
   auto newLActId = ActId::parseId(str);
   expr->type = exprType;
@@ -112,7 +111,7 @@ bool isBinType(int exprType) {
       || (exprType == E_GE) || (exprType == E_EQ) || (exprType == E_NE);
 }
 
-void getActIdName(Scope* sc, ActId *actId, char *buff, int sz) {
+void getActIdName(Scope *sc, ActId *actId, char *buff, int sz) {
   ActId *uid = actId->Canonical(sc)->toid();
   uid->sPrint(buff, sz);
   delete uid;
@@ -131,8 +130,8 @@ void getCurProc(const char *str, char *val) {
 }
 
 void getActConnectionName(act_connection *actConnection,
-                                         char *buff,
-                                         int sz) {
+                          char *buff,
+                          int sz) {
   if (actConnection == nullptr) {
     printf("Try to get the name of NULL act connection!\n");
     exit(-1);

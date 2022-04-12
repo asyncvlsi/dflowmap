@@ -64,13 +64,11 @@ class ProcGenerator {
 
   const char *EMIT_QUERY(DflowGenerator *dflowGenerator,
                          Expr *expr,
-                         const char *sym,
                          int &resSuffix,
                          unsigned &resBW);
 
   const char *EMIT_BIN(DflowGenerator *dflowGenerator,
                        Expr *expr,
-                       const char *sym,
                        const char *op,
                        int type,
                        int &resSuffix,
@@ -78,7 +76,6 @@ class ProcGenerator {
 
   const char *EMIT_UNI(DflowGenerator *dflowGenerator,
                        Expr *expr,
-                       const char *sym,
                        const char *op,
                        int &resSuffix,
                        unsigned &resBW);

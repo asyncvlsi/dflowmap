@@ -24,24 +24,41 @@ project(dflowmap)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+add_compile_options(-Wall
+        -Wextra
+        #                    -Wcast-qual
+        -Wconversion-null
+        -Wmissing-declarations
+        -Woverlength-strings)
+add_compile_options(
+        -Wpointer-arith
+        -Wunused-local-typedefs
+        -Wunused-result
+        -Wvarargs
+        -Wvla
+        -Wwrite-strings
+        -Wformat-security
+        -Wundef)
+add_compile_options(-O2 -march=native -Werror)
+
 include_directories(./)
-add_library( ActLib SHARED IMPORTED )
-set_target_properties( ActLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libact.a )
-add_library( ActCommon SHARED IMPORTED )
-set_target_properties( ActCommon PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libvlsilib.a )
-if(EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
-    add_library( ExprOpt SHARED IMPORTED )
-    set_target_properties( ExprOpt PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexpropt.a )
-else()
+add_library(ActLib SHARED IMPORTED)
+set_target_properties(ActLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libact.a)
+add_library(ActCommon SHARED IMPORTED)
+set_target_properties(ActCommon PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libvlsilib.a)
+if (EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
+    add_library(ExprOpt SHARED IMPORTED)
+    set_target_properties(ExprOpt PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexpropt.a)
+else ()
     message(
             "libexpropt.a missing from $ENV{ACT_HOME}/lib. The tool cannot do logic optimizations or performance modeling for the customized function unit processes!")
-endif()
-if(EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
+endif ()
+if (EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
     message(
             "Found commercial tool to do logic optimizations and performance modeling for the customized function unit processes!")
-    add_library( ExprOptCommercial SHARED IMPORTED )
-    set_target_properties( ExprOptCommercial PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexproptcommercial.a )
-endif()
+    add_library(ExprOptCommercial SHARED IMPORTED)
+    set_target_properties(ExprOptCommercial PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexproptcommercial.a)
+endif ()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_EXE_LINKER_FLAGS "-ldl")
 
@@ -52,9 +69,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_subdirectory(src)
-add_subdirectory(tools)
 
 install(
-    TARGETS dflowmap
-    DESTINATION bin
+        TARGETS dflowmap
+        DESTINATION bin
 )

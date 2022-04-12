@@ -225,14 +225,11 @@ double *Metrics::getSinkMetric(unsigned bitwidth) {
     printf("We fail to find metric for the stdlib process %s!\n", instance);
     exit(-1);
   }
-  if (metric) {
-    updateStatistics(instance, metric);
-  }
+  updateStatistics(instance, metric);
   return metric;
 }
 
-double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
-
+double *Metrics::getSourceMetric(const char *instance) {
   char *unitInstance = new char[8];
   sprintf(unitInstance, "source1");
   double *metric = getOpMetric(unitInstance);
@@ -240,9 +237,7 @@ double *Metrics::getSourceMetric(const char *instance, unsigned int bitwidth) {
     printf("We fail to find metric for the stdlib process %s!\n", instance);
     exit(-1);
   }
-  if (metric) {
-    updateStatistics(instance, metric);
-  }
+  updateStatistics(instance, metric);
   return metric;
 }
 
@@ -410,7 +405,7 @@ double *Metrics::getOrGenFUMetric(const char *instance,
       printf("Run logic optimizer for %s\n", normalizedOp);
     }
     char *rtlModuleName = new char[strlen(normalizedOp) + 1];
-    sprintf(rtlModuleName, normalizedOp);
+    sprintf(rtlModuleName, "%s", normalizedOp);
     char *optimized_process_path = new char[strlen(rtlModuleName) + 5];
     sprintf(optimized_process_path, "%s.act", rtlModuleName);
     expr_mapping_software software = yosys;
@@ -753,15 +748,15 @@ void Metrics::printStatistics() {
     printf("Could not create statistics file %s\n", statisticsFilePath);
     exit(-1);
   }
-  fprintf(statisticsFP, "totalArea: %ld, totalLeakPowewr: %ld\n", totalArea,
+  fprintf(statisticsFP, "totalArea: %.2f, totalLeakPowewr: %.2f\n", totalArea,
           totalLeakPowewr);
-  fprintf(statisticsFP, "Merge area: %ld, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Merge area: %.2f, ratio: %5.1f\n",
           mergeArea, ((double) 100 * mergeArea / totalArea));
-  fprintf(statisticsFP, "Split area: %ld, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Split area: %.2f, ratio: %5.1f\n",
           splitArea, ((double) 100 * splitArea / totalArea));
-  fprintf(statisticsFP, "Merge LeakPower: %ld, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Merge LeakPower: %.2f, ratio: %5.1f\n",
           mergeLeakPower, ((double) 100 * mergeLeakPower / totalLeakPowewr));
-  fprintf(statisticsFP, "Split LeakPower: %ld, ratio: %5.1f\n",
+  fprintf(statisticsFP, "Split LeakPower: %.2f, ratio: %5.1f\n",
           splitLeakPower, ((double) 100 * splitLeakPower / totalLeakPowewr));
   printAreaStatistics(statisticsFP);
   printLeakpowerStatistics(statisticsFP);
@@ -860,7 +855,7 @@ double Metrics::getInstanceArea(const char *instance) {
 
 void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "Leak Power Statistics:\n");
-  fprintf(statisticsFP, "totalLeakPower: %ld\n", totalLeakPowewr);
+  fprintf(statisticsFP, "totalLeakPower: %.2f\n", totalLeakPowewr);
   if (!leakpowerStatistics.empty() && (totalLeakPowewr == 0)) {
     printf("leakpowerStatistics is not empty, but totalLeakPowewr is 0!\n");
     exit(-1);
@@ -883,7 +878,7 @@ void Metrics::printLeakpowerStatistics(FILE *statisticsFP) {
 
 void Metrics::printAreaStatistics(FILE *statisticsFP) {
   fprintf(statisticsFP, "Area Statistics:\n");
-  fprintf(statisticsFP, "totalArea: %ld\n", totalArea);
+  fprintf(statisticsFP, "totalArea: %.2f\n", totalArea);
   if (!areaStatistics.empty() && (totalArea == 0)) {
     printf("areaStatistics is not empty, but totalArea is 0!\n");
     exit(-1);
@@ -897,7 +892,11 @@ void Metrics::printAreaStatistics(FILE *statisticsFP) {
     const char *instance = iter->second;
     if (ratio > 0.1) {
       int cnt = getInstanceCnt(instance);
-      fprintf(statisticsFP, "%80.80s %5d %5.1f %5d\n", instance, area, ratio,
+      fprintf(statisticsFP,
+              "%80.80s %5.2f %5.1f %5d\n",
+              instance,
+              area,
+              ratio,
               cnt);
     }
   }
