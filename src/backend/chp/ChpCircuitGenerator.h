@@ -29,10 +29,11 @@
 
 class ChpCircuitGenerator {
  private:
-  FILE *resFp;
+  FILE *chpFp;
+  FILE *netlistFp;
 
  public:
-  explicit ChpCircuitGenerator(FILE *resFp);
+  explicit ChpCircuitGenerator(FILE *chpFp, FILE* netlistFp);
 
   void printSink(const char *instance, const char *inName);
 
