@@ -504,10 +504,6 @@ defproc unpipe_split_dflow <: unpipe_split()
   ors.out = in.a;
   ors.out = ctrl.a;
 
-  CELE in_c;
-  in_c.in[0] = in.r;
-  in_c.in[1] = reset_nor.Y;
-
   CELE ctrl_c;
   ctrl_c.in[0] = ctrl.r;
   ctrl_c.in[1] = reset_nor.Y;
@@ -515,6 +511,10 @@ defproc unpipe_split_dflow <: unpipe_split()
   ctrl_c.out = add_dec_delay.in;
   address_decoder<W1, N> add_dec;
   add_dec.in = ctrl.d;
+
+  CELE in_c;
+  in_c.in[0] = in.r;
+  in_c.in[1] = reset_nor.Y;
 
   CELE all_c;
   all_c.in[0] = in_c.out;
@@ -526,6 +526,7 @@ defproc unpipe_split_dflow <: unpipe_split()
   (i:N: 
         ands[i].A = all_c_tree.out[i];
         ands[i].B = add_dec.out[i];
+        ands[i].Y = out[i].r;
   )
   sigbuf<N> data_tree[W2];
   (b:W2:
@@ -537,6 +538,76 @@ defproc unpipe_split_dflow <: unpipe_split()
 
   spec {
     timing ctrl_c.out+: add_dec.out < all_c.out+
+  }
+}
+
+export template<pint C_CD, C_PW, ADDR, D_CD, D_PW>
+defproc pipe_split_dflow <: pipe_split()
++{
+  bd<W1> ctrl;
+  bd<W2> in, out;
+}
+{
+  ortree<N, false> ors;
+  (i:N:
+        ors.in[i] = out[i].a;
+  )
+
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = ors.out;
+
+  ors.out = in.a;
+  ors.out = ctrl.a;
+
+  CELE ctrl_c;
+  ctrl_c.in[0] = ctrl.r;
+  ctrl_c.in[1] = reset_nor.Y;
+
+  capture<W1, C_CD, C_PW> ctrl_capture;
+  ctrl_capture.go.r = ctrl_c.out;
+  ctrl_capture.din = ctrl.d;
+  ctrl_capture.go.a = ctrl.a;
+
+  delay_line<ADDR> add_dec_delay;
+  ctrl_c.out = add_dec_delay.in;
+  address_decoder<W1, N> add_dec;
+  add_dec.in = ctrl_capture.dout;
+
+  CELE in_c;
+  in_c.in[0] = in.r;
+  in_c.in[1] = reset_nor.Y;
+
+  bool data[W2];
+  capture<W2, D_CD, D_PW> data_capture;
+  data_capture.go.r = in_c.out;
+  data_capture.din = in.d;
+  data_capture.go.a = in.a;
+  data_capture.dout = data;
+
+  CELE all_c;
+  all_c.in[0] = ctrl_capture.go.a;
+  all_c.in[1] = add_dec_delay.out;
+  sigbuf<N> all_c_tree;
+  all_c_tree.in = all_c.out;
+
+  AND2X1 ands[N];
+  (i:N: 
+        ands[i].A = all_c_tree.out[i];
+        ands[i].B = add_dec.out[i];
+        ands[i].Y = out[i].r;
+  )
+  sigbuf<N> data_tree[W2];
+  (b:W2:
+        data_tree[b].in = data[b];
+        (i:N:
+              data_tree[b].out[i] = out[i].d[b];
+        )
+  )
+
+  spec {
+    timing ctrl_c.out+ : add_dec.out < all_c.out+
+    timing in_c.out+ : out[0..N].d < all_c.out+
   }
 }
 
