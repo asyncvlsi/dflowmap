@@ -26,7 +26,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 add_compile_options(-Wall
         -Wextra
-        #                    -Wcast-qual
         -Wconversion-null
         -Wmissing-declarations
         -Woverlength-strings)
@@ -39,7 +38,7 @@ add_compile_options(
         -Wwrite-strings
         -Wformat-security
         -Wundef)
-add_compile_options(-O2 -march=native -Werror)
+add_compile_options(-O2 -march=native)
 
 include_directories(./)
 add_library(ActLib SHARED IMPORTED)
