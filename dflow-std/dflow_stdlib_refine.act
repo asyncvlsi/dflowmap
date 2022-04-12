@@ -611,4 +611,37 @@ defproc pipe_split_dflow <: pipe_split()
   }
 }
 
+export template<pint W; pint N>
+defproc address_encoder(bool? in[N]; bool! out[W])
+{
+  [ W = 1 ->
+    [N = 0 -> 
+      out[0] = GND;
+    [] N = 1 ->
+      ortree<1, false> or;
+      or.in[0] = in[0];
+      or.out = out[0];
+    [] else ->
+      ortree<2, false> or;
+      or.in[0] = in[0];
+      or.in[1] = in[1];
+      or.out = out[0];
+    ]
+  [] else -> 
+    pint H = 1 << (W-1);
+    pint R = N - H;
+    [ R <= 0 -> 
+      address_encoder<W-1, N> ae(in, out[0..W-1]);
+      out[W-1] = GND;
+    [] else -> 
+      ortree<R, false> or;
+      out[W-1] = or.out;
+      (i:H..N-1:
+        or.in[i-H] = in[i];
+      )
+      address_encoder<W-1, H> ae(in[0..H-1], out[0..W-2]);
+    ]
+  ]  
+}
+
 }
