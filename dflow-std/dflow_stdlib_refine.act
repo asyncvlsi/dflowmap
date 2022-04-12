@@ -52,6 +52,10 @@ export defproc source_dflow <: source()
   reset_nor.Y = out.r;
   constant_value<V, W> consts;
   consts.d = out.d;
+
+  spec {
+    timing out.a- -> out.r+
+  }
 }
 
 export defproc sink_dflow <: sink()
@@ -210,9 +214,12 @@ defproc init_dflow <: init()
   cele.in[0] = in.r;
   cele.in[1] = out.a;
 
+  bool s;
+  s = cele.out;
+
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
-  reset_nor.B = cele.out;
+  reset_nor.B = s;
   reset_nor.Y = out.r;
 
   capture_init<V, W, CD, PW> data_capture;
@@ -220,6 +227,11 @@ defproc init_dflow <: init()
   data_capture.go.a = in.a;
   data_capture.din = in.d;
   data_capture.dout = out.d;
+
+  spec {
+    timing in.r- -> s-
+    timing out.a- -> s-
+  }
 
   spec {
     timing cele.out+: out.d < in.a+
@@ -232,7 +244,7 @@ defproc init_dflow <: init()
  * Timing constraints need to be specified when this circuit is used to construct the actual function.
  *
  */
-export template<pint M, N, CD, PW>
+export template<pint M, N>
 defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
 {
   ctree<N, false> ack_ctree;
@@ -352,6 +364,65 @@ defproc address_decoder(bool? in[W]; bool! out[N])
   )
 }
 
+template<pint W>
+defproc tbufs(bool? A[W], EN; bool! Y[W])
+{
+  TBUF1 tbs[W];
+  sigbuf<W> fanout_tree;
+  (i:W: 
+        tbs[i].A = A[i]; 
+        tbs[i].EN = fanout_tree.out[i];
+        tbs[i].Y = Y[i];
+  )
+  fanout_tree.in = EN;
+}
 
+export template<pint ADDR>
+defproc unpipe_merge_dflow <: unpipe_merge()
++{
+  bd<W1> ctrl;
+  bd<W2> in, out;
+}
+{
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = out.a;
+
+  CELE cele;
+  cele.in[0] = ctrl.r;
+  cele.in[1] = reset_nor.Y;
+
+  delay_line<ADDR> add_dec_delay;
+  add_dec_delay.in = cele.out;
+
+  address_decoder<W1, N> add_dec;
+  add_dec.in = ctrl.d;
+
+  CELE in_r_c[N];
+  CELE in_a_c[N];
+  AND2X1 ands[N];
+  tbufs<W2> tb[N];
+  ortree<N, false> ors;
+  sigbuf<N> out_a_tree;
+  out.a = out_a_tree.in;
+  (i:N: 
+        ands[i].A = add_dec_delay.out; 
+        ands[i].B = add_dec.out[i];
+        ands[i].Y = in_r_c[i].in[0]; 
+        in[i].r = in_r_c[i].in[1];
+        in[i].a = in_a_c[i].out;
+        in_r_c[i].out = in_a_c[i].in[0];
+        in_r_c[i].out = tb[i].EN;
+        in_r_c[i].out = ors.in[i];
+        tb[i].A = in[i].d;
+        tb[i].Y = out.d;
+        out_a_tree.out[i] = in_a_c[i].in[1];
+  )
+  ors.out = out.r;
+
+  spec {
+    timing cele.out+: add_dec.out < add_dec_delay.out+
+  }
+}
 
 }
