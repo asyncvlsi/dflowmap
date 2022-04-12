@@ -104,8 +104,7 @@ static void create_outfiles(const char *src,
 
 static Metrics *createMetrics(const char *metricFile,
                               const char *statsFilePath) {
-  size_t metricFPLen = 1 + strlen(metricFile);
-  if (metricFPLen < 1024) metricFPLen = 1024;
+  size_t metricFPLen = (metricFile) ? 1 + strlen(metricFile) : 1024;
   char *metricFilePath = new char[metricFPLen];
   if (metricFile) {
     sprintf(metricFilePath, "%s", metricFile);
