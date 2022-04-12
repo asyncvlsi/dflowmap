@@ -403,7 +403,7 @@ defproc unpipe_merge_dflow <: unpipe_merge()
   AND2X1 ands[N];
   tbufs<W2> tb[N];
   ortree<N, false> ors;
-  sigbuf<N> out_a_tree;
+  sigbuf<N+1> out_a_tree;
   out.a = out_a_tree.in;
   (i:N: 
         ands[i].A = add_dec_delay.out; 
@@ -419,9 +419,69 @@ defproc unpipe_merge_dflow <: unpipe_merge()
         out_a_tree.out[i] = in_a_c[i].in[1];
   )
   ors.out = out.r;
+  ctrl.a = out_a_tree.out[N];
 
   spec {
     timing cele.out+: add_dec.out < add_dec_delay.out+
+  }
+}
+
+export template<pint C_CD, C_PW, ADDR, D_CD, D_PW>
+defproc pipe_merge_dflow <: pipe_merge()
++{
+  bd<W1> ctrl;
+  bd<W2> in, out;
+}
+{
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = out.a;
+
+  CELE cele;
+  cele.in[0] = ctrl.r;
+  cele.in[1] = reset_nor.Y;
+
+  capture<W1, C_CD, C_PW> ctrl_capture;
+  ctrl_capture.go.r = cele.out;
+  ctrl_capture.din = ctrl.d;
+  ctrl.a = ctrl_capture.go.a;
+
+  delay_line<ADDR> add_dec_delay;
+  add_dec_delay.in = ctrl_capture.go.a;
+  address_decoder<W1, N> add_dec;
+  add_dec.in = ctrl_capture.dout;
+
+  bool data[W2];
+  CELE in_r_c[N];
+  CELE in_a_c[N];
+  AND2X1 ands[N];
+  tbufs<W2> tb[N];
+  ortree<N, false> ors;
+  sigbuf<N> out_a_tree;
+  out.a = out_a_tree.in;
+  (i:N: 
+        ands[i].A = add_dec_delay.out; 
+        ands[i].B = add_dec.out[i];
+        ands[i].Y = in_r_c[i].in[0]; 
+        in[i].r = in_r_c[i].in[1];
+        in[i].a = in_a_c[i].out;
+        in_r_c[i].out = in_a_c[i].in[0];
+        in_r_c[i].out = tb[i].EN;
+        in_r_c[i].out = ors.in[i];
+        tb[i].A = in[i].d;
+        tb[i].Y = data;
+        out_a_tree.out[i] = in_a_c[i].in[1];
+  )
+
+  capture<W2, D_CD, D_PW> data_capture;
+  data_capture.go.r = ors.out;
+  data_capture.din = data;
+  data_capture.go.a = out.r;
+  data_capture.dout = out.d;
+
+  spec {
+    timing cele.out+ : add_dec.out < add_dec_delay.out+
+    timing ors.out+ : out.d < out.r+
   }
 }
 
