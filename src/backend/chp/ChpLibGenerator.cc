@@ -190,7 +190,8 @@ void ChpLibGenerator::createNetListLib(const char *instance,
                                        UIntVec &argBWList,
                                        UIntVec &outBWList) {
   if (checkAndUpdateInstance(instance)) return;
-  fprintf(netlistLibFp, "defproc %simpl <: %s()\n", instance, procName);
+  const char* normInstance = getNormInstanceName(instance);
+  fprintf(netlistLibFp, "defproc %simpl <: %s()\n", normInstance, procName);
   fprintf(netlistLibFp, "+{\n");
   unsigned numArgs = argBWList.size();
   unsigned numOuts = outBWList.size();
@@ -207,8 +208,8 @@ void ChpLibGenerator::createNetListLib(const char *instance,
           numArgs,
           numOuts);
   for (int i = 0; i < numArgs; i++) {
-    fprintf(netlistLibFp, "arg%d.r = fc.in[%d].r;\n", i, i);
-    fprintf(netlistLibFp, "arg%d.a = fc.in[%d].a;\n", i, i);
+    fprintf(netlistLibFp, "in%d.r = fc.in[%d].r;\n", i, i);
+    fprintf(netlistLibFp, "in%d.a = fc.in[%d].a;\n", i, i);
   }
   for (int i = 0; i < numOuts; i++) {
     fprintf(netlistLibFp, "out%d.r = fc.out[%d].r;\n", i, i);
@@ -218,13 +219,13 @@ void ChpLibGenerator::createNetListLib(const char *instance,
     //TODO: generate CD and PW
     fprintf(netlistLibFp, "capture<%d, 1, 1> cap%d;\n", i, i);
     fprintf(netlistLibFp, "cap%d.go = fc.dc[%d];\n", i, i);
-    fprintf(netlistLibFp, "cap%d.din = arg%d.d;\n", i, i);
+    fprintf(netlistLibFp, "cap%d.din = in%d.d;\n", i, i);
   }
   for (int i = 0; i < numArgs; i++) {
-    fprintf(netlistLibFp, "%s.x%d = cap%d.out;\n", instance, i, i);
+    fprintf(netlistLibFp, "%s.x%d = cap%d.out;\n", normInstance, i, i);
   }
   for (int i = 0; i < numOuts; i++) {
-    fprintf(netlistLibFp, "%s.out%d = out%d;\n", instance, i, i);
+    fprintf(netlistLibFp, "%s.out%d = out%d;\n", normInstance, i, i);
   }
   fprintf(netlistLibFp, "}\n");
 }
@@ -252,7 +253,7 @@ void ChpLibGenerator::createFULib(const char *instance,
     /* generate defproc */
     fprintf(libFp, "defproc %s(", procName);
     for (int i = 0; i < numArgs; i++) {
-      fprintf(libFp, "chan?(int<W%d>)arg%d; ", i, i);
+      fprintf(libFp, "chan?(int<W%d>)in%d; ", i, i);
     }
     for (int i = 0; i < numOuts; i++) {
       fprintf(libFp, "chan!(int<W%d>) out%d", (i + numArgs), i);
@@ -278,9 +279,9 @@ void ChpLibGenerator::createFULib(const char *instance,
     fprintf(libFp, "    *[\n      ");
     for (int i = 0; i < numArgs; i++) {
       if (i == numArgs - 1) {
-        fprintf(libFp, "arg%d?x%d;\n", i, i);
+        fprintf(libFp, "in%d?x%d;\n", i, i);
       } else {
-        fprintf(libFp, "arg%d?x%d, ", i, i);
+        fprintf(libFp, "in%d?x%d, ", i, i);
       }
     }
     fprintf(libFp, "      log(\"receive (\", ");
