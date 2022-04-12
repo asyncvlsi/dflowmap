@@ -485,4 +485,59 @@ defproc pipe_merge_dflow <: pipe_merge()
   }
 }
 
+export template<pint ADDR>
+defproc unpipe_split_dflow <: unpipe_split()
++{
+  bd<W1> ctrl;
+  bd<W2> in, out;
+}
+{
+  ortree<N, false> ors;
+  (i:N:
+        ors.in[i] = out[i].a;
+  )
+
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = ors.out;
+
+  ors.out = in.a;
+  ors.out = ctrl.a;
+
+  CELE in_c;
+  in_c.in[0] = in.r;
+  in_c.in[1] = reset_nor.Y;
+
+  CELE ctrl_c;
+  ctrl_c.in[0] = ctrl.r;
+  ctrl_c.in[1] = reset_nor.Y;
+  delay_line<ADDR> add_dec_delay;
+  ctrl_c.out = add_dec_delay.in;
+  address_decoder<W1, N> add_dec;
+  add_dec.in = ctrl.d;
+
+  CELE all_c;
+  all_c.in[0] = in_c.out;
+  all_c.in[1] = add_dec_delay.out;
+  sigbuf<N> all_c_tree;
+  all_c_tree.in = all_c.out;
+
+  AND2X1 ands[N];
+  (i:N: 
+        ands[i].A = all_c_tree.out[i];
+        ands[i].B = add_dec.out[i];
+  )
+  sigbuf<N> data_tree[W2];
+  (b:W2:
+        data_tree[b].in = in.d[b];
+        (i:N:
+              data_tree[b].out[i] = out[i].d[b];
+        )
+  )
+
+  spec {
+    timing ctrl_c.out+: add_dec.out < all_c.out+
+  }
+}
+
 }
