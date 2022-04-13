@@ -9,6 +9,8 @@ defproc test()
     //delay_line<10> dl;
     //pulse<10> pls;
     //capture<10, 12, 4> cap;
+    //var_init<7, 4> vi;
+    //capture_init<7, 4, 3, 2> ci;
     //CELE cele;
     //INVCELE inv_cele;
     //onebuf_dflow<10, 12, 4> ob;
@@ -22,10 +24,10 @@ defproc test()
     //unpipe_split_dflow<5, 9, 3, 5> usd;
     //pipe_split_dflow<5,8,5,5,8,9,3,5> psd;
     //init_dflow<10, 8, 8, 5> id;
-    //m_in_n_out_func_control<10, 8, 8, 5> mnfc;
+    //m_in_n_out_func_control<10, 8> mnfc;
     //address_encoder<4, 9> ae;
     //unpipe_mixer_dflow<5, 9, 3, 4> umd;
-    pipe_mixer_dflow<5, 4, 3, 9, 3, 4> pmd;
+    //pipe_mixer_dflow<5, 4, 3, 9, 3, 4> pmd;
 }
 
 test t;
