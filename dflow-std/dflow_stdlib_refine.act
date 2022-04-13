@@ -23,9 +23,9 @@ import std::cells;
 import std::channel;
 import std::gates;
 
-open std::gates;
 open std::cells;
 open std::channel;
+open std::gates;
 
 import "dflow_stdlib.act";
 
@@ -312,32 +312,42 @@ defproc copy_leaf_dflow <: copy_leaf()
 }
 {
   ctree<N, false> ack_ctree;
-  (i:N: ack_ctree.in[i] = out[i].a;)
+  (i:N:
+    ack_ctree.in[i] = out[i].a;
+  )
 
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = ack_ctree.out;
 
-  CELE cele;
-  cele.in[0] = in.r;
-  cele.in[1] = reset_nor.Y;
+  CELE in_c;
+  in_c.in[0] = in.r;
+  in_c.in[1] = reset_nor.Y;
 
   capture<W, CD, PW> data_capture;
-  cele.out = data_capture.go.r;
+  data_capture.go.r = in_c.out;
   data_capture.din = in.d;
   data_capture.go.a = in.a;
-  sigbuf<N> d_ftrees[W]; // fanout tree for each data bit
-  (b:W: data_capture.dout[b] = d_ftrees[b].in;
-        (i:N: d_ftrees[b].out[i] = out[i].d[b];)
+  sigbuf<N> d_ftrees[W]; // fanout tree for each bit
+  (b:W:
+    data_capture.dout[b] = d_ftrees[b].in;
+    (i:N: 
+      d_ftrees[b].out[i] = out[i].d[b];
+    )
   )
 
   sigbuf<N> r_ftree;
-  in.a = r_ftree.in;
-  (i:N: r_ftree.out[i] = out[i].r;)
+  data_capture.go.a = r_ftree.in;
+  (i:N:
+    r_ftree.out[i] = out[i].r;
+  )
 
-  spec {
-    timing cele.out+: out.d < in.a+
-  }
+  // this is not needed, because the bundled data channel contains timing constraints already
+  //(i:N:
+  //  spec {
+  //    timing in_c.out+: out[i].d < out[i].r+
+  //  }
+  //)
 }
 
 export template<pint CD, PW>

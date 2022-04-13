@@ -14,7 +14,7 @@ defproc test()
     //CELE cele;
     //INVCELE inv_cele;
     //onebuf_dflow<10, 12, 4> ob;
-    //copy_leaf_dflow<10, 12, 8, 5> cld;
+    copy_leaf_dflow<10, 12, 8, 5> cld;
     //init_dflow<5, 4, 10, 3> id;
     //copy_dflow<8, 5, 10, 12> cd;
     //and_tree<16> at;
