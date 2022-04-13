@@ -692,4 +692,53 @@ defproc unpipe_mixer_dflow <: unpipe_mixer()
   }
 }
 
+export template<pint ADDR, D_CD, D_PW>
+defproc pipe_mixer_dflow <: pipe_mixer()
++{
+  bd<W1> in, out;
+  bd<W2> cout;
+}
+{
+  CELE c_outs;
+  c_outs.in[0] = cout.a;
+  c_outs.in[1] = out.a;
+
+  NOR2X1 reset_nor;
+  reset_nor.A = Reset;
+  reset_nor.B = c_outs.out;
+  address_encoder<W2, N> addr_enc;
+  sigbuf<N> reset_nor_tree;
+  CELE c_ins[N];
+  ortree<N, false> in_c_tree;
+  tbufs<W1> tb[N];
+  bool data[W1];
+  reset_nor_tree.in = reset_nor.Y;
+  (i:N:
+        c_ins[i].in[0] = in[i].r;
+        c_ins[i].in[1] = reset_nor_tree.out[i];
+        c_ins[i].out = in_c_tree.in[i];
+        c_ins[i].out = addr_enc.in[i];
+        c_ins[i].out = tb[i].EN;
+        tb[i].A = in[i].d;
+        tb[i].Y = data;
+  )
+
+  delay_line<ADDR> addr_enc_delay;
+  addr_enc_delay.in = in_c_tree.out;
+
+  capture<W1, D_CD, D_PW> data_capture;
+  data_capture.go.r = addr_enc_delay.out;
+  data_capture.din = data;
+  data_capture.go.a = cout.r;
+  data_capture.go.a = out.r;
+  data_capture.dout = out.d;
+
+  addr_enc.out = cout.d;
+
+  spec {
+    timing in_c_tree.out+: addr_enc.out < addr_enc_delay.out+
+    timing c_ins[0..N-1].out+: out.d < out.r+
+  }
+}
+
 }

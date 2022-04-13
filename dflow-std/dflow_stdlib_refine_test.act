@@ -4,27 +4,28 @@ open dflowstd;
 
 defproc test() 
 {
-	//source_dflow<5, 8> sou;
-	//sink_dflow<12> sin;
-	//delay_line<10> dl;
-	//pulse<10> pls;
-	//capture<10, 12, 4> cap;
-	//CELE cele;
-	//INVCELE inv_cele;
-	//onebuf_dflow<10, 12, 4> ob;
-	//copy_leaf_dflow<10, 12, 8, 5> cld;
-	//init_dflow<5, 4, 10, 3> id;
-	//copy_dflow<8, 5, 10, 12> cd;
-	//and_tree<16> at;
-	//address_decoder<3, 5> ad;
-	//unpipe_merge_dflow<5, 9, 3, 5> umd;
-	//pipe_merge_dflow<5,8,5,5,8,9,3,5> pmd;
-	//unpipe_split_dflow<5, 9, 3, 5> usd;
-	//pipe_split_dflow<5,8,5,5,8,9,3,5> psd;
-	//init_dflow<10, 8, 8, 5> id;
+    //source_dflow<5, 8> sou;
+    //sink_dflow<12> sin;
+    //delay_line<10> dl;
+    //pulse<10> pls;
+    //capture<10, 12, 4> cap;
+    //CELE cele;
+    //INVCELE inv_cele;
+    //onebuf_dflow<10, 12, 4> ob;
+    //copy_leaf_dflow<10, 12, 8, 5> cld;
+    //init_dflow<5, 4, 10, 3> id;
+    //copy_dflow<8, 5, 10, 12> cd;
+    //and_tree<16> at;
+    //address_decoder<3, 5> ad;
+    //unpipe_merge_dflow<5, 9, 3, 5> umd;
+    //pipe_merge_dflow<5,8,5,5,8,9,3,5> pmd;
+    //unpipe_split_dflow<5, 9, 3, 5> usd;
+    //pipe_split_dflow<5,8,5,5,8,9,3,5> psd;
+    //init_dflow<10, 8, 8, 5> id;
     //m_in_n_out_func_control<10, 8, 8, 5> mnfc;
-	//address_encoder<4, 9> ae;
-	unpipe_mixer_dflow<5, 9, 3, 4> umd;
+    //address_encoder<4, 9> ae;
+    //unpipe_mixer_dflow<5, 9, 3, 4> umd;
+    pipe_mixer_dflow<5, 4, 3, 9, 3, 4> pmd;
 }
 
 test t;
