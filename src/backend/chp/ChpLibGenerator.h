@@ -32,7 +32,10 @@
 
 class ChpLibGenerator {
  public:
-  ChpLibGenerator(FILE *libFp, FILE *netlistLibFp, FILE *confFp);
+  ChpLibGenerator(FILE *libFp,
+                  FILE *netlistLibFp,
+                  FILE *netlistIncludeFp,
+                  FILE *confFp);
 
   void genMemConfiguration(const char *procName);
 
@@ -52,7 +55,6 @@ class ChpLibGenerator {
                 Map<unsigned int, unsigned int> &outRecord);
 
   void createNetListLib(const char *instance,
-                        const char *procName,
                         UIntVec &argBWList,
                         UIntVec &outBWList);
 
@@ -99,6 +101,7 @@ class ChpLibGenerator {
 
   FILE *libFp;
   FILE *netlistLibFp;
+  FILE *netlistIncludeFp;
   FILE *confFp;
 
   bool hasInstance(const char *instance);

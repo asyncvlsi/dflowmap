@@ -63,10 +63,10 @@ void ChpBackend::printFU(const char *instance,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
   /* handle normal fu */
-  circuitGenerator->printFunc(instance,
-                              argList,
-                              outList,
-                              buffInfos);
+  circuitGenerator->printFuncChp(instance,
+                                 argList,
+                                 outList,
+                                 buffInfos);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
   libGenerator->createFU(instance,

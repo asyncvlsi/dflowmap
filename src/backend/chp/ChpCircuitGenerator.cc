@@ -21,7 +21,7 @@
 
 #include "ChpCircuitGenerator.h"
 
-ChpCircuitGenerator::ChpCircuitGenerator(FILE *chpFp, FILE* netlistFp) {
+ChpCircuitGenerator::ChpCircuitGenerator(FILE *chpFp, FILE *netlistFp) {
   if (!chpFp || !netlistFp) {
     printf("Invalid file handler for CHP circuit!\n");
     exit(-1);
@@ -124,10 +124,10 @@ void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
   }
 }
 
-void ChpCircuitGenerator::printFunc(const char *instance,
-                                    StringVec &argList,
-                                    StringVec &outList,
-                                    Vector<BuffInfo> &buffInfos) {
+void ChpCircuitGenerator::printFuncChp(const char *instance,
+                                       StringVec &argList,
+                                       StringVec &outList,
+                                       Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
   //TODO: may not need to create the port! (if there is no func body!!!)
   for (auto &buffInfo: buffInfos) {

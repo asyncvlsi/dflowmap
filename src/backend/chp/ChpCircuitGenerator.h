@@ -33,7 +33,7 @@ class ChpCircuitGenerator {
   FILE *netlistFp;
 
  public:
-  explicit ChpCircuitGenerator(FILE *chpFp, FILE* netlistFp);
+  explicit ChpCircuitGenerator(FILE *chpFp, FILE *netlistFp);
 
   void printSink(const char *instance, const char *inName);
 
@@ -52,14 +52,14 @@ class ChpCircuitGenerator {
 
   void printBuff(Vector<BuffInfo> &buffInfos);
 
-  void printChannel(const char* chanName, unsigned bitwidth);
+  void printChannel(const char *chanName, unsigned bitwidth);
 
   void printSource(const char *instance, const char *outName);
 
-  void printFunc(const char *instance,
-                 StringVec &argList,
-                 StringVec &outList,
-                 Vector<BuffInfo> &buffInfos);
+  void printFuncChp(const char *instance,
+                    StringVec &argList,
+                    StringVec &outList,
+                    Vector<BuffInfo> &buffInfos);
 
   void printSplit(const char *instance,
                   const char *splitName,
@@ -82,6 +82,24 @@ class ChpCircuitGenerator {
                   CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
+
+  void printProcNetListHeader(Process *p,
+                              StringVec &argList,
+                              StringVec &outList,
+                              UIntVec &argBWList,
+                              UIntVec &outBWList) {
+    fprintf(netlistFp, "defproc %s_impl <: %s()\n", p->getName(), p->getName());
+    fprintf(netlistFp, "+{\n");
+    size_t numArgs = argList.size();
+    for (size_t i = 0; i < numArgs; i++) {
+      fprintf(netlistFp, "bd<%u> %s;\n", argBWList[i], argList[i].c_str());
+    }
+    size_t numOuts = outList.size();
+    for (size_t i = 0; i < numOuts; i++) {
+      fprintf(netlistFp, "bd<%u> %s;\n", outBWList[i], outList[i].c_str());
+    }
+    //TODO: internal variables
+  }
 
   void printProcDeclaration(Process *p);
 

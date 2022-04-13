@@ -86,6 +86,18 @@ class ChpBackend {
                   CharPtrVec &inNameVec,
                   double *metric);
 
+  void printProcNetListHeader(Process *p,
+                              StringVec &argList,
+                              StringVec &outList,
+                              UIntVec &argBWList,
+                              UIntVec &outBWList) {
+    circuitGenerator->printProcNetListHeader(p,
+                                             argList,
+                                             outList,
+                                             argBWList,
+                                             outBWList);
+  }
+
   void printProcHeader(Process *p);
 
   void printProcDeclaration(Process *p);

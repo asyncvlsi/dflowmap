@@ -23,6 +23,7 @@
 
 ChpLibGenerator::ChpLibGenerator(FILE *libFp,
                                  FILE *netlistLibFp,
+                                 FILE *netlistIncludeFp,
                                  FILE *confFp) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     processes[i] = nullptr;
@@ -37,6 +38,7 @@ ChpLibGenerator::ChpLibGenerator(FILE *libFp,
   fprintf(confFp, "begin sim.chp\n");
   this->libFp = libFp;
   this->netlistLibFp = netlistLibFp;
+  this->netlistIncludeFp = netlistIncludeFp;
   this->confFp = confFp;
 }
 
@@ -172,7 +174,7 @@ void ChpLibGenerator::createFU(const char *instance,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-  createNetListLib(instance, procName, argBWList, outBWList);
+  createNetListLib(instance, argBWList, outBWList);
   createFULib(instance,
               procName,
               calc,
@@ -185,12 +187,12 @@ void ChpLibGenerator::createFU(const char *instance,
 }
 
 void ChpLibGenerator::createNetListLib(const char *instance,
-                                       const char *procName,
                                        UIntVec &argBWList,
                                        UIntVec &outBWList) {
   if (checkAndUpdateInstance(instance)) return;
-  const char* normInstance = getNormInstanceName(instance);
-  fprintf(netlistLibFp, "defproc %simpl <: %s()\n", normInstance, procName);
+  const char *normInstance = getNormInstanceName(instance);
+  fprintf(netlistIncludeFp, "import \"%s.act\";\n", normInstance);
+  fprintf(netlistLibFp, "defproc %simpl <: %s()\n", normInstance, instance);
   fprintf(netlistLibFp, "+{\n");
   unsigned numArgs = argBWList.size();
   unsigned numOuts = outBWList.size();
@@ -201,9 +203,8 @@ void ChpLibGenerator::createNetListLib(const char *instance,
     fprintf(netlistLibFp, "  bd<%u> out%d;\n", outBWList[i], i);
   }
   fprintf(netlistLibFp, "}\n{\n");
-  //TODO: generate CD and PW
   fprintf(netlistLibFp,
-          "m_in_n_out_func_control<%d, %d, 1, 1> fc;\n",
+          "m_in_n_out_func_control<%d, %d> fc;\n",
           numArgs,
           numOuts);
   for (unsigned i = 0; i < numArgs; i++) {
@@ -216,15 +217,21 @@ void ChpLibGenerator::createNetListLib(const char *instance,
   }
   for (unsigned i = 0; i < numArgs; i++) {
     //TODO: generate CD and PW
-    fprintf(netlistLibFp, "capture<%d, 1, 1> cap%d;\n", i, i);
+    fprintf(netlistLibFp, "capture<%d, 1, 1> cap%d;\n", argBWList[i], i);
     fprintf(netlistLibFp, "cap%d.go = fc.dc[%d];\n", i, i);
     fprintf(netlistLibFp, "cap%d.din = in%d.d;\n", i, i);
   }
+  fprintf(netlistLibFp, "%s fu;\n", normInstance);
   for (unsigned i = 0; i < numArgs; i++) {
-    fprintf(netlistLibFp, "%s.x%d = cap%d.out;\n", normInstance, i, i);
+    fprintf(netlistLibFp, "fu.x%d = cap%d.dout;\n", i, i);
   }
+  //TODO: size of delay lines should be computed!
+  fprintf(netlistLibFp, R"(delay_line<10> fu_delay;
+fu_delay.in = fc.f.r;
+fu_delay.out = fc.f.a;
+)");
   for (unsigned i = 0; i < numOuts; i++) {
-    fprintf(netlistLibFp, "%s.out%d = out%d;\n", normInstance, i, i);
+    fprintf(netlistLibFp, "fu.out%d = out%d.d;\n", i, i);
   }
   fprintf(netlistLibFp, "}\n");
 }
