@@ -35,8 +35,12 @@ template <pint V, W>
 defproc constant_value(bool! d[W])
 {
   (i:W: 
-    [((V >> i) & 1) = 0 -> TIELOX1 tielow[i..i]; tielow[i].Y = d[i];
-    [] else -> TIEHIX1 tiehigh[i..i]; tiehigh[i].Y = d[i];
+    [((V >> i) & 1) = 0 -> 
+      TIELOX1 tielow[i..i]; 
+      tielow[i].Y = d[i];
+    [] else -> 
+      TIEHIX1 tiehigh[i..i]; 
+      tiehigh[i].Y = d[i];
     ]
   )
 }
@@ -50,6 +54,7 @@ export defproc source_dflow <: source()
   reset_nor.A = Reset;
   reset_nor.B = out.a;
   reset_nor.Y = out.r;
+
   constant_value<V, W> consts;
   consts.d = out.d;
 
@@ -69,12 +74,18 @@ export defproc sink_dflow <: sink()
   sig_buf.Y = in.a;
 }
 
+/*
+ * This is the delay line template. The delay line
+ * is a linear chain of 2*N smallest inverters.
+ */
 export template <pint N>
 defproc delay_line(bool? in; bool! out)
 {
   INVX1 invs[2*N];
   invs[0].A = in;
-  (i:2*N-1 : invs[i].Y = invs[i+1].A;)
+  (i:2*N-1 : 
+    invs[i].Y = invs[i+1].A;
+  )
   invs[2*N-1].Y = out;
 }
 
@@ -89,7 +100,9 @@ defproc pulse(bool? in; bool! out)
 {
   INVX1 invs[2*PW+1];
   invs[0].A = in;
-  (i:2*PW: invs[i].Y = invs[i+1].A; )
+  (i:2*PW: 
+    invs[i].Y = invs[i+1].A;
+  )
 
   AND2X1 and;
   and.A = in;
@@ -126,25 +139,45 @@ defproc capture(a1of1 go; bool? din[W]; bool! dout[W])
   pulse_generator.out = fanout_tree.in;
 
   LATCH x[W];
-  (i:W: din[i] = x[i].D; x[i].CLK = fanout_tree.out[i]; x[i].Q = dout[i];)
+  (i:W:
+    x[i].CLK = fanout_tree.out[i];
+    x[i].D = din[i];
+    x[i].Q = dout[i];
+  )
 
   spec {
     timing go.r+: dout < go.a+
   }
 }
 
-template <pint V, W>
-defproc variable_value(bool? R, CLK, D[W]; bool! Q[W])
+/*
+ * This is a template for variables with an initial value.
+ */
+export template <pint V, W>
+defproc var_init(bool? R, CLK, D[W]; bool! Q[W])
 {
   sigbuf<W> clk_ftree;
   clk_ftree.in = CLK;
   (i:W: 
-    [((V >> i) & 1) = 0 -> LATCHLO latch_low[i..i]; latch_low[i].R = R; latch_low[i].CLK = clk_ftree.out[i]; latch_low[i].D = D[i]; latch_low[i].Q = Q[i];
-    [] else -> LATCHHI latch_hi[i..i]; latch_hi[i].S = R; latch_hi[i].CLK = clk_ftree.out[i]; latch_hi[i].D = D[i]; latch_hi[i].Q = Q[i];
+    [((V >> i) & 1) = 0 ->
+      LATCHLO latch_low[i..i];
+      latch_low[i].R = R;
+      latch_low[i].CLK = clk_ftree.out[i];
+      latch_low[i].D = D[i];
+      latch_low[i].Q = Q[i];
+    [] else ->
+      LATCHHI latch_hi[i..i];
+      latch_hi[i].S = R;
+      latch_hi[i].CLK = clk_ftree.out[i];
+      latch_hi[i].D = D[i];
+      latch_hi[i].Q = Q[i];
     ]
   )
 }
 
+/*
+ * This is the capture unit containing a local variable with an initial value.
+ */
 export template <pint V, W, CD, PW>
 defproc capture_init(a1of1 go; bool? din[W]; bool! dout[W])
 {
@@ -155,7 +188,7 @@ defproc capture_init(a1of1 go; bool? din[W]; bool! dout[W])
   pulse<PW> pulse_generator;
   go.r = pulse_generator.in;
 
-  variable_value<V, W> x;
+  var_init<V, W> x;
   x.R = Reset;
   x.CLK = pulse_generator.out;
   x.D = din;
@@ -214,12 +247,9 @@ defproc init_dflow <: init()
   cele.in[0] = in.r;
   cele.in[1] = out.a;
 
-  bool s;
-  s = cele.out;
-
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
-  reset_nor.B = s;
+  reset_nor.B = cele.out;
   reset_nor.Y = out.r;
 
   capture_init<V, W, CD, PW> data_capture;
@@ -229,8 +259,8 @@ defproc init_dflow <: init()
   data_capture.dout = out.d;
 
   spec {
-    timing in.r- -> s-
-    timing out.a- -> s-
+    timing in.r- -> cele.out-
+    timing out.a- -> cele.out-
   }
 
   spec {
@@ -248,22 +278,31 @@ export template<pint M, N>
 defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
 {
   ctree<N, false> ack_ctree;
-  (i:N: ack_ctree.in[i] = out[i].a;)
+  (i:N: 
+    ack_ctree.in[i] = out[i].a;
+  )
 
-  OR2X1 reset_nor;
+  NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = ack_ctree.out;
 
-  CELE celes[M];
-  (i:M: in[i].r = celes[i].in[0]; reset_nor.Y = celes[i].in[1]; dc[i].r = celes[i].out;)
-
+  CELE in_cs[M];
+  sigbuf<M> nor_ftree;
   ctree<M, false> data_ctree;
-  (i:M: data_ctree.in[i] = dc[i].a;)
-  data_ctree.out = f.r;
+  (i:M: 
+    in_cs[i].in[0] = in[i].r; 
+    in_cs[i].in[1] = nor_ftree.out[i]; 
+    in_cs[i].out = dc[i].r;
+    data_ctree.in[i] = dc[i].a;
+  )
+  nor_ftree.in = reset_nor.Y;
+  data_ctree.out = f.r; 
 
   sigbuf<N> out_ftree;
-  f.a = out_ftree.in;
-  (i:N: out_ftree.out[i] = out[i].r;)
+  out_ftree.in = f.a;
+  (i:N: 
+    out_ftree.out[i] = out[i].r;
+  )
 }
 
 export template<pint CD, PW>

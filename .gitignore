@@ -33,3 +33,5 @@ record/
 
 bin/
 lib/
+*.DS_Store
+
