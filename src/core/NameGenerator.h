@@ -34,9 +34,11 @@ class NameGenerator {
                                       unsigned inBW,
                                       int numInputs);
 
-  static const char *genMixerInstName(unsigned inBW, int numInputs);
+  static const char *genMixerInstName(unsigned ctrlBW,
+                                      unsigned inBW,
+                                      int numInputs);
 
-  static const char *genArbiterInstName(unsigned guardBW,
+  static const char *genArbiterInstName(unsigned ctrlBW,
                                         unsigned inBW,
                                         int numInputs);
 

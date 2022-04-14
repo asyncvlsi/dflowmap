@@ -1213,39 +1213,37 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                              metric);
       break;
     }
-    case ACT_DFLOW_MIXER: {
-      CharPtrVec inNameVec;
-      char *outputName = new char[10240];
-      unsigned dataBW = 0;
-      int numInputs = 0;
-      handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
-      double *metric = metrics->getMixerMetric(numInputs, dataBW);
-      const char *instance = NameGenerator::genMixerInstName(dataBW, numInputs);
-      chpBackend->printMixer(instance, outputName, inNameVec, metric);
-      break;
-    }
+    case ACT_DFLOW_MIXER:
     case ACT_DFLOW_ARBITER: {
       CharPtrVec inNameVec;
-      char *outputName = new char[10240];
+      char *outputName = new char[MAX_INSTANCE_LEN];
       unsigned dataBW = 0;
       int numInputs = 0;
       handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
       ActId *ctrlOut = d->u.splitmerge.nondetctrl;
       unsigned ctrlBW = getActIdBW(ctrlOut);
-      char *ctrlOutName = new char[10240];
-      getActIdName(sc, ctrlOut, ctrlOutName, 10240);
-      const char *instance =
-          NameGenerator::genArbiterInstName(ctrlBW, dataBW, numInputs);
-      double *metric = metrics->getArbiterMetric(
-          numInputs,
-          dataBW,
-          ctrlBW);
-      chpBackend->printArbiter(
-          instance,
-          outputName,
-          ctrlOutName,
-          inNameVec,
-          metric);
+      char *ctrlOutName = new char[MAX_INSTANCE_LEN];
+      getActIdName(sc, ctrlOut, ctrlOutName, MAX_INSTANCE_LEN);
+      if (d->t == ACT_DFLOW_MIXER) {
+        double *metric = metrics->getMixerMetric(numInputs, dataBW, ctrlBW);
+        const char *instance =
+            NameGenerator::genMixerInstName(ctrlBW, dataBW, numInputs);
+        chpBackend->printMixer(instance,
+                               outputName,
+                               ctrlOutName,
+                               inNameVec,
+                               metric);
+      } else {
+        double *metric = metrics->getArbiterMetric(numInputs, dataBW, ctrlBW);
+        const char *instance =
+            NameGenerator::genArbiterInstName(ctrlBW, dataBW, numInputs);
+        chpBackend->printArbiter(
+            instance,
+            outputName,
+            ctrlOutName,
+            inNameVec,
+            metric);
+      }
       break;
     }
     case ACT_DFLOW_CLUSTER: {

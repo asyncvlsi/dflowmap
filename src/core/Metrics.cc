@@ -717,9 +717,9 @@ double *Metrics::getArbiterMetric(unsigned numInputs,
 }
 
 double *Metrics::getMixerMetric(unsigned numInputs,
-                                unsigned inBW) {
-  unsigned ctrlBW = ceil(log2(numInputs));
-  double *metric = getOrGenMergeMetric(ctrlBW, inBW, numInputs);
+                                unsigned inBW,
+                                unsigned coutBW) {
+  double *metric = getOrGenMergeMetric(coutBW, inBW, numInputs);
   return metric;
 }
 

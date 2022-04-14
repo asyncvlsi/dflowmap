@@ -89,7 +89,8 @@ class Metrics {
   double *getArbiterMetric(unsigned numInputs, unsigned inBW, unsigned coutBW);
 
   double *getMixerMetric(unsigned numInputs,
-                         unsigned inBW);
+                         unsigned inBW,
+                         unsigned coutBW);
 
  private:
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */

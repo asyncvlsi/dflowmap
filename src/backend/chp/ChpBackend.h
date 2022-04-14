@@ -74,6 +74,7 @@ class ChpBackend {
 
   void printMixer(const char *instance,
                   const char *outName,
+                  const char *coutName,
                   CharPtrVec &inNameVec,
                   double *metric);
 

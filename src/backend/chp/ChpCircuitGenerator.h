@@ -69,10 +69,14 @@ class ChpCircuitGenerator {
                   const char *inputName,
                   CharPtrVec &outNameVec);
 
-  void printMerge(const char *instance,
-                  const char *outName,
-                  const char *guardStr,
-                  CharPtrVec &inNameVec);
+  void printMergeChp(const char *instance,
+                     const char *outName,
+                     const char *guardStr,
+                     CharPtrVec &inNameVec);
+
+  void printMergeNestlist(const char *instance) {
+
+  }
 
   void printArbiter(const char *instance,
                     const char *outName,
@@ -81,6 +85,7 @@ class ChpCircuitGenerator {
 
   void printMixer(const char *instance,
                   const char *outName,
+                  const char *coutName,
                   CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);

@@ -26,56 +26,40 @@ const char *NameGenerator::genMergeInstName(unsigned guardBW,
                                             int numInputs) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName,
-            "dflowstd::pipe_%s%d",
-            Constant::MERGE_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::pipe_%s", Constant::MERGE_PREFIX);
   } else {
-    sprintf(procName,
-            "dflowstd::unpipe_%s%d",
-            Constant::MERGE_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::unpipe_%s", Constant::MERGE_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d>", procName, guardBW, inBW);
+  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, guardBW, inBW);
   return instance;
 }
 
-const char *NameGenerator::genMixerInstName(unsigned inBW, int numInputs) {
+const char *NameGenerator::genMixerInstName(unsigned ctrlBW,
+                                            unsigned inBW,
+                                            int numInputs) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName,
-            "dflowstd::pipe_%s%d",
-            Constant::MIXER_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::pipe_%s", Constant::MIXER_PREFIX);
   } else {
-    sprintf(procName,
-            "dflowstd::unpipe_%s%d",
-            Constant::MIXER_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::unpipe_%s", Constant::MIXER_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d>", procName, inBW);
+  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, inBW, ctrlBW);
   return instance;
 }
 
-const char *NameGenerator::genArbiterInstName(unsigned guardBW,
+const char *NameGenerator::genArbiterInstName(unsigned ctrlBW,
                                               unsigned inBW,
                                               int numInputs) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName,
-            "dflowstd::pipe_%s%d",
-            Constant::ARBITER_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::pipe_%s", Constant::ARBITER_PREFIX);
   } else {
-    sprintf(procName,
-            "dflowstd::unpipe_%s%d",
-            Constant::ARBITER_PREFIX,
-            numInputs);
+    sprintf(procName, "dflowstd::unpipe_%s", Constant::ARBITER_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d>", procName, inBW, guardBW);
+  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, inBW, ctrlBW);
   return instance;
 }
 
@@ -84,15 +68,12 @@ const char *NameGenerator::genSplitInstName(unsigned guardBW,
                                             int numOut) {
   char *procName = new char[MAX_PROC_NAME_LEN];
   if (PIPELINE) {
-    sprintf(procName, "dflowstd::pipe_%s%d", Constant::SPLIT_PREFIX, numOut);
+    sprintf(procName, "dflowstd::pipe_%s", Constant::SPLIT_PREFIX);
   } else {
-    sprintf(procName,
-            "dflowstd::unpipe_%s%d",
-            Constant::SPLIT_PREFIX,
-            numOut);
+    sprintf(procName, "dflowstd::unpipe_%s", Constant::SPLIT_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d>", procName, guardBW, outBW);
+  sprintf(instance, "%s<%d,%d,%d>", procName, numOut, guardBW, outBW);
   return instance;
 }
 

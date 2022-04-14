@@ -108,19 +108,21 @@ void ChpBackend::printMerge(const char *instance,
                             const char *guardName,
                             CharPtrVec &inNameVec,
                             double *metric) {
-  circuitGenerator->printMerge(instance,
-                               outName,
-                               guardName,
-                               inNameVec);
+  circuitGenerator->printMergeChp(instance,
+                                  outName,
+                                  guardName,
+                                  inNameVec);
   libGenerator->createMerge(instance, metric);
 }
 
 void ChpBackend::printMixer(const char *instance,
                             const char *outName,
+                            const char *coutName,
                             CharPtrVec &inNameVec,
                             double *metric) {
   circuitGenerator->printMixer(instance,
                                outName,
+                               coutName,
                                inNameVec);
   libGenerator->createMixer(instance, metric);
 }

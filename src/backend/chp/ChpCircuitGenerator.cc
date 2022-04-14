@@ -219,10 +219,10 @@ void ChpCircuitGenerator::printSplit(const char *instance,
   fprintf(chpFp, ");\n");
 }
 
-void ChpCircuitGenerator::printMerge(const char *instance,
-                                     const char *outName,
-                                     const char *guardStr,
-                                     CharPtrVec &inNameVec) {
+void ChpCircuitGenerator::printMergeChp(const char *instance,
+                                        const char *outName,
+                                        const char *guardStr,
+                                        CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
   fprintf(chpFp, "%s %s_inst(", instance, normOutput);
   fprintf(chpFp, "%s, ", guardStr);
@@ -246,13 +246,14 @@ void ChpCircuitGenerator::printArbiter(const char *instance,
 
 void ChpCircuitGenerator::printMixer(const char *instance,
                                      const char *outName,
+                                     const char *coutName,
                                      CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
   fprintf(chpFp, "%s %s_inst(", instance, normOutput);
   for (auto inName: inNameVec) {
     fprintf(chpFp, "%s, ", inName);
   }
-  fprintf(chpFp, "%s);\n", outName);
+  fprintf(chpFp, "%s, %s);\n", outName, coutName);
 }
 
 void ChpCircuitGenerator::printProcHeader(Process *p) {
