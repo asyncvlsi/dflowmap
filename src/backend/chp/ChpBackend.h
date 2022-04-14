@@ -28,10 +28,7 @@
 class ChpBackend {
  public:
   ChpBackend(ChpCircuitGenerator *circuitGenerator,
-             ChpLibGenerator *libGenerator) {
-    this->circuitGenerator = circuitGenerator;
-    this->libGenerator = libGenerator;
-  }
+             ChpLibGenerator *libGenerator);
 
   void createCopyProcs(const char *instance,
                        const char *inName,
@@ -75,28 +72,20 @@ class ChpBackend {
                   CharPtrVec &inNameVec,
                   double *metric);
 
+  void printMixer(const char *instance,
+                  const char *outName,
+                  CharPtrVec &inNameVec,
+                  double *metric);
+
   void printArbiter(const char *instance,
                     const char *outName,
                     const char *coutName,
                     CharPtrVec &inNameVec,
                     double *metric);
 
-  void printMixer(const char *instance,
-                  const char *outName,
-                  CharPtrVec &inNameVec,
-                  double *metric);
+  void printProcNetListHeader(Process *p);
 
-  void printProcNetListHeader(Process *p,
-                              StringVec &argList,
-                              StringVec &outList,
-                              UIntVec &argBWList,
-                              UIntVec &outBWList) {
-    circuitGenerator->printProcNetListHeader(p,
-                                             argList,
-                                             outList,
-                                             argBWList,
-                                             outBWList);
-  }
+  void printProcNetListEnding();
 
   void printProcHeader(Process *p);
 

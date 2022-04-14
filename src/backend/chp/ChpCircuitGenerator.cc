@@ -124,10 +124,10 @@ void ChpCircuitGenerator::printBuff(Vector<BuffInfo> &buffInfos) {
   }
 }
 
-void ChpCircuitGenerator::printFuncChp(const char *instance,
-                                       StringVec &argList,
-                                       StringVec &outList,
-                                       Vector<BuffInfo> &buffInfos) {
+const char *ChpCircuitGenerator::printFuncChp(const char *instance,
+                                              StringVec &argList,
+                                              StringVec &outList,
+                                              Vector<BuffInfo> &buffInfos) {
   /* create port for BUFF first */
   //TODO: may not need to create the port! (if there is no func body!!!)
   for (auto &buffInfo: buffInfos) {
@@ -146,6 +146,7 @@ void ChpCircuitGenerator::printFuncChp(const char *instance,
   for (auto &buffInfo: buffInfos) {
     buffOutIDs.push_back(buffInfo.outputID);
   }
+  /* preprocessing */
   unsigned numOuts = outList.size();
   if (numOuts < 1) {
     printf("No output is found!\n");
@@ -169,19 +170,21 @@ void ChpCircuitGenerator::printFuncChp(const char *instance,
     normOutputVec.push_back(actualNormOut);
   }
   fprintf(chpFp, "%s ", instance);
-  if (debug_verbose) {
-    printf("[fu]: ");
-  }
+  /* calculate instance name */
+  char *instOutCollect = new char[MAX_INSTANCE_LEN];
+  instOutCollect[0] = '\0';
   for (auto &normOutput: normOutputVec) {
-    fprintf(chpFp, "%s_", normOutput);
-    if (debug_verbose) {
-      printf("%s_", normOutput);
-    }
+    char *subInstName = new char[2 + strlen(normOutput)];
+    sprintf(subInstName, "%s_", normOutput);
+    strcat(instOutCollect, subInstName);
   }
-  fprintf(chpFp, "inst(");
+  char *fuInstName = new char[5 + strlen(instOutCollect)];
+  sprintf(fuInstName, "%sinst", instOutCollect);
   if (debug_verbose) {
-    printf("inst\n");
+    printf("[fu]: %s\n", fuInstName);
   }
+  /* print args for the instance */
+  fprintf(chpFp, "%s(", fuInstName);
   for (auto &arg: argList) {
     fprintf(chpFp, "%s, ", arg.c_str());
   }
@@ -194,6 +197,13 @@ void ChpCircuitGenerator::printFuncChp(const char *instance,
       fprintf(chpFp, ", ");
     }
   }
+  return fuInstName;
+}
+
+void ChpCircuitGenerator::printFuncNetlist(const char *instance, const char
+*fuInstName) {
+  const char *normInstance = getNormInstanceName(instance);
+  fprintf(netlistFp, "  %simpl %s;\n", normInstance, fuInstName);
 }
 
 void ChpCircuitGenerator::printSplit(const char *instance,
@@ -258,6 +268,39 @@ void ChpCircuitGenerator::printProcDeclaration(Process *p) {
 
 void ChpCircuitGenerator::printProcEnding() {
   fprintf(chpFp, "}\n\n");
+}
+
+void ChpCircuitGenerator::printProcNetListHeader(Process *p) {
+  fprintf(netlistFp, "defproc ");
+  p->printActName(netlistFp);
+  fprintf(netlistFp, "_impl <: ");
+  p->printActName(netlistFp);
+  fprintf(netlistFp, "()\n");
+  fprintf(netlistFp, "+{\n");
+  ActInstiter iter(p->CurScope());
+  for (iter = iter.begin(); iter != iter.end(); iter++) {
+    ValueIdx *vx = *iter;
+    if (TypeFactory::isChanType(vx->t)
+        || TypeFactory::isIntType(vx->t)
+        || TypeFactory::isBoolType(vx->t)) {
+      int bw = TypeFactory::bitWidth(vx->t);
+      fprintf(netlistFp, "  bd<%d> %s;\n", bw, vx->getName());
+    } else if (TypeFactory::isProcessType(vx->t)) {
+      auto proc = dynamic_cast <Process *> (vx->t->BaseType());
+      Assert (proc, "Uncaptured exception!");
+      ActNamespace::Act()->mfprintfproc(netlistFp, proc);
+      fprintf(netlistFp, " %s;\n", vx->getName());
+    } else if (TypeFactory::isStructure(vx->t)) {
+      Data *d = dynamic_cast <Data *> (vx->t->BaseType());
+      Assert (d, "Uncaptured exception!");
+      ActNamespace::Act()->mfprintfproc(netlistFp, d);
+      fprintf(netlistFp, " %s;\n", vx->getName());
+    }
+  }
+}
+
+void ChpCircuitGenerator::printProcNetListEnding() {
+  fprintf(netlistFp, "}\n{\n}\n\n");
 }
 
 void ChpCircuitGenerator::printCustomNamespace(ActNamespace *ns) {

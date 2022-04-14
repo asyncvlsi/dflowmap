@@ -21,6 +21,12 @@
 
 #include "ChpBackend.h"
 
+ChpBackend::ChpBackend(ChpCircuitGenerator *circuitGenerator,
+                       ChpLibGenerator *libGenerator) {
+  this->circuitGenerator = circuitGenerator;
+  this->libGenerator = libGenerator;
+}
+
 void ChpBackend::createCopyProcs(const char *instance,
                                  const char *inName,
                                  double *metric) {
@@ -63,10 +69,11 @@ void ChpBackend::printFU(const char *instance,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
   /* handle normal fu */
-  circuitGenerator->printFuncChp(instance,
-                                 argList,
-                                 outList,
-                                 buffInfos);
+  const char *fuInstName = circuitGenerator->printFuncChp(instance,
+                                                          argList,
+                                                          outList,
+                                                          buffInfos);
+  circuitGenerator->printFuncNetlist(instance, fuInstName);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
   libGenerator->createFU(instance,
@@ -128,6 +135,14 @@ void ChpBackend::printArbiter(const char *instance,
                                  coutName,
                                  inNameVec);
   libGenerator->createArbiter(instance, metric);
+}
+
+void ChpBackend::printProcNetListHeader(Process *p) {
+  circuitGenerator->printProcNetListHeader(p);
+}
+
+void ChpBackend::printProcNetListEnding() {
+  circuitGenerator->printProcNetListEnding();
 }
 
 void ChpBackend::printProcHeader(Process *p) {

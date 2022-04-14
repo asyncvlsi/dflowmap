@@ -1362,6 +1362,7 @@ void ProcGenerator::run() {
     exit(-1);
   }
   chpBackend->printProcHeader(p);
+  chpBackend->printProcNetListHeader(p);
   collectBitwidthInfo();
   collectOpUses();
   createCopyProcs();
@@ -1378,4 +1379,5 @@ void ProcGenerator::run() {
     }
   }
   chpBackend->printProcEnding();
+  chpBackend->printProcNetListEnding();
 }

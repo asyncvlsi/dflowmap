@@ -56,10 +56,12 @@ class ChpCircuitGenerator {
 
   void printSource(const char *instance, const char *outName);
 
-  void printFuncChp(const char *instance,
-                    StringVec &argList,
-                    StringVec &outList,
-                    Vector<BuffInfo> &buffInfos);
+  const char *printFuncChp(const char *instance,
+                           StringVec &argList,
+                           StringVec &outList,
+                           Vector<BuffInfo> &buffInfos);
+
+  void printFuncNetlist(const char *instance, const char *fuInstName);
 
   void printSplit(const char *instance,
                   const char *splitName,
@@ -83,23 +85,9 @@ class ChpCircuitGenerator {
 
   void printProcHeader(Process *p);
 
-  void printProcNetListHeader(Process *p,
-                              StringVec &argList,
-                              StringVec &outList,
-                              UIntVec &argBWList,
-                              UIntVec &outBWList) {
-    fprintf(netlistFp, "defproc %s_impl <: %s()\n", p->getName(), p->getName());
-    fprintf(netlistFp, "+{\n");
-    size_t numArgs = argList.size();
-    for (size_t i = 0; i < numArgs; i++) {
-      fprintf(netlistFp, "bd<%u> %s;\n", argBWList[i], argList[i].c_str());
-    }
-    size_t numOuts = outList.size();
-    for (size_t i = 0; i < numOuts; i++) {
-      fprintf(netlistFp, "bd<%u> %s;\n", outBWList[i], outList[i].c_str());
-    }
-    //TODO: internal variables
-  }
+  void printProcNetListHeader(Process *p);
+
+  void printProcNetListEnding();
 
   void printProcDeclaration(Process *p);
 
