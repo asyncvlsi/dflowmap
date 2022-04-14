@@ -50,6 +50,7 @@ export defproc source_dflow <: source()
   bd<W> out; 
 }
 {
+  refine {
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = out.a;
@@ -61,6 +62,7 @@ export defproc source_dflow <: source()
   spec {
     timing out.a- -> out.r+
   }
+  }
 }
 
 export defproc sink_dflow <: sink()
@@ -68,10 +70,12 @@ export defproc sink_dflow <: sink()
   bd<W> in;
 }
 { 
+  refine {
   // this signal buffer is needed because it is not allowed to directly connect `in.r' with `in.a'.
   BUFX2 sig_buf;
   sig_buf.A = in.r;
   sig_buf.Y = in.a;
+  }
 }
 
 /*
@@ -212,6 +216,7 @@ defproc onebuf_dflow <: onebuf()
   bd<W> in, out;
 }
 {
+  refine {
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = out.a;
@@ -230,6 +235,7 @@ defproc onebuf_dflow <: onebuf()
   spec {
     timing cele.out+: out.d < out.r+
   }
+  }
 }
 
 /*
@@ -243,6 +249,7 @@ defproc init_dflow <: init()
   bd<W> in, out;
 }
 {
+  refine {
   CELE cele;
   cele.in[0] = in.r;
   cele.in[1] = out.a;
@@ -263,8 +270,9 @@ defproc init_dflow <: init()
     timing out.a- -> cele.out-
   }
 
-  spec {
-    timing cele.out+: out.d < in.a+
+  //spec {
+  //  timing cele.out+: out.d < in.a+
+  //}
   }
 }
 
@@ -277,6 +285,7 @@ defproc init_dflow <: init()
 export template<pint M, N>
 defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
 {
+  refine {
   ctree<N, false> ack_ctree;
   (i:N: 
     ack_ctree.in[i] = out[i].a;
@@ -303,6 +312,7 @@ defproc m_in_n_out_func_control(a1of1 in[M]; a1of1 dc[M]; a1of1 out[N]; a1of1 f)
   (i:N: 
     out_ftree.out[i] = out[i].r;
   )
+  }
 }
 
 export template<pint CD, PW>
@@ -311,6 +321,7 @@ defproc copy_leaf_dflow <: copy_leaf()
   bd<W> in, out;
 }
 {
+  refine {
   ctree<N, false> ack_ctree;
   (i:N:
     ack_ctree.in[i] = out[i].a;
@@ -348,6 +359,7 @@ defproc copy_leaf_dflow <: copy_leaf()
   //    timing in_c.out+: out[i].d < out[i].r+
   //  }
   //)
+  }
 }
 
 export template<pint CD, PW>
@@ -356,21 +368,32 @@ defproc copy_dflow <: copy()
   bd<W> in, out;
 }
 {
-  [ N <= 8 -> copy_leaf_dflow<CD,PW,W,N> l_dflow(in,out);
-   [] else ->
+  refine {
+  [N <= 8 -> 
+    copy_leaf_dflow<CD,PW,W,N> l_dflow(in,out);
+  [] else ->
       pint M_dflow = N/8;
       pint F_dflow = N - M_dflow*8;
       copy_leaf_dflow<CD,PW,W,8> t_dflow[M_dflow];
-      (i:M_dflow: t_dflow[i].out = out[8*i..8*i+7];)
-      [ F_dflow > 0 -> copy_leaf_dflow<CD,PW,W,F_dflow> u_dflow;
-                 copy_dflow<CD,PW,W,M_dflow+1> m_dflow(in);
-                 (i:M_dflow: m_dflow.out[i] = t_dflow[i].in;)
-                 m_dflow.out[M_dflow] = u_dflow.in;
-                 u_dflow.out=out[M_dflow*8..N-1];
-      [] else -> copy_dflow<CD,PW,W,M_dflow> n_dflow(in);
-                 (i:M_dflow: n_dflow.out[i] = t_dflow[i].in;)
+      (i:M_dflow: 
+        t_dflow[i].out = out[8*i..8*i+7];
+      )
+      [ F_dflow > 0 -> 
+        copy_leaf_dflow<CD,PW,W,F_dflow> u_dflow;
+        copy_dflow<CD,PW,W,M_dflow+1> m_dflow(in);
+        (i:M_dflow: 
+          m_dflow.out[i] = t_dflow[i].in;
+        )
+        m_dflow.out[M_dflow] = u_dflow.in;
+        u_dflow.out=out[M_dflow*8..N-1];
+      [] else -> 
+        copy_dflow<CD,PW,W,M_dflow> n_dflow(in);
+        (i:M_dflow: 
+          n_dflow.out[i] = t_dflow[i].in;
+        )
       ]
   ]
+  }
 }
 
 export template<pint W> 
@@ -433,6 +456,7 @@ defproc unpipe_merge_dflow <: unpipe_merge()
   bd<W2> in, out;
 }
 {
+  refine {
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = out.a;
@@ -473,6 +497,7 @@ defproc unpipe_merge_dflow <: unpipe_merge()
   spec {
     timing cele.out+: addr_dec.out < addr_dec_delay.out+
   }
+  }
 }
 
 export template<pint C_CD, C_PW, ADDR, D_CD, D_PW>
@@ -482,6 +507,7 @@ defproc pipe_merge_dflow <: pipe_merge()
   bd<W2> in, out;
 }
 {
+  refine {
   NOR2X1 reset_nor;
   reset_nor.A = Reset;
   reset_nor.B = out.a;
@@ -530,7 +556,8 @@ defproc pipe_merge_dflow <: pipe_merge()
 
   spec {
     timing cele.out+ : addr_dec.out < addr_dec_delay.out+
-    timing ors.out+ : out.d < out.r+
+    //timing ors.out+ : out.d < out.r+
+  }
   }
 }
 
@@ -541,9 +568,10 @@ defproc unpipe_split_dflow <: unpipe_split()
   bd<W2> in, out;
 }
 {
+  refine {
   ortree<N, false> ors;
   (i:N:
-        ors.in[i] = out[i].a;
+    ors.in[i] = out[i].a;
   )
 
   NOR2X1 reset_nor;
@@ -573,20 +601,21 @@ defproc unpipe_split_dflow <: unpipe_split()
 
   AND2X1 ands[N];
   (i:N: 
-        ands[i].A = all_c_tree.out[i];
-        ands[i].B = addr_dec.out[i];
-        ands[i].Y = out[i].r;
+    ands[i].A = all_c_tree.out[i];
+    ands[i].B = addr_dec.out[i];
+    ands[i].Y = out[i].r;
   )
   sigbuf<N> data_tree[W2];
   (b:W2:
-        data_tree[b].in = in.d[b];
-        (i:N:
-              data_tree[b].out[i] = out[i].d[b];
-        )
+    data_tree[b].in = in.d[b];
+    (i:N:
+      data_tree[b].out[i] = out[i].d[b];
+    )
   )
 
   spec {
     timing ctrl_c.out+: addr_dec.out < all_c.out+
+  }
   }
 }
 
@@ -597,9 +626,10 @@ defproc pipe_split_dflow <: pipe_split()
   bd<W2> in, out;
 }
 {
+  refine {
   ortree<N, false> ors;
   (i:N:
-        ors.in[i] = out[i].a;
+    ors.in[i] = out[i].a;
   )
 
   NOR2X1 reset_nor;
@@ -642,21 +672,22 @@ defproc pipe_split_dflow <: pipe_split()
 
   AND2X1 ands[N];
   (i:N: 
-        ands[i].A = all_c_tree.out[i];
-        ands[i].B = addr_dec.out[i];
-        ands[i].Y = out[i].r;
+    ands[i].A = all_c_tree.out[i];
+    ands[i].B = addr_dec.out[i];
+    ands[i].Y = out[i].r;
   )
   sigbuf<N> data_tree[W2];
   (b:W2:
-        data_tree[b].in = data[b];
-        (i:N:
-              data_tree[b].out[i] = out[i].d[b];
-        )
+    data_tree[b].in = data[b];
+    (i:N:
+      data_tree[b].out[i] = out[i].d[b];
+    )
   )
 
   spec {
     timing ctrl_c.out+ : addr_dec.out < all_c.out+
-    timing in_c.out+ : out[0..N].d < all_c.out+
+    //timing in_c.out+ : out[0..N].d < all_c.out+
+  }
   }
 }
 
@@ -705,6 +736,7 @@ defproc unpipe_mixer_dflow <: unpipe_mixer()
   bd<W2> cout;
 }
 {
+  refine {
   CELE c_outs;
   c_outs.in[0] = cout.a;
   c_outs.in[1] = out.a;
@@ -719,13 +751,13 @@ defproc unpipe_mixer_dflow <: unpipe_mixer()
   tbufs<W1> tb[N];
   reset_nor_tree.in = reset_nor.Y;
   (i:N:
-        c_ins[i].in[0] = in[i].r;
-        c_ins[i].in[1] = reset_nor_tree.out[i];
-        c_ins[i].out = in_c_tree.in[i];
-        c_ins[i].out = addr_enc.in[i];
-        c_ins[i].out = tb[i].EN;
-        tb[i].A = in[i].d;
-        tb[i].Y = out.d;
+    c_ins[i].in[0] = in[i].r;
+    c_ins[i].in[1] = reset_nor_tree.out[i];
+    c_ins[i].out = in_c_tree.in[i];
+    c_ins[i].out = addr_enc.in[i];
+    c_ins[i].out = tb[i].EN;
+    tb[i].A = in[i].d;
+    tb[i].Y = out.d;
   )
 
   delay_line<ADDR> addr_enc_delay;
@@ -737,7 +769,8 @@ defproc unpipe_mixer_dflow <: unpipe_mixer()
 
   spec {
     timing in_c_tree.out+: addr_enc.out < addr_enc_delay.out+
-    timing c_ins[0..N-1].out+: out.d < out.r+
+    //timing c_ins[0..N-1].out+: out.d < out.r+
+  }
   }
 }
 
@@ -748,6 +781,7 @@ defproc pipe_mixer_dflow <: pipe_mixer()
   bd<W2> cout;
 }
 {
+  refine {
   CELE c_outs;
   c_outs.in[0] = cout.a;
   c_outs.in[1] = out.a;
@@ -763,13 +797,13 @@ defproc pipe_mixer_dflow <: pipe_mixer()
   bool data[W1];
   reset_nor_tree.in = reset_nor.Y;
   (i:N:
-        c_ins[i].in[0] = in[i].r;
-        c_ins[i].in[1] = reset_nor_tree.out[i];
-        c_ins[i].out = in_c_tree.in[i];
-        c_ins[i].out = addr_enc.in[i];
-        c_ins[i].out = tb[i].EN;
-        tb[i].A = in[i].d;
-        tb[i].Y = data;
+    c_ins[i].in[0] = in[i].r;
+    c_ins[i].in[1] = reset_nor_tree.out[i];
+    c_ins[i].out = in_c_tree.in[i];
+    c_ins[i].out = addr_enc.in[i];
+    c_ins[i].out = tb[i].EN;
+    tb[i].A = in[i].d;
+    tb[i].Y = data;
   )
 
   delay_line<ADDR> addr_enc_delay;
@@ -786,7 +820,8 @@ defproc pipe_mixer_dflow <: pipe_mixer()
 
   spec {
     timing in_c_tree.out+: addr_enc.out < addr_enc_delay.out+
-    timing c_ins[0..N-1].out+: out.d < out.r+
+    //timing c_ins[0..N-1].out+: out.d < out.r+
+  }
   }
 }
 
