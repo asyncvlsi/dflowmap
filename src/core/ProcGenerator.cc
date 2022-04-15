@@ -1188,7 +1188,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                              guardStr,
                              inputStr,
                              outNameVec,
-                             numOutputs,
+                             outBW,
                              metric);
       break;
     }
@@ -1210,6 +1210,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                              outputName,
                              ctrlInName,
                              inNameVec,
+                             dataBW,
                              metric);
       break;
     }
@@ -1231,6 +1232,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         chpBackend->printMixer(instance,
                                outputName,
                                ctrlOutName,
+                               dataBW,
                                inNameVec,
                                metric);
       } else {
@@ -1241,6 +1243,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
             instance,
             outputName,
             ctrlOutName,
+            dataBW,
             inNameVec,
             metric);
       }

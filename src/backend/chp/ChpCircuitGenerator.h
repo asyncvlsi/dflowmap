@@ -63,30 +63,34 @@ class ChpCircuitGenerator {
 
   void printFuncNetlist(const char *instance, const char *fuInstName);
 
-  void printSplit(const char *instance,
-                  const char *splitName,
-                  const char *guardName,
-                  const char *inputName,
-                  CharPtrVec &outNameVec);
+  void printSplitChp(const char *instance,
+                     const char *splitName,
+                     const char *guardName,
+                     const char *inputName,
+                     unsigned dataBW,
+                     CharPtrVec &outNameVec);
 
   void printMergeChp(const char *instance,
                      const char *outName,
                      const char *guardStr,
+                     unsigned dataBW,
                      CharPtrVec &inNameVec);
 
   void printMergeNestlist(const char *instance) {
 
   }
 
-  void printArbiter(const char *instance,
-                    const char *outName,
-                    const char *coutName,
-                    CharPtrVec &inNameVec);
+  void printArbiterChp(const char *instance,
+                       const char *outName,
+                       const char *coutName,
+                       unsigned dataBW,
+                       CharPtrVec &inNameVec);
 
-  void printMixer(const char *instance,
-                  const char *outName,
-                  const char *coutName,
-                  CharPtrVec &inNameVec);
+  void printMixerChp(const char *instance,
+                     const char *outName,
+                     const char *coutName,
+                     unsigned dataBW,
+                     CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
 

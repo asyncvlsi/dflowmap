@@ -63,24 +63,27 @@ class ChpBackend {
                   const char *guardName,
                   const char *inputName,
                   CharPtrVec &outNameVec,
-                  int numOut,
+                  unsigned int dataBW,
                   double *metric);
 
   void printMerge(const char *instance,
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
+                  unsigned dataBW,
                   double *metric);
 
   void printMixer(const char *instance,
                   const char *outName,
                   const char *coutName,
+                  unsigned dataBW,
                   CharPtrVec &inNameVec,
                   double *metric);
 
   void printArbiter(const char *instance,
                     const char *outName,
                     const char *coutName,
+                    unsigned dataBW,
                     CharPtrVec &inNameVec,
                     double *metric);
 

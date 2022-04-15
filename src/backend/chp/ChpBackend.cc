@@ -93,24 +93,28 @@ void ChpBackend::printSplit(const char *instance,
                             const char *guardName,
                             const char *inputName,
                             CharPtrVec &outNameVec,
-                            int numOut,
+                            unsigned int dataBW,
                             double *metric) {
-  circuitGenerator->printSplit(instance,
-                               splitName,
-                               guardName,
-                               inputName,
-                               outNameVec);
-  libGenerator->createSplit(instance, metric, numOut);
+  unsigned numOutputs = outNameVec.size();
+  circuitGenerator->printSplitChp(instance,
+                                  splitName,
+                                  guardName,
+                                  inputName,
+                                  dataBW,
+                                  outNameVec);
+  libGenerator->createSplit(instance, metric, numOutputs);
 }
 
 void ChpBackend::printMerge(const char *instance,
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
+                            unsigned dataBW,
                             double *metric) {
   circuitGenerator->printMergeChp(instance,
                                   outName,
                                   guardName,
+                                  dataBW,
                                   inNameVec);
   libGenerator->createMerge(instance, metric);
 }
@@ -118,24 +122,28 @@ void ChpBackend::printMerge(const char *instance,
 void ChpBackend::printMixer(const char *instance,
                             const char *outName,
                             const char *coutName,
+                            unsigned dataBW,
                             CharPtrVec &inNameVec,
                             double *metric) {
-  circuitGenerator->printMixer(instance,
-                               outName,
-                               coutName,
-                               inNameVec);
+  circuitGenerator->printMixerChp(instance,
+                                  outName,
+                                  coutName,
+                                  dataBW,
+                                  inNameVec);
   libGenerator->createMixer(instance, metric);
 }
 
 void ChpBackend::printArbiter(const char *instance,
                               const char *outName,
                               const char *coutName,
+                              unsigned dataBW,
                               CharPtrVec &inNameVec,
                               double *metric) {
-  circuitGenerator->printArbiter(instance,
-                                 outName,
-                                 coutName,
-                                 inNameVec);
+  circuitGenerator->printArbiterChp(instance,
+                                    outName,
+                                    coutName,
+                                    dataBW,
+                                    inNameVec);
   libGenerator->createArbiter(instance, metric);
 }
 
