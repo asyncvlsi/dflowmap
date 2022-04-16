@@ -32,64 +32,54 @@
 
 class ChpLibGenerator {
  public:
-  ChpLibGenerator(FILE *libFp,
-                  FILE *netlistLibFp,
-                  FILE *netlistIncludeFp,
-                  FILE *confFp);
+  ChpLibGenerator(FILE *chpLibFp, FILE *confFp);
 
-  void genMemConfiguration(const char *procName);
+  void printMemConfig(const char *procName);
 
-  void createConf(const char *instance, unsigned numOutputs, double *metric);
+  void printConf(const char *instance, unsigned numOutputs, double *metric);
 
-  void createConf(const char *instance, double *metric);
+  void printConf(const char *instance, double *metric);
 
-  void createFU(const char *instance,
-                const char *procName,
-                const char *calc,
-                unsigned int numArgs,
-                unsigned int numOuts,
-                double *fuMetric,
-                UIntVec &argBWList,
-                UIntVec &resBWList,
-                UIntVec &outBWList,
-                Map<unsigned int, unsigned int> &outRecord);
+  void printFUChpLib(const char *instance,
+                     const char *procName,
+                     const char *calc,
+                     unsigned int numArgs,
+                     unsigned int numOuts,
+                     double *fuMetric,
+                     UIntVec &resBWList,
+                     Map<unsigned int,
+                         unsigned int> &outRecord);
 
-  void createNetListLib(const char *instance,
-                        UIntVec &argBWList,
-                        UIntVec &outBWList);
+  void printFUChpLib(const char *instance,
+                     const char *procName,
+                     const char *calc,
+                     const char *outSend,
+                     unsigned int numArgs,
+                     unsigned int numOuts,
+                     double *metric,
+                     UIntVec &resBW);
 
-  void createFULib(const char *instance,
-                   const char *procName,
-                   const char *calc,
-                   const char *outSend,
-                   unsigned int numArgs,
-                   unsigned int numOuts,
-                   double *metric,
-                   UIntVec &resBW);
+  void printMergeChpLib(const char *instance, double *metric);
 
-  void createMerge(const char *instance, double *metric);
+  void printSplitChpLib(const char *instance, double *metric, int numOutputs);
 
-  void createSplit(const char *instance,
-                   double *metric,
-                   int numOutputs);
+  void printArbiterChpLib(const char *instance, double *metric);
 
-  void createArbiter(const char *instance, double *metric);
+  void printMixerChpLib(const char *instance, double *metric);
 
-  void createMixer(const char *instance, double *metric);
+  void printSourceChpLib(const char *instance, double *metric);
 
-  void createSource(const char *instance, double *metric);
+  void printInitChpLib(const char *instance, double *metric);
 
-  void createInit(const char *instance, double *metric);
+  void printOneBuffChpLib(const char *instance, double *metric);
 
-  void createOneBuff(const char *instance, double *metric);
+  void printBuffChpLib(Vector<BuffInfo> &buffInfos);
 
-  void createBuff(Vector<BuffInfo> &buffInfos);
+  void printSinkChpLib(const char *instance, double *metric);
 
-  void createSink(const char *instance, double *metric);
+  void printCopyChpLib(const char *instance, double *metric);
 
-  void createCopy(const char *instance, double *metric);
-
-  void createChpBlock(Process *p);
+  void printChpBlock(Process *p);
 
   void printCustomNamespace(ActNamespace *ns);
 
@@ -98,13 +88,8 @@ class ChpLibGenerator {
  private:
   const char *processes[MAX_PROCESSES];
   const char *instances[MAX_PROCESSES];
-
-  FILE *libFp;
-  FILE *netlistLibFp;
-  FILE *netlistIncludeFp;
+  FILE *chpLibFp;
   FILE *confFp;
-
-  bool hasInstance(const char *instance);
 
   bool checkAndUpdateInstance(const char *instance);
 

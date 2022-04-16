@@ -32,19 +32,23 @@ class NameGenerator {
  public:
   static const char *genMergeInstName(unsigned guardBW,
                                       unsigned inBW,
-                                      int numInputs);
+                                      int numInputs,
+                                      char *&procName);
 
   static const char *genMixerInstName(unsigned ctrlBW,
                                       unsigned inBW,
-                                      int numInputs);
+                                      int numInputs,
+                                      char *&procName);
 
   static const char *genArbiterInstName(unsigned ctrlBW,
                                         unsigned inBW,
-                                        int numInputs);
+                                        int numInputs,
+                                        char *&procName);
 
   static const char *genSplitInstName(unsigned guardBW,
                                       unsigned outBW,
-                                      int numOut);
+                                      int numOut,
+                                      char* &procName);
 
   static const char *genCopyInstName(unsigned bw, unsigned numOut);
 

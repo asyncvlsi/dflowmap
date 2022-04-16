@@ -27,41 +27,42 @@
 #include <fstream>
 #include "src/common/Helper.h"
 
-class ChpCircuitGenerator {
+class ChpGenerator {
  private:
   FILE *chpFp;
   FILE *netlistFp;
 
  public:
-  explicit ChpCircuitGenerator(FILE *chpFp, FILE *netlistFp);
+  explicit ChpGenerator(FILE *chpFp, FILE *netlistFp) {
+    this->chpFp = chpFp;
+    this->netlistFp = netlistFp;
+  }
 
-  void printSink(const char *instance, const char *inName);
+  void printSinkChp(const char *instance, const char *inName);
 
-  void printCopy(const char *instance,
-                 const char *inputName);
+  void printCopyChp(const char *instance,
+                    const char *inputName);
 
   void printEmptyLine();
 
-  void printInit(const char *instance,
-                 const char *inName,
-                 const char *outName);
-
-  void printOneBuff(const char *instance,
+  void printInitChp(const char *instance,
                     const char *inName,
                     const char *outName);
 
-  void printBuff(Vector<BuffInfo> &buffInfos);
+  void printOneBuffChp(const char *instance,
+                       const char *inName,
+                       const char *outName);
 
-  void printChannel(const char *chanName, unsigned bitwidth);
+  void printBuffChp(Vector<BuffInfo> &buffInfos);
 
-  void printSource(const char *instance, const char *outName);
+  void printChannelChp(const char *chanName, unsigned bitwidth);
 
-  const char *printFuncChp(const char *instance,
-                           StringVec &argList,
-                           StringVec &outList,
-                           Vector<BuffInfo> &buffInfos);
+  void printSourceChp(const char *instance, const char *outName);
 
-  void printFuncNetlist(const char *instance, const char *fuInstName);
+  const char *printFUChp(const char *instance,
+                         StringVec &argList,
+                         StringVec &outList,
+                         Vector<BuffInfo> &buffInfos);
 
   void printSplitChp(const char *instance,
                      const char *splitName,
@@ -76,10 +77,6 @@ class ChpCircuitGenerator {
                      unsigned dataBW,
                      CharPtrVec &inNameVec);
 
-  void printMergeNestlist(const char *instance) {
-
-  }
-
   void printArbiterChp(const char *instance,
                        const char *outName,
                        const char *coutName,
@@ -92,11 +89,7 @@ class ChpCircuitGenerator {
                      unsigned dataBW,
                      CharPtrVec &inNameVec);
 
-  void printProcHeader(Process *p);
-
-  void printProcNetListHeader(Process *p);
-
-  void printProcNetListEnding();
+  void printProcChpHeader(Process *p);
 
   void printProcDeclaration(Process *p);
 
@@ -104,7 +97,7 @@ class ChpCircuitGenerator {
 
   void printCustomNamespace(ActNamespace *ns);
 
-  void printFileEnding();
+  void printChpFileEnding();
 };
 
 #endif //DFLOWMAP__CHPCIRCUITGENERATOR_H_

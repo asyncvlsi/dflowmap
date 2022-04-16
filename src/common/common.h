@@ -39,8 +39,12 @@
 #else
 #define COMMERCIAL_LOGIC_OPTIMIZER false
 #endif
+#ifdef FOUND_netlistgen
+#define GEN_NETLIST true
+#else
+#define GEN_NETLIST false
+#endif
 #define MAX_PROC_NAME_LEN 102400
-#define MAX_FILE_PATH_LEN 102400
 #define SHORT_STRING_LEN 1024
 #define MAX_INSTANCE_LEN 204800
 #define MAX_CLUSTER_PROC_NAME_LEN 102400

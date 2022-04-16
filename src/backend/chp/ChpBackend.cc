@@ -21,40 +21,53 @@
 
 #include "ChpBackend.h"
 
-ChpBackend::ChpBackend(ChpCircuitGenerator *circuitGenerator,
-                       ChpLibGenerator *libGenerator) {
-  this->circuitGenerator = circuitGenerator;
-  this->libGenerator = libGenerator;
+ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
+                       ChpLibGenerator *chpLibGenerator) {
+  this->chpGenerator = chpGenerator;
+  this->chpLibGenerator = chpLibGenerator;
 }
 
-void ChpBackend::createCopyProcs(const char *instance,
-                                 const char *inName,
-                                 double *metric) {
-  circuitGenerator->printCopy(instance, inName);
-  libGenerator->createCopy(instance, metric);
+ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
+                       ChpLibGenerator *chpLibGenerator,
+                       NetlistBackend *netlistBackend) {
+  this->chpGenerator = chpGenerator;
+  this->chpLibGenerator = chpLibGenerator;
+  this->netlistBackend = netlistBackend;
+}
+
+void ChpBackend::printCopyProcs(const char *instance,
+                                const char *inName,
+                                double *metric) {
+  chpGenerator->printCopyChp(instance, inName);
+  chpLibGenerator->printCopyChpLib(instance, metric);
+  netlistBackend->printCopyNetlist(inName);
 }
 
 void ChpBackend::printSink(const char *instance,
                            const char *inName,
                            double metric[4]) {
-  circuitGenerator->printSink(instance, inName);
-  libGenerator->createSink(instance, metric);
+  chpGenerator->printSinkChp(instance, inName);
+  chpLibGenerator->printSinkChpLib(instance, metric);
+  netlistBackend->printSinkNetlist(inName);
 }
 
 void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
-  circuitGenerator->printBuff(buffInfos);
-  libGenerator->createBuff(buffInfos);
+  chpGenerator->printBuffChp(buffInfos);
+  chpLibGenerator->printBuffChpLib(buffInfos);
+  netlistBackend->printBuffNetlist(buffInfos);
 }
 
 void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
-  circuitGenerator->printChannel(chanName, bitwidth);
+  chpGenerator->printChannelChp(chanName, bitwidth);
+  netlistBackend->printChanNetlist(chanName, bitwidth);
 }
 
 void ChpBackend::printSource(const char *instance,
                              const char *outName,
                              double metric[4]) {
-  circuitGenerator->printSource(instance, outName);
-  libGenerator->createSource(instance, metric);
+  chpGenerator->printSourceChp(instance, outName);
+  chpLibGenerator->printSourceChpLib(instance, metric);
+  netlistBackend->printSourceNetlist(outName);
 }
 
 void ChpBackend::printFU(const char *instance,
@@ -68,27 +81,23 @@ void ChpBackend::printFU(const char *instance,
                          Map<unsigned int, unsigned int> &outRecord,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
-  /* handle normal fu */
-  const char *fuInstName = circuitGenerator->printFuncChp(instance,
-                                                          argList,
-                                                          outList,
-                                                          buffInfos);
-  circuitGenerator->printFuncNetlist(instance, fuInstName);
+  const char *fuInstName =
+      chpGenerator->printFUChp(instance, argList, outList, buffInfos);
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
-  libGenerator->createFU(instance,
-                         procName,
-                         calc,
-                         numArgs,
-                         numOuts,
-                         fuMetric,
-                         argBWList,
-                         resBWList,
-                         outBWList,
-                         outRecord);
+  chpLibGenerator->printFUChpLib(instance,
+                                 procName,
+                                 calc,
+                                 numArgs,
+                                 numOuts,
+                                 fuMetric,
+                                 resBWList,
+                                 outRecord);
+  netlistBackend->printFUNetlist(instance, fuInstName, argBWList, outBWList);
 }
 
 void ChpBackend::printSplit(const char *instance,
+                            const char *procName,
                             const char *splitName,
                             const char *guardName,
                             const char *inputName,
@@ -96,87 +105,89 @@ void ChpBackend::printSplit(const char *instance,
                             unsigned int dataBW,
                             double *metric) {
   unsigned numOutputs = outNameVec.size();
-  circuitGenerator->printSplitChp(instance,
-                                  splitName,
-                                  guardName,
-                                  inputName,
-                                  dataBW,
-                                  outNameVec);
-  libGenerator->createSplit(instance, metric, numOutputs);
+  chpGenerator->printSplitChp(instance,
+                              splitName,
+                              guardName,
+                              inputName,
+                              dataBW,
+                              outNameVec);
+  chpLibGenerator->printSplitChpLib(instance, metric, numOutputs);
+  netlistBackend->printSplitNetlist(procName, splitName, dataBW, numOutputs);
 }
 
 void ChpBackend::printMerge(const char *instance,
+                            const char *procName,
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
                             unsigned dataBW,
                             double *metric) {
-  circuitGenerator->printMergeChp(instance,
-                                  outName,
-                                  guardName,
-                                  dataBW,
-                                  inNameVec);
-  libGenerator->createMerge(instance, metric);
+  chpGenerator->printMergeChp(instance,
+                              outName,
+                              guardName,
+                              dataBW,
+                              inNameVec);
+  chpLibGenerator->printMergeChpLib(instance, metric);
+  unsigned numInputs = inNameVec.size();
+  netlistBackend->printMergeNetlist(procName, outName, dataBW, numInputs);
 }
 
 void ChpBackend::printMixer(const char *instance,
+                            const char *procName,
                             const char *outName,
                             const char *coutName,
                             unsigned dataBW,
                             CharPtrVec &inNameVec,
                             double *metric) {
-  circuitGenerator->printMixerChp(instance,
-                                  outName,
-                                  coutName,
-                                  dataBW,
-                                  inNameVec);
-  libGenerator->createMixer(instance, metric);
+  chpGenerator->printMixerChp(instance,
+                              outName,
+                              coutName,
+                              dataBW,
+                              inNameVec);
+  chpLibGenerator->printMixerChpLib(instance, metric);
+  unsigned numInputs = inNameVec.size();
+  netlistBackend->printMixerNetlist(procName, outName, dataBW, numInputs);
 }
 
 void ChpBackend::printArbiter(const char *instance,
+                              const char *procName,
                               const char *outName,
                               const char *coutName,
                               unsigned dataBW,
                               CharPtrVec &inNameVec,
                               double *metric) {
-  circuitGenerator->printArbiterChp(instance,
-                                    outName,
-                                    coutName,
-                                    dataBW,
-                                    inNameVec);
-  libGenerator->createArbiter(instance, metric);
-}
-
-void ChpBackend::printProcNetListHeader(Process *p) {
-  circuitGenerator->printProcNetListHeader(p);
-}
-
-void ChpBackend::printProcNetListEnding() {
-  circuitGenerator->printProcNetListEnding();
+  chpGenerator->printArbiterChp(instance,
+                                outName,
+                                coutName,
+                                dataBW,
+                                inNameVec);
+  chpLibGenerator->printArbiterChpLib(instance, metric);
+  unsigned numInputs = inNameVec.size();
+  netlistBackend->printArbiterNetlist(procName, outName, dataBW, numInputs);
 }
 
 void ChpBackend::printProcHeader(Process *p) {
-  circuitGenerator->printProcHeader(p);
+  chpGenerator->printProcChpHeader(p);
 }
 
 void ChpBackend::printProcDeclaration(Process *p) {
-  circuitGenerator->printProcDeclaration(p);
+  chpGenerator->printProcDeclaration(p);
 }
 
 void ChpBackend::printProcEnding() {
-  circuitGenerator->printProcEnding();
+  chpGenerator->printProcEnding();
 }
 
 void ChpBackend::createChpBlock(Process *p) {
-  libGenerator->createChpBlock(p);
+  chpLibGenerator->printChpBlock(p);
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {
-  circuitGenerator->printCustomNamespace(ns);
-  libGenerator->printCustomNamespace(ns);
+  chpGenerator->printCustomNamespace(ns);
+  chpLibGenerator->printCustomNamespace(ns);
 }
 
 void ChpBackend::printFileEnding() {
-  circuitGenerator->printFileEnding();
-  libGenerator->printFileEnding();
+  chpGenerator->printChpFileEnding();
+  chpLibGenerator->printFileEnding();
 }

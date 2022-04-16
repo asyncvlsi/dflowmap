@@ -1,8 +1,8 @@
 add_library( chpBackend
         ChpBackend.cc
         ChpBackend.h
-        ChpCircuitGenerator.cc
-        ChpCircuitGenerator.h
+        ChpGenerator.cc
+        ChpGenerator.h
         ChpLibGenerator.cc
         ChpLibGenerator.h
         )

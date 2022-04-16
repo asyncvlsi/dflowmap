@@ -116,12 +116,11 @@ class DflowGenerator {
   char *calc;
   StringVec argList;
   StringVec oriArgList;
-  StringVec metaArgList;
   UIntVec argBWList;
   UIntVec resBWList;
   Map<const char *, Expr *> exprMap;
-  StringMap<unsigned> inBW;
-  StringMap<unsigned> hiddenBW;
+  StringMap<unsigned> inBWMap;
+  StringMap<unsigned> hiddenBWMap;
   Map<Expr *, Expr *> hiddenExprs;
 };
 

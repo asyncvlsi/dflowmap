@@ -23,8 +23,8 @@
 
 const char *NameGenerator::genMergeInstName(unsigned guardBW,
                                             unsigned inBW,
-                                            int numInputs) {
-  char *procName = new char[MAX_PROC_NAME_LEN];
+                                            int numInputs,
+                                            char *&procName) {
   if (PIPELINE) {
     sprintf(procName, "dflowstd::pipe_%s", Constant::MERGE_PREFIX);
   } else {
@@ -37,8 +37,8 @@ const char *NameGenerator::genMergeInstName(unsigned guardBW,
 
 const char *NameGenerator::genMixerInstName(unsigned ctrlBW,
                                             unsigned inBW,
-                                            int numInputs) {
-  char *procName = new char[MAX_PROC_NAME_LEN];
+                                            int numInputs,
+                                            char *&procName) {
   if (PIPELINE) {
     sprintf(procName, "dflowstd::pipe_%s", Constant::MIXER_PREFIX);
   } else {
@@ -51,8 +51,8 @@ const char *NameGenerator::genMixerInstName(unsigned ctrlBW,
 
 const char *NameGenerator::genArbiterInstName(unsigned ctrlBW,
                                               unsigned inBW,
-                                              int numInputs) {
-  char *procName = new char[MAX_PROC_NAME_LEN];
+                                              int numInputs,
+                                              char *&procName) {
   if (PIPELINE) {
     sprintf(procName, "dflowstd::pipe_%s", Constant::ARBITER_PREFIX);
   } else {
@@ -65,8 +65,8 @@ const char *NameGenerator::genArbiterInstName(unsigned ctrlBW,
 
 const char *NameGenerator::genSplitInstName(unsigned guardBW,
                                             unsigned outBW,
-                                            int numOut) {
-  char *procName = new char[MAX_PROC_NAME_LEN];
+                                            int numOut,
+                                            char *&procName) {
   if (PIPELINE) {
     sprintf(procName, "dflowstd::pipe_%s", Constant::SPLIT_PREFIX);
   } else {

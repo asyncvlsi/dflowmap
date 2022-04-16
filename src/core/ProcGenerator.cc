@@ -277,7 +277,9 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
         printf("oriVarName: %s, mappedVarName: %s, res_bw: %u\n",
                oriVarName, mappedVarName, resBW);
       }
-      return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
+      const char* hah = dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
+      printf("Get %s\n", hah);
+      return hah;
     }
     case E_AND: {
       return EMIT_BIN(dflowGenerator,
@@ -857,7 +859,7 @@ void ProcGenerator::createCopyProcs() {
       double *metric = metrics->getOrGenCopyMetric(bitwidth, numOut);
       const char
           *instance = NameGenerator::genCopyInstName(bitwidth, numOut);
-      chpBackend->createCopyProcs(instance, inName, metric);
+      chpBackend->printCopyProcs(instance, inName, metric);
     }
   }
 }
@@ -1181,9 +1183,11 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       double *metric = metrics->getOrGenSplitMetric(guardBW,
                                                     outBW,
                                                     numOutputs);
+      char *procName = new char[MAX_PROC_NAME_LEN];
       const char *instance =
-          NameGenerator::genSplitInstName(guardBW, outBW, numOutputs);
+          NameGenerator::genSplitInstName(guardBW, outBW, numOutputs, procName);
       chpBackend->printSplit(instance,
+                             procName,
                              splitName,
                              guardStr,
                              inputStr,
@@ -1204,9 +1208,14 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       double *metric = metrics->getOrGenMergeMetric(ctrlBW,
                                                     dataBW,
                                                     numInputs);
+      char *procName = new char[MAX_PROC_NAME_LEN];
       const char *instance =
-          NameGenerator::genMergeInstName(ctrlBW, dataBW, numInputs);
+          NameGenerator::genMergeInstName(ctrlBW,
+                                          dataBW,
+                                          numInputs,
+                                          procName);
       chpBackend->printMerge(instance,
+                             procName,
                              outputName,
                              ctrlInName,
                              inNameVec,
@@ -1227,9 +1236,14 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       getActIdName(sc, ctrlOut, ctrlOutName, MAX_INSTANCE_LEN);
       if (d->t == ACT_DFLOW_MIXER) {
         double *metric = metrics->getMixerMetric(numInputs, dataBW, ctrlBW);
+        char *procName = new char[MAX_PROC_NAME_LEN];
         const char *instance =
-            NameGenerator::genMixerInstName(ctrlBW, dataBW, numInputs);
+            NameGenerator::genMixerInstName(ctrlBW,
+                                            dataBW,
+                                            numInputs,
+                                            procName);
         chpBackend->printMixer(instance,
+                               procName,
                                outputName,
                                ctrlOutName,
                                dataBW,
@@ -1237,10 +1251,15 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                metric);
       } else {
         double *metric = metrics->getArbiterMetric(numInputs, dataBW, ctrlBW);
+        char *procName = new char[MAX_PROC_NAME_LEN];
         const char *instance =
-            NameGenerator::genArbiterInstName(ctrlBW, dataBW, numInputs);
+            NameGenerator::genArbiterInstName(ctrlBW,
+                                              dataBW,
+                                              numInputs,
+                                              procName);
         chpBackend->printArbiter(
             instance,
+            procName,
             outputName,
             ctrlOutName,
             dataBW,
@@ -1363,11 +1382,10 @@ void ProcGenerator::run() {
     exit(-1);
   }
   chpBackend->printProcHeader(p);
-  chpBackend->printProcNetListHeader(p);
   collectBitwidthInfo();
   collectOpUses();
   createCopyProcs();
-  listitem_t *li;
+  listitem_t *li = nullptr;
   unsigned sinkCnt = 0;
   for (li = list_first (p->getlang()->getdflow()->dflow); li;
        li = list_next (li)) {
@@ -1380,5 +1398,4 @@ void ProcGenerator::run() {
     }
   }
   chpBackend->printProcEnding();
-  chpBackend->printProcNetListEnding();
 }

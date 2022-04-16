@@ -97,8 +97,12 @@ static void create_outfiles(const char *src,
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
   fprintf(*netlistIncludeFp, "import \"%s_lib.act\";\n", basesrcName);
-  fprintf(*netlistIncludeFp, "import \"dflow_stdlib_refine.act\";\n");
-
+  fprintf(*netlistIncludeFp, R"(
+import "dflow_stdlib_refine.act";
+import globals;
+import "syn/bdopt/stdcells.act";
+open syn;
+)");
   sprintf(tmpbuf + i, "%s_netlist.act", basesrcName);
   *netlistFp = fopen(tmpbuf, "w");
   if (!*netlistFp) {
@@ -179,10 +183,14 @@ int main(int argc, char **argv) {
                   &netlistLibFp,
                   &netlistIncludeFp);
   Metrics *metrics = createMetrics(mfile, statsFilePath);
-  auto circuitGenerator = new ChpCircuitGenerator(chpFp, netlistFp);
-  auto libGenerator =
-      new ChpLibGenerator(libFp, netlistLibFp, netlistIncludeFp, confFp);
-  auto backend = new ChpBackend(circuitGenerator, libGenerator);
+  auto chpGenerator = new ChpGenerator(chpFp, netlistFp);
+  auto chpLibGenerator = new ChpLibGenerator(libFp, confFp);
+  auto netlistGenerator = new NetlistGenerator(netlistFp);
+  auto netlistLibGenerator =
+      new NetlistLibGenerator(netlistLibFp, netlistIncludeFp);
+  auto netlistBackend =
+      new NetlistBackend(netlistGenerator, netlistLibGenerator);
+  auto backend = new ChpBackend(chpGenerator, chpLibGenerator, netlistBackend);
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {

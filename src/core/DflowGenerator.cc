@@ -34,8 +34,8 @@ DflowGenerator::DflowGenerator(StringVec &argList,
   this->argBWList = argBWList;
   this->resBWList = resBWList;
   this->exprMap = exprMap;
-  this->inBW = inBW;
-  this->hiddenBW = hiddenBW;
+  this->inBWMap = inBW;
+  this->hiddenBWMap = hiddenBW;
   this->hiddenExprs = hiddenExprs;
   calc = new char[MAX_CALC_LEN];
   calc[0] = '\0';
@@ -49,6 +49,7 @@ bool DflowGenerator::isNewArg(const char *arg) {
 const char *DflowGenerator::handleEVar(const char *oriArgName,
                                        const char *mappedVarName,
                                        unsigned argBW) {
+  printf("orivar: %s\n", oriArgName);
   char *curArg = new char[10240];
   int idx = searchStringVec(oriArgList, oriArgName);
   if (idx == -1) {
@@ -64,7 +65,9 @@ const char *DflowGenerator::handleEVar(const char *oriArgName,
   } else {
     sprintf(curArg, "x%d", idx);
   }
-  inBW.insert({curArg, argBW});
+  printf("curArg: %s\n", curArg);
+  inBWMap.insert({std::string(curArg), argBW});
+  printf("Done!\n");
   return curArg;
 }
 
@@ -152,7 +155,7 @@ void DflowGenerator::preparePortForOpt(const char *expr_name,
                                        unsigned bw) {
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
   Expr *expr = getExprFromName(portName, exprMap, false, E_VAR);
-  hiddenBW.insert({expr_name, bw});
+  hiddenBWMap.insert({expr_name, bw});
   hiddenExprs.insert({rhs, expr});
 }
 
@@ -178,7 +181,7 @@ void DflowGenerator::prepareQueryExprForOpt(const char *cexpr_name,
   body_expr->u.e.l = lExpr;
   body_expr->u.e.r = rExpr;
   expr->u.e.r = body_expr;
-  hiddenBW.insert({expr_name, bw});
+  hiddenBWMap.insert({expr_name, bw});
   hiddenExprs.insert({rhs, expr});
   if (debug_verbose) {
     printf("rhs: ");
@@ -203,7 +206,7 @@ void DflowGenerator::prepareBinExprForOpt(const char *lexpr_name,
   expr->type = expr_type;
   expr->u.e.l = lExpr;
   expr->u.e.r = rExpr;
-  hiddenBW.insert({expr_name, bw});
+  hiddenBWMap.insert({expr_name, bw});
   hiddenExprs.insert({rhs, expr});
   if (debug_verbose) {
     printf("rhs: ");
@@ -224,7 +227,7 @@ void DflowGenerator::prepareUniExprForOpt(const char *lexpr_name,
   Expr *expr = new Expr;
   expr->type = expr_type;
   expr->u.e.l = lExpr;
-  hiddenBW.insert({expr_name, bw});
+  hiddenBWMap.insert({expr_name, bw});
   hiddenExprs.insert({rhs, expr});
   if (debug_verbose) {
     printf("rhs: ");
@@ -257,11 +260,11 @@ Map<const char *, Expr *> &DflowGenerator::getExprMap() {
 }
 
 StringMap<unsigned> &DflowGenerator::getInBW() {
-  return inBW;
+  return inBWMap;
 }
 
 StringMap<unsigned> &DflowGenerator::getHiddenBWs() {
-  return hiddenBW;
+  return hiddenBWMap;
 }
 
 Map<Expr *, Expr *> &DflowGenerator::getHiddenExprs() {

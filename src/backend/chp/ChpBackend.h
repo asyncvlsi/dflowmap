@@ -22,17 +22,23 @@
 #ifndef DFLOWMAP__CHPBACKEND_H_
 #define DFLOWMAP__CHPBACKEND_H_
 
-#include "src/backend/chp/ChpCircuitGenerator.h"
+#include "src/backend/chp/ChpGenerator.h"
 #include "src/backend/chp/ChpLibGenerator.h"
+
+#include "src/backend/netlist/NetlistBackend.h"
 
 class ChpBackend {
  public:
-  ChpBackend(ChpCircuitGenerator *circuitGenerator,
-             ChpLibGenerator *libGenerator);
+  ChpBackend(ChpGenerator *chpGenerator,
+             ChpLibGenerator *chpLibGenerator);
 
-  void createCopyProcs(const char *instance,
-                       const char *inName,
-                       double *metric);
+  ChpBackend(ChpGenerator *chpGenerator,
+             ChpLibGenerator *chpLibGenerator,
+             NetlistBackend *netlistBackend);
+
+  void printCopyProcs(const char *instance,
+                      const char *inName,
+                      double *metric);
 
   void printSink(const char *instance,
                  const char *inName,
@@ -59,6 +65,7 @@ class ChpBackend {
                double *fuMetric);
 
   void printSplit(const char *instance,
+                  const char *procName,
                   const char *splitName,
                   const char *guardName,
                   const char *inputName,
@@ -67,6 +74,7 @@ class ChpBackend {
                   double *metric);
 
   void printMerge(const char *instance,
+                  const char *procName,
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
@@ -74,6 +82,7 @@ class ChpBackend {
                   double *metric);
 
   void printMixer(const char *instance,
+                  const char *procName,
                   const char *outName,
                   const char *coutName,
                   unsigned dataBW,
@@ -81,15 +90,12 @@ class ChpBackend {
                   double *metric);
 
   void printArbiter(const char *instance,
+                    const char *procName,
                     const char *outName,
                     const char *coutName,
                     unsigned dataBW,
                     CharPtrVec &inNameVec,
                     double *metric);
-
-  void printProcNetListHeader(Process *p);
-
-  void printProcNetListEnding();
 
   void printProcHeader(Process *p);
 
@@ -104,8 +110,9 @@ class ChpBackend {
   void printFileEnding();
 
  private:
-  ChpCircuitGenerator *circuitGenerator;
-  ChpLibGenerator *libGenerator;
+  ChpGenerator *chpGenerator;
+  ChpLibGenerator *chpLibGenerator;
+  NetlistBackend *netlistBackend;
 };
 
 #endif //DFLOWMAP__CHPBACKEND_H_
