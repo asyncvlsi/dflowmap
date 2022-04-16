@@ -21,12 +21,7 @@
 
 #include "ChpBackend.h"
 
-ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
-                       ChpLibGenerator *chpLibGenerator) {
-  this->chpGenerator = chpGenerator;
-  this->chpLibGenerator = chpLibGenerator;
-}
-
+#if GEN_NETLIST
 ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
                        ChpLibGenerator *chpLibGenerator,
                        NetlistBackend *netlistBackend) {
@@ -34,13 +29,22 @@ ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
   this->chpLibGenerator = chpLibGenerator;
   this->netlistBackend = netlistBackend;
 }
+#else
+ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
+                       ChpLibGenerator *chpLibGenerator) {
+  this->chpGenerator = chpGenerator;
+  this->chpLibGenerator = chpLibGenerator;
+}
+#endif
 
 void ChpBackend::printCopyProcs(const char *instance,
                                 const char *inName,
                                 double *metric) {
   chpGenerator->printCopyChp(instance, inName);
   chpLibGenerator->printCopyChpLib(instance, metric);
+#if GEN_NETLIST
   netlistBackend->printCopyNetlist(inName);
+#endif
 }
 
 void ChpBackend::printSink(const char *instance,
@@ -48,18 +52,24 @@ void ChpBackend::printSink(const char *instance,
                            double metric[4]) {
   chpGenerator->printSinkChp(instance, inName);
   chpLibGenerator->printSinkChpLib(instance, metric);
+#if GEN_NETLIST
   netlistBackend->printSinkNetlist(inName);
+#endif
 }
 
 void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
   chpGenerator->printBuffChp(buffInfos);
   chpLibGenerator->printBuffChpLib(buffInfos);
+#if GEN_NETLIST
   netlistBackend->printBuffNetlist(buffInfos);
+#endif
 }
 
 void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
   chpGenerator->printChannelChp(chanName, bitwidth);
+#if GEN_NETLIST
   netlistBackend->printChanNetlist(chanName, bitwidth);
+#endif
 }
 
 void ChpBackend::printSource(const char *instance,
@@ -67,7 +77,9 @@ void ChpBackend::printSource(const char *instance,
                              double metric[4]) {
   chpGenerator->printSourceChp(instance, outName);
   chpLibGenerator->printSourceChpLib(instance, metric);
+#if GEN_NETLIST
   netlistBackend->printSourceNetlist(outName);
+#endif
 }
 
 void ChpBackend::printFU(const char *instance,
@@ -93,7 +105,9 @@ void ChpBackend::printFU(const char *instance,
                                  fuMetric,
                                  resBWList,
                                  outRecord);
+#if GEN_NETLIST
   netlistBackend->printFUNetlist(instance, fuInstName, argBWList, outBWList);
+#endif
 }
 
 void ChpBackend::printSplit(const char *instance,
@@ -112,7 +126,9 @@ void ChpBackend::printSplit(const char *instance,
                               dataBW,
                               outNameVec);
   chpLibGenerator->printSplitChpLib(instance, metric, numOutputs);
+#if GEN_NETLIST
   netlistBackend->printSplitNetlist(procName, splitName, dataBW, numOutputs);
+#endif
 }
 
 void ChpBackend::printMerge(const char *instance,
@@ -128,8 +144,10 @@ void ChpBackend::printMerge(const char *instance,
                               dataBW,
                               inNameVec);
   chpLibGenerator->printMergeChpLib(instance, metric);
+#if GEN_NETLIST
   unsigned numInputs = inNameVec.size();
   netlistBackend->printMergeNetlist(procName, outName, dataBW, numInputs);
+#endif
 }
 
 void ChpBackend::printMixer(const char *instance,
@@ -145,8 +163,10 @@ void ChpBackend::printMixer(const char *instance,
                               dataBW,
                               inNameVec);
   chpLibGenerator->printMixerChpLib(instance, metric);
+#if GEN_NETLIST
   unsigned numInputs = inNameVec.size();
   netlistBackend->printMixerNetlist(procName, outName, dataBW, numInputs);
+#endif
 }
 
 void ChpBackend::printArbiter(const char *instance,
@@ -162,8 +182,10 @@ void ChpBackend::printArbiter(const char *instance,
                                 dataBW,
                                 inNameVec);
   chpLibGenerator->printArbiterChpLib(instance, metric);
+#if GEN_NETLIST
   unsigned numInputs = inNameVec.size();
   netlistBackend->printArbiterNetlist(procName, outName, dataBW, numInputs);
+#endif
 }
 
 void ChpBackend::printProcHeader(Process *p) {

@@ -40,15 +40,15 @@ static void usage(char *name) {
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
-
-static void create_outfiles(const char *src,
-                            char *&statsFilePath,
+#if GEN_NETLIST
+static void create_outfiles(char *&statsFilePath,
                             FILE **chpFp,
-                            FILE **libfp,
+                            FILE **chpLibfp,
                             FILE **conffp,
                             FILE **netlistFp,
                             FILE **netlistLibFp,
-                            FILE **netlistIncludeFp) {
+                            FILE **netlistIncludeFp,
+                            const char *src) {
   /* "src" contains the path to the act file, which is in the form of
    * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
    * "circuit", as well as taking care of the file path.*/
@@ -76,8 +76,8 @@ static void create_outfiles(const char *src,
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
   sprintf(tmpbuf + i, "%s_lib.act", basesrcName);
-  *libfp = fopen(tmpbuf, "w");
-  if (!*libfp) {
+  *chpLibfp = fopen(tmpbuf, "w");
+  if (!*chpLibfp) {
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
   fprintf(*chpFp, "import \"%s\";\n", tmpbuf);
@@ -103,6 +103,7 @@ import globals;
 import "syn/bdopt/stdcells.act";
 open syn;
 )");
+  fprintf(*netlistIncludeFp, "import \"dflow_stdlib_refine.act\";\n");
   sprintf(tmpbuf + i, "%s_netlist.act", basesrcName);
   *netlistFp = fopen(tmpbuf, "w");
   if (!*netlistFp) {
@@ -118,6 +119,53 @@ open syn;
     fatal_error("Could not open file `%s' for writing", tmpbuf);
   }
 }
+#else
+static void create_outfiles(char *&statsFilePath,
+                            FILE **chpFp,
+                            FILE **chpLibfp,
+                            FILE **conffp,
+                            const char *src) {
+  /* "src" contains the path to the act file, which is in the form of
+   * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
+   * "circuit", as well as taking care of the file path.*/
+  unsigned i = strlen(src);
+  while (i > 0) {
+    if (src[i - 1] == '/') {
+      break;
+    }
+    i--;
+  }
+  unsigned len = strlen(src);
+  char *basesrcName = new char[len - i - 3];
+  snprintf(basesrcName, len - i - 3, "%s", src + i);
+  char *tmpbuf = new char[64 + len];
+  for (unsigned j = 0; j < i; j++) {
+    tmpbuf[j] = src[j];
+  }
+  /* generate statistics file */
+  statsFilePath = new char[8 + len];
+  sprintf(statsFilePath, "%s.stat", basesrcName);
+  /* generate chp file */
+  sprintf(tmpbuf + i, "%s_chp.act", basesrcName);
+  *chpFp = fopen(tmpbuf, "w");
+  if (!*chpFp) {
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
+  }
+  sprintf(tmpbuf + i, "%s_lib.act", basesrcName);
+  *chpLibfp = fopen(tmpbuf, "w");
+  if (!*chpLibfp) {
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
+  }
+  fprintf(*chpFp, "import \"%s\";\n", tmpbuf);
+  fprintf(*chpFp, "import \"dflow_stdlib.act\";\n\n");
+  /* create configuration file */
+  sprintf(tmpbuf + i, "%s.conf", basesrcName);
+  *conffp = fopen(tmpbuf, "w");
+  if (!*conffp) {
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
+  }
+}
+#endif
 
 static Metrics *createMetrics(const char *metricFile,
                               const char *statsFilePath) {
@@ -172,25 +220,45 @@ int main(int argc, char **argv) {
     a->Print(stdout);
     printf("\n\n\n");
   }
-  FILE *chpFp, *libFp, *confFp, *netlistFp, *netlistLibFp, *netlistIncludeFp;
+  FILE *chpFp, *chpLibFp, *confFp;
+#if GEN_NETLIST
+  FILE *netlistFp, *netlistLibFp, *netlistIncludeFp;
+#endif
   char *statsFilePath = nullptr;
-  create_outfiles(act_file,
-                  statsFilePath,
-                  &chpFp,
-                  &libFp,
-                  &confFp,
-                  &netlistFp,
-                  &netlistLibFp,
-                  &netlistIncludeFp);
+#if GEN_NETLIST
+  create_outfiles(
+      statsFilePath,
+      &chpFp,
+      &chpLibFp,
+      &confFp,
+      &netlistFp,
+      &netlistLibFp,
+      &netlistIncludeFp,
+      act_file);
+#else
+  create_outfiles(
+      statsFilePath,
+      &chpFp,
+      &chpLibFp,
+      &confFp,
+      act_file);
+#endif
   Metrics *metrics = createMetrics(mfile, statsFilePath);
+#if GEN_NETLIST
   auto chpGenerator = new ChpGenerator(chpFp, netlistFp);
-  auto chpLibGenerator = new ChpLibGenerator(libFp, confFp);
+  auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
   auto netlistGenerator = new NetlistGenerator(netlistFp);
   auto netlistLibGenerator =
       new NetlistLibGenerator(netlistLibFp, netlistIncludeFp);
   auto netlistBackend =
       new NetlistBackend(netlistGenerator, netlistLibGenerator);
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator, netlistBackend);
+#else
+  auto chpGenerator = new ChpGenerator(chpFp);
+  auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
+  auto backend = new ChpBackend(chpGenerator, chpLibGenerator);
+#endif
+
   /* declare custom namespace */
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {

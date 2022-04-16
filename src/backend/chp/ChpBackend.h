@@ -24,17 +24,20 @@
 
 #include "src/backend/chp/ChpGenerator.h"
 #include "src/backend/chp/ChpLibGenerator.h"
-
+#if GEN_NETLIST
 #include "src/backend/netlist/NetlistBackend.h"
+#endif
 
 class ChpBackend {
  public:
-  ChpBackend(ChpGenerator *chpGenerator,
-             ChpLibGenerator *chpLibGenerator);
-
+#if GEN_NETLIST
   ChpBackend(ChpGenerator *chpGenerator,
              ChpLibGenerator *chpLibGenerator,
              NetlistBackend *netlistBackend);
+#else
+  ChpBackend(ChpGenerator *chpGenerator,
+             ChpLibGenerator *chpLibGenerator);
+#endif
 
   void printCopyProcs(const char *instance,
                       const char *inName,
@@ -112,7 +115,9 @@ class ChpBackend {
  private:
   ChpGenerator *chpGenerator;
   ChpLibGenerator *chpLibGenerator;
+#if GEN_NETLIST
   NetlistBackend *netlistBackend;
+#endif
 };
 
 #endif //DFLOWMAP__CHPBACKEND_H_

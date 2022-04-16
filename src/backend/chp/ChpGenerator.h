@@ -30,13 +30,21 @@
 class ChpGenerator {
  private:
   FILE *chpFp;
+#if GEN_NETLIST
   FILE *netlistFp;
+#endif
 
  public:
+#if GEN_NETLIST
   explicit ChpGenerator(FILE *chpFp, FILE *netlistFp) {
     this->chpFp = chpFp;
     this->netlistFp = netlistFp;
   }
+#else
+  explicit ChpGenerator(FILE *chpFp) {
+    this->chpFp = chpFp;
+  }
+#endif
 
   void printSinkChp(const char *instance, const char *inName);
 
