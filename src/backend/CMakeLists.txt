@@ -1,2 +1,4 @@
 add_subdirectory(chp)
-add_subdirectory(netlist)
+if (EXISTS $ENV{ACT_HOME}/lib/libnetlistgen.a)
+    add_subdirectory(netlist)
+endif ()

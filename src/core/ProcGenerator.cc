@@ -277,9 +277,7 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
         printf("oriVarName: %s, mappedVarName: %s, res_bw: %u\n",
                oriVarName, mappedVarName, resBW);
       }
-      const char* hah = dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
-      printf("Get %s\n", hah);
-      return hah;
+      return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
     }
     case E_AND: {
       return EMIT_BIN(dflowGenerator,

@@ -49,7 +49,6 @@ bool DflowGenerator::isNewArg(const char *arg) {
 const char *DflowGenerator::handleEVar(const char *oriArgName,
                                        const char *mappedVarName,
                                        unsigned argBW) {
-  printf("orivar: %s\n", oriArgName);
   char *curArg = new char[10240];
   int idx = searchStringVec(oriArgList, oriArgName);
   if (idx == -1) {
@@ -65,9 +64,7 @@ const char *DflowGenerator::handleEVar(const char *oriArgName,
   } else {
     sprintf(curArg, "x%d", idx);
   }
-  printf("curArg: %s\n", curArg);
   inBWMap.insert({std::string(curArg), argBW});
-  printf("Done!\n");
   return curArg;
 }
 
