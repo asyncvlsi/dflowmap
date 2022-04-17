@@ -238,7 +238,7 @@ void ChpGenerator::printArbiterChp(const char *instance,
                                    CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
   size_t numInputs = inNameVec.size();
-  fprintf(chpFp, "chan(int<%u>) %s_in[%u];\n", dataBW, normOutput, numInputs);
+  fprintf(chpFp, "chan(int<%u>) %s_in[%zd];\n", dataBW, normOutput, numInputs);
   for (size_t i = 0; i < numInputs; i++) {
     fprintf(chpFp, "%s_in[%zd] = %s;\n", normOutput, i, inNameVec[i]);
   }
@@ -258,7 +258,7 @@ void ChpGenerator::printMixerChp(const char *instance,
                                  CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
   size_t numInputs = inNameVec.size();
-  fprintf(chpFp, "chan(int<%u>) %s_in[%u];\n", dataBW, normOutput, numInputs);
+  fprintf(chpFp, "chan(int<%u>) %s_in[%zd];\n", dataBW, normOutput, numInputs);
   for (size_t i = 0; i < numInputs; i++) {
     fprintf(chpFp, "%s_in[%zd] = %s;\n", normOutput, i, inNameVec[i]);
   }

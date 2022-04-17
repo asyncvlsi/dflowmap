@@ -40,14 +40,16 @@ static void usage(char *name) {
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
-#if GEN_NETLIST
+
 static void create_outfiles(char *&statsFilePath,
                             FILE **chpFp,
                             FILE **chpLibfp,
                             FILE **conffp,
-                            FILE **netlistFp,
-                            FILE **netlistLibFp,
-                            FILE **netlistIncludeFp,
+#if GEN_NETLIST
+FILE **netlistFp,
+FILE **netlistLibFp,
+FILE **netlistIncludeFp,
+#endif
                             const char *src) {
   /* "src" contains the path to the act file, which is in the form of
    * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
@@ -82,6 +84,7 @@ static void create_outfiles(char *&statsFilePath,
   }
   fprintf(*chpFp, "import \"%s\";\n", tmpbuf);
   fprintf(*chpFp, "import \"dflow_stdlib.act\";\n\n");
+#if GEN_NETLIST
   /* generate netlist file */
   sprintf(tmpbuf + i, "%s_netlib.act", basesrcName);
   *netlistLibFp = fopen(tmpbuf, "w");
@@ -112,60 +115,14 @@ open syn;
   fprintf(*netlistFp, "import \"%s_chp.act\";\n", basesrcName);
   fprintf(*netlistFp, "import \"%s_netlib.act\";\n", basesrcName);
   fprintf(*netlistFp, "import \"dflow_stdlib_refine.act\";\n\n");
-  /* create configuration file */
-  sprintf(tmpbuf + i, "%s.conf", basesrcName);
-  *conffp = fopen(tmpbuf, "w");
-  if (!*conffp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-}
-#else
-static void create_outfiles(char *&statsFilePath,
-                            FILE **chpFp,
-                            FILE **chpLibfp,
-                            FILE **conffp,
-                            const char *src) {
-  /* "src" contains the path to the act file, which is in the form of
-   * path1/path2/.../circuit.act. We need to extract the baseSrcName, which is
-   * "circuit", as well as taking care of the file path.*/
-  unsigned i = strlen(src);
-  while (i > 0) {
-    if (src[i - 1] == '/') {
-      break;
-    }
-    i--;
-  }
-  unsigned len = strlen(src);
-  char *basesrcName = new char[len - i - 3];
-  snprintf(basesrcName, len - i - 3, "%s", src + i);
-  char *tmpbuf = new char[64 + len];
-  for (unsigned j = 0; j < i; j++) {
-    tmpbuf[j] = src[j];
-  }
-  /* generate statistics file */
-  statsFilePath = new char[8 + len];
-  sprintf(statsFilePath, "%s.stat", basesrcName);
-  /* generate chp file */
-  sprintf(tmpbuf + i, "%s_chp.act", basesrcName);
-  *chpFp = fopen(tmpbuf, "w");
-  if (!*chpFp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-  sprintf(tmpbuf + i, "%s_lib.act", basesrcName);
-  *chpLibfp = fopen(tmpbuf, "w");
-  if (!*chpLibfp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-  fprintf(*chpFp, "import \"%s\";\n", tmpbuf);
-  fprintf(*chpFp, "import \"dflow_stdlib.act\";\n\n");
-  /* create configuration file */
-  sprintf(tmpbuf + i, "%s.conf", basesrcName);
-  *conffp = fopen(tmpbuf, "w");
-  if (!*conffp) {
-    fatal_error("Could not open file `%s' for writing", tmpbuf);
-  }
-}
 #endif
+  /* create configuration file */
+  sprintf(tmpbuf + i, "%s.conf", basesrcName);
+  *conffp = fopen(tmpbuf, "w");
+  if (!*conffp) {
+    fatal_error("Could not open file `%s' for writing", tmpbuf);
+  }
+}
 
 static Metrics *createMetrics(const char *metricFile,
                               const char *statsFilePath) {
@@ -225,24 +182,19 @@ int main(int argc, char **argv) {
   FILE *netlistFp, *netlistLibFp, *netlistIncludeFp;
 #endif
   char *statsFilePath = nullptr;
+
+  create_outfiles(
+      statsFilePath,
+      &chpFp,
+      &chpLibFp,
+      &confFp,
 #if GEN_NETLIST
-  create_outfiles(
-      statsFilePath,
-      &chpFp,
-      &chpLibFp,
-      &confFp,
-      &netlistFp,
-      &netlistLibFp,
-      &netlistIncludeFp,
-      act_file);
-#else
-  create_outfiles(
-      statsFilePath,
-      &chpFp,
-      &chpLibFp,
-      &confFp,
-      act_file);
+  &netlistFp,
+  &netlistLibFp,
+  &netlistIncludeFp,
 #endif
+      act_file);
+
   Metrics *metrics = createMetrics(mfile, statsFilePath);
 #if GEN_NETLIST
   auto chpGenerator = new ChpGenerator(chpFp, netlistFp);

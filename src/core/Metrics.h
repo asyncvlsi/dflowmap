@@ -72,13 +72,17 @@ class Metrics {
 
   double *getBuffMetric(unsigned nBuff, unsigned bw);
 
-  double *getOrGenFUMetric(const char *instName,
+  double *getOrGenFUMetric(const char *instance
+#if LOGIC_OPTIMIZER
+      ,
                            StringMap<unsigned> &inBW,
                            StringMap<unsigned> &hiddenBW,
                            Map<const char *, Expr *> &exprMap,
                            Map<Expr *, Expr *> &hiddenExprs,
                            Map<unsigned int, unsigned int> &outRecord,
-                           UIntVec &outBWList);
+                           UIntVec &outBWList
+#endif
+  );
 
   double *getSourceMetric(const char *instance);
 

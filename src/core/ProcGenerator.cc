@@ -908,26 +908,34 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   StringVec &argList = dflowGenerator->getArgList();
   UIntVec &argBWList = dflowGenerator->getArgBWList();
   UIntVec &resBWList = dflowGenerator->getResBWList();
+  const char *instance =
+      NameGenerator::genFUName(procName, argList, outBWList, argBWList);
+#if LOGIC_OPTIMIZER
   Map<const char *, Expr *> &exprMap = dflowGenerator->getExprMap();
   StringMap<unsigned> &inBW = dflowGenerator->getInBW();
   StringMap<unsigned> &hiddenBW = dflowGenerator->getHiddenBWs();
   Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
-  const char *instance =
-      NameGenerator::genFUName(procName, argList, outBWList, argBWList);
-  double *fuMetric = metrics->getOrGenFUMetric(instance,
+#endif
+  double *fuMetric = metrics->getOrGenFUMetric(instance
+#if LOGIC_OPTIMIZER
+      ,
                                                inBW,
                                                hiddenBW,
                                                exprMap,
                                                hiddenExprs,
                                                outRecord,
-                                               outBWList);
+                                               outBWList
+#endif
+  );
   chpBackend->printFU(instance,
                       procName,
                       argList,
                       outList,
-                      argBWList,
                       resBWList,
-                      outBWList,
+#if GEN_NETLIST
+  argBWList,
+  outBWList,
+#endif
                       calc,
                       outRecord,
                       buffInfos,
@@ -1185,7 +1193,9 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       const char *instance =
           NameGenerator::genSplitInstName(guardBW, outBW, numOutputs, procName);
       chpBackend->printSplit(instance,
-                             procName,
+#if GEN_NETLIST
+          procName,
+#endif
                              splitName,
                              guardStr,
                              inputStr,
@@ -1213,7 +1223,9 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                           numInputs,
                                           procName);
       chpBackend->printMerge(instance,
-                             procName,
+#if GEN_NETLIST
+          procName,
+#endif
                              outputName,
                              ctrlInName,
                              inNameVec,
@@ -1241,7 +1253,9 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                             numInputs,
                                             procName);
         chpBackend->printMixer(instance,
-                               procName,
+#if GEN_NETLIST
+            procName,
+#endif
                                outputName,
                                ctrlOutName,
                                dataBW,
@@ -1255,14 +1269,15 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                               dataBW,
                                               numInputs,
                                               procName);
-        chpBackend->printArbiter(
-            instance,
+        chpBackend->printArbiter(instance,
+#if GEN_NETLIST
             procName,
-            outputName,
-            ctrlOutName,
-            dataBW,
-            inNameVec,
-            metric);
+#endif
+                                 outputName,
+                                 ctrlOutName,
+                                 dataBW,
+                                 inNameVec,
+                                 metric);
       }
       break;
     }

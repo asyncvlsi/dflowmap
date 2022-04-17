@@ -267,13 +267,17 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
   return metric;
 }
 
-double *Metrics::getOrGenFUMetric(const char *instance,
+double *Metrics::getOrGenFUMetric(const char *instance
+#if LOGIC_OPTIMIZER
+    ,
                                   StringMap<unsigned> &inBW,
                                   StringMap<unsigned> &hiddenBW,
                                   Map<const char *, Expr *> &exprMap,
                                   Map<Expr *, Expr *> &hiddenExprs,
                                   Map<unsigned int, unsigned int> &outRecord,
-                                  UIntVec &outBWList) {
+                                  UIntVec &outBWList
+#endif
+) {
   double *metric = getOpMetric(instance);
   if (!metric) {
 #if LOGIC_OPTIMIZER

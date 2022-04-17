@@ -86,15 +86,21 @@ void ChpBackend::printFU(const char *instance,
                          const char *procName,
                          StringVec &argList,
                          StringVec &outList,
-                         UIntVec &argBWList,
                          UIntVec &resBWList,
-                         UIntVec &outBWList,
+#if GEN_NETLIST
+UIntVec &argBWList,
+UIntVec &outBWList,
+#endif
                          const char *calc,
                          Map<unsigned int, unsigned int> &outRecord,
                          Vector<BuffInfo> &buffInfos,
                          double *fuMetric) {
+#if GEN_NETLIST
   const char *fuInstName =
       chpGenerator->printFUChp(instance, argList, outList, buffInfos);
+#else
+  chpGenerator->printFUChp(instance, argList, outList, buffInfos);
+#endif
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
   chpLibGenerator->printFUChpLib(instance,
@@ -111,7 +117,9 @@ void ChpBackend::printFU(const char *instance,
 }
 
 void ChpBackend::printSplit(const char *instance,
-                            const char *procName,
+#if GEN_NETLIST
+    const char *procName,
+#endif
                             const char *splitName,
                             const char *guardName,
                             const char *inputName,
@@ -132,7 +140,9 @@ void ChpBackend::printSplit(const char *instance,
 }
 
 void ChpBackend::printMerge(const char *instance,
-                            const char *procName,
+#if GEN_NETLIST
+    const char *procName,
+#endif
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
@@ -151,7 +161,9 @@ void ChpBackend::printMerge(const char *instance,
 }
 
 void ChpBackend::printMixer(const char *instance,
-                            const char *procName,
+#if GEN_NETLIST
+    const char *procName,
+#endif
                             const char *outName,
                             const char *coutName,
                             unsigned dataBW,
@@ -170,7 +182,9 @@ void ChpBackend::printMixer(const char *instance,
 }
 
 void ChpBackend::printArbiter(const char *instance,
-                              const char *procName,
+#if GEN_NETLIST
+    const char *procName,
+#endif
                               const char *outName,
                               const char *coutName,
                               unsigned dataBW,

@@ -59,16 +59,20 @@ class ChpBackend {
                const char *procName,
                StringVec &argList,
                StringVec &outList,
-               UIntVec &argBWList,
                UIntVec &resBWList,
-               UIntVec &outBWList,
+#if GEN_NETLIST
+  UIntVec &argBWList,
+  UIntVec &outBWList,
+#endif
                const char *calc,
                Map<unsigned int, unsigned int> &outRecord,
                Vector<BuffInfo> &buffInfos,
                double *fuMetric);
 
   void printSplit(const char *instance,
-                  const char *procName,
+#if GEN_NETLIST
+      const char *procName,
+#endif
                   const char *splitName,
                   const char *guardName,
                   const char *inputName,
@@ -77,7 +81,9 @@ class ChpBackend {
                   double *metric);
 
   void printMerge(const char *instance,
-                  const char *procName,
+#if GEN_NETLIST
+      const char *procName,
+#endif
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
@@ -85,7 +91,9 @@ class ChpBackend {
                   double *metric);
 
   void printMixer(const char *instance,
-                  const char *procName,
+#if GEN_NETLIST
+      const char *procName,
+#endif
                   const char *outName,
                   const char *coutName,
                   unsigned dataBW,
@@ -93,7 +101,9 @@ class ChpBackend {
                   double *metric);
 
   void printArbiter(const char *instance,
-                    const char *procName,
+#if GEN_NETLIST
+      const char *procName,
+#endif
                     const char *outName,
                     const char *coutName,
                     unsigned dataBW,
