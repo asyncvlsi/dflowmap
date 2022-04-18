@@ -73,3 +73,8 @@ install(
         TARGETS dflowmap
         DESTINATION bin
 )
+
+install(
+        TARGETS dflowmap-common
+        DESTINATION lib
+)
