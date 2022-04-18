@@ -2,6 +2,20 @@ include_directories($ENV{ACT_HOME}/include)
 add_subdirectory(backend)
 add_subdirectory(common)
 add_subdirectory(core)
+file(
+        GLOB SOURCES
+        common/*.cc
+        common/*.h
+        core/*.cc
+        core/*.h
+        backend/chp/*.cc
+        backend/chp/*.h
+)
+add_library(
+        dflowmap-lib
+        STATIC
+        ${SOURCES}
+)
 add_executable(dflowmap
         main.cc
         )
