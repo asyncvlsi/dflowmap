@@ -27,6 +27,7 @@
 #include <cstring>
 #include "src/common/common.h"
 #include "src/common/Constant.h"
+#include "src/common/config.h"
 
 class NameGenerator {
  public:

@@ -28,8 +28,8 @@
 #include <act/lang.h>
 #include <act/types.h>
 #include <algorithm>
-#include "core/ProcGenerator.h"
-#include "core/Metrics.h"
+#include "src/core/ProcGenerator.h"
+#include "src/core/Metrics.h"
 
 int debug_verbose;
 

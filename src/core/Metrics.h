@@ -30,6 +30,7 @@
 #include <act/act.h>
 #include "src/common/common.h"
 #include "src/common/Helper.h"
+#include "src/common/config.h"
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>
 #endif

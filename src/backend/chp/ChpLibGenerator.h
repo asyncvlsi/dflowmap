@@ -29,6 +29,7 @@
 #include <fstream>
 #include "src/common/common.h"
 #include "src/common/Helper.h"
+#include "src/common/config.h"
 
 class ChpLibGenerator {
  public:

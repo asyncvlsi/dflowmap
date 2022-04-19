@@ -89,4 +89,7 @@ install(
         DIRECTORY src/common/
         DESTINATION include/act/dflow/common
         COMPONENT Development
-        FILES_MATCHING PATTERN "*.h")
+        FILES_MATCHING
+        PATTERN "common.h"
+        PATTERN "Constant.h"
+        PATTERN "Helper.h")

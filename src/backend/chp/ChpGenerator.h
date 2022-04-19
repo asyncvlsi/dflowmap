@@ -26,6 +26,7 @@
 #include <act/iter.h>
 #include <fstream>
 #include "src/common/Helper.h"
+#include "src/common/config.h"
 
 class ChpGenerator {
  private:

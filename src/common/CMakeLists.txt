@@ -3,5 +3,6 @@ add_library( dflowmap-common
         Constant.h
         Helper.h
         Helper.cc
+        config.h
         )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
