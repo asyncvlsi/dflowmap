@@ -25,7 +25,7 @@
 #include "src/backend/chp/ChpGenerator.h"
 #include "src/backend/chp/ChpLibGenerator.h"
 #if GEN_NETLIST
-#include "src/backend/netlist/NetlistBackend.h"
+#include "src/backend/netlist/DflowNetBackend.h"
 #endif
 
 class ChpBackend {
@@ -33,7 +33,7 @@ class ChpBackend {
 #if GEN_NETLIST
   ChpBackend(ChpGenerator *chpGenerator,
              ChpLibGenerator *chpLibGenerator,
-             NetlistBackend *netlistBackend);
+             DflowNetBackend *dflowNetBackend);
 #else
   ChpBackend(ChpGenerator *chpGenerator,
              ChpLibGenerator *chpLibGenerator);
@@ -126,7 +126,7 @@ class ChpBackend {
   ChpGenerator *chpGenerator;
   ChpLibGenerator *chpLibGenerator;
 #if GEN_NETLIST
-  NetlistBackend *netlistBackend;
+  DflowNetBackend *dflowNetBackend;
 #endif
 };
 

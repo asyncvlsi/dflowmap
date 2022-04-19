@@ -12,7 +12,7 @@ file(
         backend/chp/*.h
 )
 add_library(
-        dflowmap-lib
+        dflowchp
         STATIC
         ${SOURCES}
 )
@@ -26,6 +26,6 @@ endif ()
 if (EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
     target_link_libraries(dflowmap ExprOptCommercial)
 endif ()
-if (EXISTS $ENV{ACT_HOME}/lib/libnetlistgen.a)
-    target_link_libraries(dflowmap netlistgen)
+if (EXISTS $ENV{ACT_HOME}/lib/libdflownetgen.a)
+    target_link_libraries(dflowmap DflowNetGen)
 endif ()

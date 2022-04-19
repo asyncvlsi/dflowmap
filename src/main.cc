@@ -46,9 +46,9 @@ static void create_outfiles(char *&statsFilePath,
                             FILE **chpLibfp,
                             FILE **conffp,
 #if GEN_NETLIST
-FILE **netlistFp,
-FILE **netlistLibFp,
-FILE **netlistIncludeFp,
+                            FILE **netlistFp,
+                            FILE **netlistLibFp,
+                            FILE **netlistIncludeFp,
 #endif
                             const char *src) {
   /* "src" contains the path to the act file, which is in the form of
@@ -189,9 +189,9 @@ int main(int argc, char **argv) {
       &chpLibFp,
       &confFp,
 #if GEN_NETLIST
-  &netlistFp,
-  &netlistLibFp,
-  &netlistIncludeFp,
+      &netlistFp,
+      &netlistLibFp,
+      &netlistIncludeFp,
 #endif
       act_file);
 
@@ -199,12 +199,12 @@ int main(int argc, char **argv) {
 #if GEN_NETLIST
   auto chpGenerator = new ChpGenerator(chpFp, netlistFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
-  auto netlistGenerator = new NetlistGenerator(netlistFp);
-  auto netlistLibGenerator =
-      new NetlistLibGenerator(netlistLibFp, netlistIncludeFp);
-  auto netlistBackend =
-      new NetlistBackend(netlistGenerator, netlistLibGenerator);
-  auto backend = new ChpBackend(chpGenerator, chpLibGenerator, netlistBackend);
+  auto dflowNetGenerator = new DflowNetGenerator(netlistFp);
+  auto dflowNetLibGenerator =
+      new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp);
+  auto dflowNetBackend =
+      new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator);
+  auto backend = new ChpBackend(chpGenerator, chpLibGenerator, dflowNetBackend);
 #else
   auto chpGenerator = new ChpGenerator(chpFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);

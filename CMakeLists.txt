@@ -58,6 +58,13 @@ if (EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial.a)
     add_library(ExprOptCommercial SHARED IMPORTED)
     set_target_properties(ExprOptCommercial PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexproptcommercial.a)
 endif ()
+
+if (EXISTS $ENV{ACT_HOME}/lib/libdflownetgen.a)
+    message("Found dataflow netlist generator!")
+    add_library(DflowNetGen STATIC IMPORTED)
+    set_target_properties(DflowNetGen PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libdflownetgen.a)
+endif ()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_EXE_LINKER_FLAGS "-ldl")
 
@@ -75,6 +82,6 @@ install(
         DESTINATION bin
 )
 install(
-        TARGETS dflowmap-lib
+        TARGETS dflowchp
         DESTINATION lib
 )
