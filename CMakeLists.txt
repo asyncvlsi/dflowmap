@@ -85,3 +85,8 @@ install(
         TARGETS dflowchp
         DESTINATION lib
 )
+install(
+        DIRECTORY src/common/
+        DESTINATION include/dflowmap/common
+        COMPONENT Development
+        FILES_MATCHING PATTERN "*.h")
