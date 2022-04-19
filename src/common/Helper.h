@@ -23,8 +23,8 @@
 #define DFLOWMAP__HELPER_H_
 #include <act/act.h>
 #include <cstring>
-#include "src/common/Constant.h"
-#include "src/common/common.h"
+#include "Constant.h"
+#include "common.h"
 
 void normalizeName(char *src, char toDel, char newChar);
 

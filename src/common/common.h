@@ -39,7 +39,7 @@
 #else
 #define COMMERCIAL_LOGIC_OPTIMIZER false
 #endif
-#ifdef FOUND_DflowNetBackend
+#ifdef FOUND_dflow_backend_netlist
 #define GEN_NETLIST true
 #else
 #define GEN_NETLIST false

@@ -87,6 +87,6 @@ install(
 )
 install(
         DIRECTORY src/common/
-        DESTINATION include/dflowmap/common
+        DESTINATION include/act/dflow/common
         COMPONENT Development
         FILES_MATCHING PATTERN "*.h")

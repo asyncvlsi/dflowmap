@@ -13,7 +13,6 @@ result_*
 include
 log*
 *log
-/*.act
 acts/
 output
 dflowmap.*
@@ -34,4 +33,8 @@ record/
 bin/
 lib/
 *.DS_Store
-
+build/
+*.conf
+*.stat
+*.act
+config.in

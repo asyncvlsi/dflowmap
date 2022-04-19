@@ -25,7 +25,7 @@
 #include "src/backend/chp/ChpGenerator.h"
 #include "src/backend/chp/ChpLibGenerator.h"
 #if GEN_NETLIST
-#include "dflowmap/backend/netlist/DflowNetBackend.h"
+#include <act/dflow/backend/netlist/DflowNetBackend.h>
 #endif
 
 class ChpBackend {
