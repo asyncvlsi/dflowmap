@@ -88,8 +88,8 @@ void ChpBackend::printFU(const char *instance,
                          StringVec &outList,
                          UIntVec &resBWList,
 #if GEN_NETLIST
-UIntVec &argBWList,
-UIntVec &outBWList,
+                         UIntVec &argBWList,
+                         UIntVec &outBWList,
 #endif
                          const char *calc,
                          Map<unsigned int, unsigned int> &outRecord,
@@ -118,7 +118,7 @@ UIntVec &outBWList,
 
 void ChpBackend::printSplit(const char *instance,
 #if GEN_NETLIST
-    const char *procName,
+                            const char *procName,
 #endif
                             const char *splitName,
                             const char *guardName,
@@ -141,7 +141,7 @@ void ChpBackend::printSplit(const char *instance,
 
 void ChpBackend::printMerge(const char *instance,
 #if GEN_NETLIST
-    const char *procName,
+                            const char *procName,
 #endif
                             const char *outName,
                             const char *guardName,
@@ -162,7 +162,7 @@ void ChpBackend::printMerge(const char *instance,
 
 void ChpBackend::printMixer(const char *instance,
 #if GEN_NETLIST
-    const char *procName,
+                            const char *procName,
 #endif
                             const char *outName,
                             const char *coutName,
@@ -183,7 +183,7 @@ void ChpBackend::printMixer(const char *instance,
 
 void ChpBackend::printArbiter(const char *instance,
 #if GEN_NETLIST
-    const char *procName,
+                              const char *procName,
 #endif
                               const char *outName,
                               const char *coutName,
@@ -204,6 +204,9 @@ void ChpBackend::printArbiter(const char *instance,
 
 void ChpBackend::printProcHeader(Process *p) {
   chpGenerator->printProcChpHeader(p);
+#if GEN_NETLIST
+  dflowNetBackend->printProcNetListHeader(p);
+#endif
 }
 
 void ChpBackend::printProcDeclaration(Process *p) {
@@ -212,6 +215,9 @@ void ChpBackend::printProcDeclaration(Process *p) {
 
 void ChpBackend::printProcEnding() {
   chpGenerator->printProcEnding();
+#if GEN_NETLIST
+  dflowNetBackend->printProcNetListEnding();
+#endif
 }
 
 void ChpBackend::createChpBlock(Process *p) {
@@ -226,4 +232,7 @@ void ChpBackend::printCustomNamespace(ActNamespace *ns) {
 void ChpBackend::printFileEnding() {
   chpGenerator->printChpFileEnding();
   chpLibGenerator->printFileEnding();
+#if GEN_NETLIST
+  dflowNetBackend->printNetlistFileEnding();
+#endif
 }
