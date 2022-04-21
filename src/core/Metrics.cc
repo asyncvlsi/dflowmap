@@ -108,21 +108,21 @@ void Metrics::printOpMetrics() {
 
 void Metrics::writeMetricsFile(const char *instance, double *metric) {
   if (debug_verbose) {
-    printf("Write %s perf to metric file: %s\n", instance, metricFilePath);
+    printf("Write %s perf to metric file: %s\n", instance, customFUMetricsFP);
   }
   const char *normInstance = getNormInstanceName(instance);
   std::ofstream metricFp;
-  metricFp.open(metricFilePath, std::ios_base::app);
+  metricFp.open(customFUMetricsFP, std::ios_base::app);
   metricFp << normInstance << "  " << metric[0] << "  " << metric[1] << "  "
            << metric[2] << "  " << metric[3] << "\n";
   metricFp.close();
 }
 
-void Metrics::readMetricsFile() {
+void Metrics::readMetricsFile(const char *metricsFP) {
   if (debug_verbose) {
-    printf("Read metric file: %s\n", metricFilePath);
+    printf("Read metric file: %s\n", metricsFP);
   }
-  std::ifstream metricFp(metricFilePath);
+  std::ifstream metricFp(metricsFP);
   std::string line;
   while (std::getline(metricFp, line)) {
     std::istringstream iss(line);
@@ -144,16 +144,24 @@ void Metrics::readMetricsFile() {
       }
     } while (iss);
     if (!emptyLine && (metricCount != 4)) {
-      printf("%s has %d metrics!\n", metricFilePath, metricCount);
+      printf("%s has %d metrics!\n", metricsFP, metricCount);
       exit(-1);
     }
     updateMetrics(instance, metric);
   }
 }
 
-Metrics::Metrics(const char *metricFP, const char *statisticsFP) {
-  metricFilePath = metricFP;
-  statisticsFilePath = statisticsFP;
+void Metrics::readMetricsFile() {
+  readMetricsFile(stdFUMetricsFP);
+  readMetricsFile(customFUMetricsFP);
+}
+
+Metrics::Metrics(const char *customFUMetricsFP,
+                 const char *stdFUMetricsFP,
+                 const char *statisticsFP) {
+  this->customFUMetricsFP = customFUMetricsFP;
+  this->stdFUMetricsFP = stdFUMetricsFP;
+  this->statisticsFilePath = statisticsFP;
 }
 
 unsigned Metrics::getEquivalentBW(unsigned oriBW) {
@@ -410,8 +418,8 @@ double *Metrics::getOrGenFUMetric(const char *instance
     }
     char *rtlModuleName = new char[strlen(normalizedOp) + 1];
     sprintf(rtlModuleName, "%s", normalizedOp);
-    char *optimized_process_path = new char[strlen(rtlModuleName) + 5];
-    sprintf(optimized_process_path, "%s.act", rtlModuleName);
+    char *optimized_process_path = new char[strlen(rtlModuleName) + 16];
+    sprintf(optimized_process_path, "customFUs/%s.act", rtlModuleName);
     expr_mapping_software software = yosys;
     if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
     bool tie_cells = false;

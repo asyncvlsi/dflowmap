@@ -37,7 +37,9 @@
 
 class Metrics {
  public:
-  Metrics(const char *metricFP, const char *statisticsFP);
+  Metrics(const char *customFUMetricsFP,
+          const char *stdFUMetricsFP,
+          const char *statisticsFP);
 
   void updateMetrics(const char *instance, double *metric);
 
@@ -125,7 +127,9 @@ class Metrics {
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
 
-  const char *metricFilePath;
+  const char *customFUMetricsFP;
+
+  const char *stdFUMetricsFP;
 
   const char *statisticsFilePath;
 
@@ -144,6 +148,8 @@ class Metrics {
   static double getEnergy(double metric[4]);
 
   static double getDelay(double metric[4]);
+
+  void readMetricsFile(const char* metricsFP);
 };
 
 #endif //DFLOWMAP_METRICS_H

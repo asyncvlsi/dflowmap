@@ -27,7 +27,6 @@
 #if GEN_NETLIST
 #include <act/dflow/backend/netlist/DflowNetBackend.h>
 #endif
-
 class ChpBackend {
  public:
 #if GEN_NETLIST
@@ -39,76 +38,63 @@ class ChpBackend {
              ChpLibGenerator *chpLibGenerator);
 #endif
 
-  void printCopyProcs(const char *instance,
-                      const char *inName,
-                      double *metric);
+  void printCopyProcs(double *metric, const char *instance, const char *inName);
 
-  void printSink(const char *instance,
-                 const char *inName,
-                 double metric[4]);
+  void printSink(double metric[4], const char *instance, const char *inName);
 
   void printBuff(Vector<BuffInfo> &buffInfos);
 
   void printChannel(const char *chanName, unsigned bitwidth);
 
-  void printSource(const char *instance,
-                   const char *outName,
-                   double metric[4]);
+  void printSource(double metric[4], const char *instance, const char *outName);
 
-  void printFU(const char *instance,
-               const char *procName,
-               StringVec &argList,
-               StringVec &outList,
-               UIntVec &resBWList,
-#if GEN_NETLIST
-  UIntVec &argBWList,
-  UIntVec &outBWList,
+  void printFU(
+#if LOGIC_OPTIMIZER
+      double *metric,
 #endif
-               const char *calc,
-               Map<unsigned int, unsigned int> &outRecord,
-               Vector<BuffInfo> &buffInfos,
-               double *fuMetric);
-
-  void printSplit(const char *instance,
-#if GEN_NETLIST
+      const char *instance,
       const char *procName,
-#endif
+      StringVec &argList,
+      StringVec &outList,
+      UIntVec &resBWList,
+      UIntVec &argBWList,
+      UIntVec &outBWList,
+      const char *calc,
+      Map<unsigned int, unsigned int> &outRecord,
+      Vector<BuffInfo> &buffInfos);
+
+  void printSplit(double *metric,
+                  const char *instance,
+                  const char *procName,
                   const char *splitName,
                   const char *guardName,
                   const char *inputName,
                   CharPtrVec &outNameVec,
-                  unsigned int dataBW,
-                  double *metric);
+                  unsigned int dataBW);
 
-  void printMerge(const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-#endif
+  void printMerge(double *metric,
+                  const char *instance,
+                  const char *procName,
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
-                  unsigned dataBW,
-                  double *metric);
+                  unsigned dataBW);
 
-  void printMixer(const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-#endif
+  void printMixer(double *metric,
+                  const char *instance,
+                  const char *procName,
                   const char *outName,
                   const char *coutName,
                   unsigned dataBW,
-                  CharPtrVec &inNameVec,
-                  double *metric);
+                  CharPtrVec &inNameVec);
 
-  void printArbiter(const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-#endif
+  void printArbiter(double *metric,
+                    const char *instance,
+                    const char *procName,
                     const char *outName,
                     const char *coutName,
                     unsigned dataBW,
-                    CharPtrVec &inNameVec,
-                    double *metric);
+                    CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
 

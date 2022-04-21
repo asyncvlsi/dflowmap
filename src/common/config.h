@@ -40,3 +40,5 @@
 
 extern int quiet_mode;
 extern int debug_verbose;
+extern char *baseDir;
+extern char *outputDir;

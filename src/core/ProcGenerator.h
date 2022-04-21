@@ -49,7 +49,9 @@
 
 class ProcGenerator {
  public:
-  ProcGenerator(Metrics *metrics, ChpBackend *chpBackend, Process *p);
+  ProcGenerator(Metrics *metrics,
+                ChpBackend *chpBackend,
+                Process *p);
 
   void run();
 

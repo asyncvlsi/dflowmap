@@ -37,9 +37,9 @@ ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
 }
 #endif
 
-void ChpBackend::printCopyProcs(const char *instance,
-                                const char *inName,
-                                double *metric) {
+void ChpBackend::printCopyProcs(double *metric,
+                                const char *instance,
+                                const char *inName) {
   chpGenerator->printCopyChp(instance, inName);
   chpLibGenerator->printCopyChpLib(instance, metric);
 #if GEN_NETLIST
@@ -47,9 +47,9 @@ void ChpBackend::printCopyProcs(const char *instance,
 #endif
 }
 
-void ChpBackend::printSink(const char *instance,
-                           const char *inName,
-                           double metric[4]) {
+void ChpBackend::printSink(double metric[4],
+                           const char *instance,
+                           const char *inName) {
   chpGenerator->printSinkChp(instance, inName);
   chpLibGenerator->printSinkChpLib(instance, metric);
 #if GEN_NETLIST
@@ -72,9 +72,9 @@ void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
 #endif
 }
 
-void ChpBackend::printSource(const char *instance,
-                             const char *outName,
-                             double metric[4]) {
+void ChpBackend::printSource(double metric[4],
+                             const char *instance,
+                             const char *outName) {
   chpGenerator->printSourceChp(instance, outName);
   chpLibGenerator->printSourceChpLib(instance, metric);
 #if GEN_NETLIST
@@ -82,19 +82,20 @@ void ChpBackend::printSource(const char *instance,
 #endif
 }
 
-void ChpBackend::printFU(const char *instance,
-                         const char *procName,
-                         StringVec &argList,
-                         StringVec &outList,
-                         UIntVec &resBWList,
-#if GEN_NETLIST
-                         UIntVec &argBWList,
-                         UIntVec &outBWList,
+void ChpBackend::printFU(
+#if LOGIC_OPTIMIZER
+    double *metric,
 #endif
-                         const char *calc,
-                         Map<unsigned int, unsigned int> &outRecord,
-                         Vector<BuffInfo> &buffInfos,
-                         double *fuMetric) {
+    const char *instance,
+    const char *procName,
+    StringVec &argList,
+    StringVec &outList,
+    UIntVec &resBWList,
+    UIntVec &argBWList,
+    UIntVec &outBWList,
+    const char *calc,
+    Map<unsigned int, unsigned int> &outRecord,
+    Vector<BuffInfo> &buffInfos) {
 #if GEN_NETLIST
   const char *fuInstName =
       chpGenerator->printFUChp(instance, argList, outList, buffInfos);
@@ -108,7 +109,9 @@ void ChpBackend::printFU(const char *instance,
                                  calc,
                                  numArgs,
                                  numOuts,
-                                 fuMetric,
+#if LOGIC_OPTIMIZER
+                                 metric,
+#endif
                                  resBWList,
                                  outRecord);
 #if GEN_NETLIST
@@ -116,16 +119,14 @@ void ChpBackend::printFU(const char *instance,
 #endif
 }
 
-void ChpBackend::printSplit(const char *instance,
-#if GEN_NETLIST
+void ChpBackend::printSplit(double *metric,
+                            const char *instance,
                             const char *procName,
-#endif
                             const char *splitName,
                             const char *guardName,
                             const char *inputName,
                             CharPtrVec &outNameVec,
-                            unsigned int dataBW,
-                            double *metric) {
+                            unsigned int dataBW) {
   unsigned numOutputs = outNameVec.size();
   chpGenerator->printSplitChp(instance,
                               splitName,
@@ -139,15 +140,13 @@ void ChpBackend::printSplit(const char *instance,
 #endif
 }
 
-void ChpBackend::printMerge(const char *instance,
-#if GEN_NETLIST
+void ChpBackend::printMerge(double *metric,
+                            const char *instance,
                             const char *procName,
-#endif
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
-                            unsigned dataBW,
-                            double *metric) {
+                            unsigned dataBW) {
   chpGenerator->printMergeChp(instance,
                               outName,
                               guardName,
@@ -160,15 +159,13 @@ void ChpBackend::printMerge(const char *instance,
 #endif
 }
 
-void ChpBackend::printMixer(const char *instance,
-#if GEN_NETLIST
+void ChpBackend::printMixer(double *metric,
+                            const char *instance,
                             const char *procName,
-#endif
                             const char *outName,
                             const char *coutName,
                             unsigned dataBW,
-                            CharPtrVec &inNameVec,
-                            double *metric) {
+                            CharPtrVec &inNameVec) {
   chpGenerator->printMixerChp(instance,
                               outName,
                               coutName,
@@ -181,15 +178,13 @@ void ChpBackend::printMixer(const char *instance,
 #endif
 }
 
-void ChpBackend::printArbiter(const char *instance,
-#if GEN_NETLIST
+void ChpBackend::printArbiter(double *metric,
+                              const char *instance,
                               const char *procName,
-#endif
                               const char *outName,
                               const char *coutName,
                               unsigned dataBW,
-                              CharPtrVec &inNameVec,
-                              double *metric) {
+                              CharPtrVec &inNameVec) {
   chpGenerator->printArbiterChp(instance,
                                 outName,
                                 coutName,
