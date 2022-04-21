@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <act/act.h>
 #include "src/common/common.h"
@@ -43,6 +44,8 @@ class Metrics {
 
   void updateMetrics(const char *instance, double *metric);
 
+  void updateCachedMetrics(const char *instance, double *metric);
+
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
   void updateStatistics(const char *instName, double metric[4]);
@@ -51,13 +54,17 @@ class Metrics {
 
   double *getOpMetric(const char *instance);
 
+  double *getCachedMetric(const char *instance);
+
   int getInstanceCnt(const char *instance);
 
   double getInstanceArea(const char *instance);
 
   void readMetricsFile();
 
-  void writeMetricsFile(const char *instance, double *metric);
+  void writeLocalMetricFile(const char *instance, double *metric);
+
+  void writeCachedMetricFile(const char *instance, double *metric);
 
   void updateMergeMetrics(double metric[4]);
 
@@ -111,6 +118,8 @@ class Metrics {
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
   Map<const char *, double *> opMetrics;
 
+  Map<const char *, double *> cachedMetrics;
+
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<unsigned, Map<unsigned, unsigned >> copyStatistics;
 
@@ -135,9 +144,9 @@ class Metrics {
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
 
-  const char *customFUMetricsFP;
+  const char *custom_metrics;
 
-  const char *stdFUMetricsFP;
+  const char *std_metrics;
 
   const char *statisticsFilePath;
 
@@ -157,7 +166,7 @@ class Metrics {
 
   static double getDelay(double metric[4]);
 
-  void readMetricsFile(const char *metricsFP);
+  void readMetricsFile(const char *metricsFP, bool forCache);
 };
 
 #endif //DFLOWMAP_METRICS_H

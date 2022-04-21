@@ -34,6 +34,7 @@
 
 int debug_verbose;
 char *outputDir;
+char *cache_dir;
 char *cached_metrics;
 char *custom_metrics;
 char *custom_fu_dir;
@@ -79,13 +80,13 @@ static void create_outfiles(char *&statsFilePath,
   size_t workloadNameLen = strlen(workload_name);
 #if LOGIC_OPTIMIZER
   /* create the default cache folder */
-  char *default_cache = new char[16 + baseDirLen];
-  sprintf(default_cache, "%s/.dflow_cache", baseDir);
-  cached_metrics = new char[16 + strlen(default_cache)];
-  sprintf(cached_metrics, "%s/fu.metrics", default_cache);
-  if (!std::filesystem::is_directory(default_cache)
-      || !std::filesystem::exists(default_cache)) {
-    std::filesystem::create_directory(default_cache);
+  cache_dir = new char[16 + baseDirLen];
+  sprintf(cache_dir, "%s/.dflow_cache", baseDir);
+  cached_metrics = new char[16 + strlen(cache_dir)];
+  sprintf(cached_metrics, "%s/fu.metrics", cache_dir);
+  if (!std::filesystem::is_directory(cache_dir)
+      || !std::filesystem::exists(cache_dir)) {
+    std::filesystem::create_directory(cache_dir);
     std::ofstream metric_cache;
     metric_cache.open(cached_metrics, std::fstream::app);
   }
@@ -194,10 +195,10 @@ open syn;
 #endif
 #if LOGIC_OPTIMIZER
     printf(
-        "custom_fu_dir: %s, custom_metrics: %s, default_cache: %s, cached_metrics: %s\n",
+        "custom_fu_dir: %s, custom_metrics: %s, cache_dir: %s, cached_metrics: %s\n",
         custom_fu_dir,
         custom_metrics,
-        default_cache,
+        cache_dir,
         cached_metrics);
 #endif
   }
@@ -214,7 +215,10 @@ static Metrics *createMetrics(const char *metricFile,
   }
   char *stdFUMetricsFP = new char[SHORT_STRING_LEN];
   sprintf(stdFUMetricsFP, "dflow/dflow-std/std.metrics");
-  auto metrics = new Metrics(customFUMetricsFP, stdFUMetricsFP, statsFilePath);
+
+  auto metrics = new Metrics(customFUMetricsFP,
+                             stdFUMetricsFP,
+                             statsFilePath);
   metrics->readMetricsFile();
   return metrics;
 }

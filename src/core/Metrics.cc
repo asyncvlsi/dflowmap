@@ -43,6 +43,29 @@ void Metrics::updateMetrics(const char *instance, double *metric) {
   opMetrics.insert(std::make_pair(normInstance, metric));
 }
 
+void Metrics::updateCachedMetrics(const char *instance, double *metric) {
+  const char *normInstance = getNormInstanceName(instance);
+  for (auto &cachedMetricsIt: cachedMetrics) {
+    if (!strcmp(cachedMetricsIt.first, normInstance)) {
+      if (debug_verbose) {
+        printf("We already have metric info for (%s, %s) in the cache\n",
+               instance, normInstance);
+      }
+      double *oldMetric = cachedMetricsIt.second;
+      if ((oldMetric[0] != metric[0])
+          || (oldMetric[1] != metric[1])
+          || (oldMetric[2] != metric[2])
+          || (oldMetric[3] != metric[3])) {
+        printf("We find different metric record for %s in the cache\n",
+               normInstance);
+        exit(-1);
+      }
+      return;
+    }
+  }
+  cachedMetrics.insert(std::make_pair(normInstance, metric));
+}
+
 double *Metrics::getOpMetric(const char *instance) {
   if (instance == nullptr) {
     printf("Try to get metric for null instance!\n");
@@ -50,7 +73,7 @@ double *Metrics::getOpMetric(const char *instance) {
   }
   const char *normInstance = getNormInstanceName(instance);
   if (debug_verbose) {
-    printf("get op metric for %s, norm name: %s\n", instance, normInstance);
+    printf("get op metric for (%s, %s)\n", instance, normInstance);
   }
   for (auto &opMetricsIt: opMetrics) {
     if (!strcmp(opMetricsIt.first, normInstance)) {
@@ -60,6 +83,50 @@ double *Metrics::getOpMetric(const char *instance) {
   }
   if (debug_verbose) {
     printf("We don't have metric info for (`%s`,`%s')\n",
+           instance,
+           normInstance);
+  }
+  return nullptr;
+}
+
+double *Metrics::getCachedMetric(const char *instance) {
+  if (instance == nullptr) {
+    printf("Try to get metric for null instance!\n");
+    exit(-1);
+  }
+  const char *normInstance = getNormInstanceName(instance);
+  if (debug_verbose) {
+    printf("get op metric for (%s, %s) from cache\n", instance, normInstance);
+  }
+  for (auto &cachedMetricsIt: cachedMetrics) {
+    if (!strcmp(cachedMetricsIt.first, normInstance)) {
+      /* copy the netlist file from cache to the output directory */
+      char *cached_netlist_file =
+          new char[strlen(cache_dir) + strlen(normInstance) + 8];
+      sprintf(cached_netlist_file, "%s/%s.act", cache_dir, normInstance);
+      std::filesystem::path sourceFile = cached_netlist_file;
+      std::filesystem::path targetParent = custom_fu_dir;
+      auto target = targetParent / sourceFile.filename();
+      try {
+        std::filesystem::copy_file(cached_netlist_file,
+                                   target,
+                                   std::filesystem::copy_options::overwrite_existing);
+      } catch (std::exception &e) {
+        printf(
+            "Fail to copy the optimized netlist file from cache to the output directory!\n"
+            "Reason is: %s\n",
+            e.what());
+        exit(-1);
+      }
+      /* update the local metric file */
+      double *metric = cachedMetricsIt.second;
+      writeLocalMetricFile(instance, metric);
+      /* return the perf metric */
+      return metric;
+    }
+  }
+  if (debug_verbose) {
+    printf("We don't have metric info for (`%s`,`%s') in the cache\n",
            instance,
            normInstance);
   }
@@ -106,19 +173,25 @@ void Metrics::printOpMetrics() {
   printf("\n");
 }
 
-void Metrics::writeMetricsFile(const char *instance, double *metric) {
-  if (debug_verbose) {
-    printf("Write %s perf to metric file: %s\n", instance, customFUMetricsFP);
-  }
+void Metrics::writeLocalMetricFile(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
   std::ofstream metricFp;
-  metricFp.open(customFUMetricsFP, std::ios_base::app);
+  metricFp.open(custom_metrics, std::ios_base::app);
   metricFp << normInstance << "  " << metric[0] << "  " << metric[1] << "  "
            << metric[2] << "  " << metric[3] << "\n";
   metricFp.close();
 }
 
-void Metrics::readMetricsFile(const char *metricsFP) {
+void Metrics::writeCachedMetricFile(const char *instance, double *metric) {
+  const char *normInstance = getNormInstanceName(instance);
+  std::ofstream metricFp;
+  metricFp.open(cached_metrics, std::ios_base::app);
+  metricFp << normInstance << "  " << metric[0] << "  " << metric[1] << "  "
+           << metric[2] << "  " << metric[3] << "\n";
+  metricFp.close();
+}
+
+void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
   if (debug_verbose) {
     printf("Read metric file: %s\n", metricsFP);
   }
@@ -147,20 +220,25 @@ void Metrics::readMetricsFile(const char *metricsFP) {
       printf("%s has %d metrics!\n", metricsFP, metricCount);
       exit(-1);
     }
-    updateMetrics(instance, metric);
+    if (forCache) {
+      updateCachedMetrics(instance, metric);
+    } else {
+      updateMetrics(instance, metric);
+    }
   }
 }
 
 void Metrics::readMetricsFile() {
-  readMetricsFile(stdFUMetricsFP);
-  readMetricsFile(customFUMetricsFP);
+  readMetricsFile(std_metrics, false);
+  readMetricsFile(custom_metrics, false);
+  readMetricsFile(cached_metrics, true);
 }
 
 Metrics::Metrics(const char *customFUMetricsFP,
                  const char *stdFUMetricsFP,
                  const char *statisticsFP) {
-  this->customFUMetricsFP = customFUMetricsFP;
-  this->stdFUMetricsFP = stdFUMetricsFP;
+  this->custom_metrics = customFUMetricsFP;
+  this->std_metrics = stdFUMetricsFP;
   this->statisticsFilePath = statisticsFP;
 }
 
@@ -213,9 +291,9 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
       metric[2] = equivN * equivMetric[2];
       metric[3] = equivN * equivMetric[3];
     }
-    const char *normInstance = getNormInstanceName(instance);
-    updateMetrics(normInstance, metric);
-    writeMetricsFile(normInstance, metric);
+    updateMetrics(instance, metric);
+    writeLocalMetricFile(instance, metric);
+    writeCachedMetricFile(instance, metric);
   }
   if (metric) {
     updateStatistics(instance, metric);
@@ -406,20 +484,20 @@ void Metrics::callLogicOptimizer(const char *instance,
     }
     printf("\n");
   }
-  const char *normalizedOp = getNormInstanceName(instance);
+  const char *normInstance = getNormInstanceName(instance);
   if (debug_verbose) {
-    printf("Run logic optimizer for %s\n", normalizedOp);
+    printf("Run logic optimizer for %s\n", normInstance);
   }
-  char *rtlModuleName = new char[strlen(normalizedOp) + 1];
-  sprintf(rtlModuleName, "%s", normalizedOp);
-  char *optimized_process_path =
+  char *rtlModuleName = new char[strlen(normInstance) + 1];
+  sprintf(rtlModuleName, "%s", normInstance);
+  char *optimized_netlist_file =
       new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
-  sprintf(optimized_process_path, "%s/%s.act", custom_fu_dir, rtlModuleName);
+  sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, rtlModuleName);
   expr_mapping_software software = yosys;
   if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
   bool tie_cells = false;
   auto optimizer =
-      new ExternalExprOpt(software, bd, tie_cells, optimized_process_path);
+      new ExternalExprOpt(software, bd, tie_cells, optimized_netlist_file);
   ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
                                                     in_expr_list,
                                                     in_expr_map,
@@ -429,10 +507,23 @@ void Metrics::callLogicOptimizer(const char *instance,
                                                     out_width_map,
                                                     hidden_expr_list,
                                                     hidden_expr_name_list);
+  /* copy the optimized netlist file to the cache */
+  std::filesystem::path sourceFile = optimized_netlist_file;
+  std::filesystem::path targetParent = cache_dir;
+  auto target = targetParent / sourceFile.filename();
+  try {
+    std::filesystem::copy_file(optimized_netlist_file,
+                               target,
+                               std::filesystem::copy_options::overwrite_existing);
+  } catch (std::exception &e) {
+    printf("Fail to copy the optimized netlist file to the cache directory!\n"
+           "Reason is: %s\n", e.what());
+    exit(-1);
+  }
   if (debug_verbose) {
     printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
            "Leak Power: %e W, delay: %e s\n",
-           normalizedOp,
+           normInstance,
            info->area,
            info->power_typ_dynamic,
            info->power_typ_static,
@@ -483,8 +574,9 @@ void Metrics::callLogicOptimizer(const char *instance,
   metric[1] = energy;
   metric[2] = delay;
   metric[3] = area;
-  updateMetrics(normalizedOp, metric);
-  writeMetricsFile(normalizedOp, metric);
+  updateMetrics(instance, metric);
+  writeLocalMetricFile(instance, metric);
+  writeCachedMetricFile(instance, metric);
 }
 
 double *Metrics::getOrGenFUMetric(
@@ -498,6 +590,9 @@ double *Metrics::getOrGenFUMetric(
 #endif
     const char *instance) {
   double *metric = getOpMetric(instance);
+  if (!metric) {
+    metric = getCachedMetric(instance);
+  }
   if (!metric) {
 #if LOGIC_OPTIMIZER
     callLogicOptimizer(instance,
@@ -645,7 +740,8 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
       metric[2] = delay;
       metric[3] = area;
       updateMetrics(instance, metric);
-      writeMetricsFile(instance, metric);
+      writeLocalMetricFile(instance, metric);
+      writeCachedMetricFile(instance, metric);
     }
   }
   updateStatistics(instance, metric);
@@ -731,7 +827,8 @@ double *Metrics::getOrGenSplitMetric(unsigned guardBW,
       metric[2] = delay;
       metric[3] = area;
       updateMetrics(instance, metric);
-      writeMetricsFile(instance, metric);
+      writeLocalMetricFile(instance, metric);
+      writeCachedMetricFile(instance, metric);
     }
   }
   updateStatistics(instance, metric);
