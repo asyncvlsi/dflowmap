@@ -275,221 +275,239 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
   return metric;
 }
 
-double *Metrics::getOrGenFUMetric(const char *instance
+void Metrics::callLogicOptimizer(const char *instance,
+                                 StringMap<unsigned> &inBW,
+                                 StringMap<unsigned> &hiddenBW,
+                                 Map<const char *, Expr *> &exprMap,
+                                 Map<Expr *, Expr *> &hiddenExprs,
+                                 Map<unsigned int, unsigned int> &outRecord,
+                                 UIntVec &outBWList,
+                                 double *&metric) {
+  if (debug_verbose) {
+    printf("Will run logic optimizer for %s\n", instance);
+  }
+  /* Prepare in_expr_list */
+  list_t *in_expr_list = list_new();
+  iHashtable *in_expr_map = ihash_new(0);
+  iHashtable *in_width_map = ihash_new(0);
+  unsigned totalInBW = 0;
+  unsigned lowBWInPorts = 0;
+  unsigned highBWInPorts = 0;
+  for (auto &inBWIt: inBW) {
+    String inName = inBWIt.first;
+    unsigned bw = inBWIt.second;
+    totalInBW += bw;
+    if (bw >= 32) {
+      highBWInPorts++;
+    } else {
+      lowBWInPorts++;
+    }
+    char *inChar = new char[strlen(inName.c_str()) + 1];
+    sprintf(inChar, "%s", inName.c_str());
+    if (debug_verbose) {
+      printf("inChar: %s\n", inChar);
+    }
+    Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
+    list_append(in_expr_list, inExpr);
+    ihash_bucket_t *b_expr, *b_width;
+    b_expr = ihash_add(in_expr_map, (long) inExpr);
+    b_expr->v = inChar;
+    b_width = ihash_add(in_width_map, (long) inExpr);
+    b_width->i = (int) bw;
+  }
+  /* Prepare hidden_expr_list */
+  list_t *hidden_expr_list = list_new();
+  list_t *hidden_expr_name_list = list_new();
+  iHashtable *out_width_map = ihash_new(0);
+  for (auto &hiddenBWIt: hiddenBW) {
+    String hiddenName = hiddenBWIt.first;
+    unsigned bw = hiddenBWIt.second;
+    char *hiddenChar = new char[1 + strlen(hiddenName.c_str())];
+    sprintf(hiddenChar, "%s", hiddenName.c_str());
+    if (debug_verbose) {
+      printf("hiddenChar: %s\n", hiddenChar);
+    }
+    Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
+    ihash_bucket_t *b_expr2, *b_width2;
+    b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
+    b_expr2->v = hiddenChar;
+    b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
+    b_width2->i = (int) bw;
+    Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
+    list_append(hidden_expr_list, hiddenExpr);
+    list_append(hidden_expr_name_list, hiddenChar);
+    ihash_bucket_t *b_width = ihash_lookup(out_width_map, (long) hiddenExpr);
+    if (!b_width) {
+      b_width = ihash_add(out_width_map, (long) hiddenExpr);
+      b_width->i = (int) bw;
+    }
+  }
+  /* Prepare out_expr_list */
+  list_t *out_expr_list = list_new();
+  list_t *out_expr_name_list = list_new();
+  UIntVec processedResIDs;
+  unsigned numOuts = outRecord.size();
+  for (unsigned ii = 0; ii < numOuts; ii++) {
+    unsigned resID = outRecord.find(ii)->second;
+    char *resChar = new char[SHORT_STRING_LEN];
+    sprintf(resChar, "res%u", resID);
+    if (debug_verbose) {
+      printf("resChar: %s\n", resChar);
+    }
+    Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
+    list_append(out_expr_list, resExpr);
+    char *outChar = new char[SHORT_STRING_LEN];
+    sprintf(outChar, "out%d", ii);
+    list_append(out_expr_name_list, outChar);
+    if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
+        != processedResIDs.end()) {
+      continue;
+    }
+    ihash_bucket_t *b_width;
+    b_width = ihash_add(out_width_map, (long) resExpr);
+    unsigned bw = outBWList[ii];
+    b_width->i = (int) bw;
+    processedResIDs.push_back(resID);
+  }
+  /* Call the logic optimizer */
+  if (debug_verbose) {
+    listitem_t *li;
+    printf("in_expr_bundle:\n");
+    for (li = list_first (in_expr_list); li; li = list_next (li)) {
+      long key = (long) list_value(li);
+      char *val = (char *) ihash_lookup(in_expr_map, key)->v;
+      int bw = ihash_lookup(in_width_map, key)->i;
+      printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
+      Expr *e = (Expr *) list_value (li);
+      print_expr(stdout, e);
+      printf("\n");
+    }
+    printf("\nout_expr_bundle:\n");
+    for (li = list_first (out_expr_list); li; li = list_next (li)) {
+      long key = (long) list_value(li);
+      int bw = ihash_lookup(out_width_map, key)->i;
+      printf("key: %ld, bw: %d\n", key, bw);
+      Expr *e = (Expr *) list_value (li);
+      print_expr(stdout, e);
+      printf("\n");
+    }
+    for (li = list_first (out_expr_name_list); li; li = list_next (li)) {
+      char *outName = (char *) list_value(li);
+      printf("outName: %s\n", outName);
+    }
+    printf("\nhidden expr:\n");
+    for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
+      Expr *e = (Expr *) list_value (li);
+      print_expr(stdout, e);
+      printf("\n");
+      long key = (long) list_value(li);
+      int bw = ihash_lookup(out_width_map, key)->i;
+      printf("key: %ld, bw: %d\n", key, bw);
+    }
+    printf("\n");
+  }
+  const char *normalizedOp = getNormInstanceName(instance);
+  if (debug_verbose) {
+    printf("Run logic optimizer for %s\n", normalizedOp);
+  }
+  char *rtlModuleName = new char[strlen(normalizedOp) + 1];
+  sprintf(rtlModuleName, "%s", normalizedOp);
+  char *optimized_process_path =
+      new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
+  sprintf(optimized_process_path, "%s/%s.act", custom_fu_dir, rtlModuleName);
+  expr_mapping_software software = yosys;
+  if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
+  bool tie_cells = false;
+  auto optimizer =
+      new ExternalExprOpt(software, bd, tie_cells, optimized_process_path);
+  ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
+                                                    in_expr_list,
+                                                    in_expr_map,
+                                                    in_width_map,
+                                                    out_expr_list,
+                                                    out_expr_name_list,
+                                                    out_width_map,
+                                                    hidden_expr_list,
+                                                    hidden_expr_name_list);
+  if (debug_verbose) {
+    printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
+           "Leak Power: %e W, delay: %e s\n",
+           normalizedOp,
+           info->area,
+           info->power_typ_dynamic,
+           info->power_typ_static,
+           info->delay_typ);
+  }
+  double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
+  double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
+  double delay = info->delay_typ * 1e12; // Delay (ps)
+  double area = info->area * 1e12;  // AREA (um^2)
+  /* adjust perf number by adding latch, etc. */
+  double *latchMetric = getOpMetric("latch1");
+  double *ebufMetric = getOpMetric("10ebuf");
+  double *pulseGenMetric = getOpMetric("pulseGen");
+  double *twoToOneMetric = getOpMetric("twoToOne");
+  double *hornMetric = getOpMetric("horn2");
+  if (!latchMetric || !ebufMetric || !pulseGenMetric || !twoToOneMetric
+      || !hornMetric) {
+    printf("No metric for the bundled-data control circuit!\n");
+    exit(-1);
+  }
+  double latchLP = getLP(latchMetric);
+  double latchEnergy = getEnergy(latchMetric);
+  double latchDelay = getDelay(latchMetric);
+  double latchArea = getArea(latchMetric);
+  double ebufLP = getLP(ebufMetric);
+  double ebufEnergy = getEnergy(ebufMetric);
+  double ebufDelay = getDelay(ebufMetric);
+  double ebufArea = getArea(ebufMetric);
+  double pulseGenLP = getLP(pulseGenMetric);
+  double pulseGenEnergy = getEnergy(pulseGenMetric);
+  double pulseGenArea = getArea(pulseGenMetric);
+  double twoToOneDelay = getDelay(twoToOneMetric);
+  double hornLP = getLP(hornMetric);
+  double hornEnergy = getEnergy(hornMetric);
+  double hornArea = getArea(hornMetric);
+  area = area + totalInBW * latchArea + lowBWInPorts * pulseGenArea
+      + highBWInPorts * (pulseGenArea + hornArea)
+      + delay / ebufDelay * ebufArea;
+  leakpower = leakpower + totalInBW * latchLP + lowBWInPorts * pulseGenLP
+      + highBWInPorts * (pulseGenLP + hornLP) + delay / ebufDelay * ebufLP;
+  energy = energy + totalInBW * latchEnergy + lowBWInPorts * pulseGenEnergy
+      + highBWInPorts * (pulseGenEnergy + hornEnergy)
+      + delay / ebufDelay * ebufEnergy;
+  delay = delay + twoToOneDelay + latchDelay;
+  /* get the final metric */
+  metric = new double[4];
+  metric[0] = leakpower;
+  metric[1] = energy;
+  metric[2] = delay;
+  metric[3] = area;
+  updateMetrics(normalizedOp, metric);
+  writeMetricsFile(normalizedOp, metric);
+}
+
+double *Metrics::getOrGenFUMetric(
 #if LOGIC_OPTIMIZER
-    ,
-                                  StringMap<unsigned> &inBW,
-                                  StringMap<unsigned> &hiddenBW,
-                                  Map<const char *, Expr *> &exprMap,
-                                  Map<Expr *, Expr *> &hiddenExprs,
-                                  Map<unsigned int, unsigned int> &outRecord,
-                                  UIntVec &outBWList
+    StringMap<unsigned> &inBW,
+    StringMap<unsigned> &hiddenBW,
+    Map<const char *, Expr *> &exprMap,
+    Map<Expr *, Expr *> &hiddenExprs,
+    Map<unsigned int, unsigned int> &outRecord,
+    UIntVec &outBWList,
 #endif
-) {
+    const char *instance) {
   double *metric = getOpMetric(instance);
   if (!metric) {
 #if LOGIC_OPTIMIZER
-    if (debug_verbose) {
-      printf("Will run logic optimizer for %s\n", instance);
-    }
-    /* Prepare in_expr_list */
-    list_t *in_expr_list = list_new();
-    iHashtable *in_expr_map = ihash_new(0);
-    iHashtable *in_width_map = ihash_new(0);
-    unsigned totalInBW = 0;
-    unsigned lowBWInPorts = 0;
-    unsigned highBWInPorts = 0;
-    for (auto &inBWIt: inBW) {
-      String inName = inBWIt.first;
-      unsigned bw = inBWIt.second;
-      totalInBW += bw;
-      if (bw >= 32) {
-        highBWInPorts++;
-      } else {
-        lowBWInPorts++;
-      }
-      char *inChar = new char[strlen(inName.c_str()) + 1];
-      sprintf(inChar, "%s", inName.c_str());
-      if (debug_verbose) {
-        printf("inChar: %s\n", inChar);
-      }
-      Expr *inExpr = getExprFromName(inChar, exprMap, true, -1);
-      list_append(in_expr_list, inExpr);
-      ihash_bucket_t *b_expr, *b_width;
-      b_expr = ihash_add(in_expr_map, (long) inExpr);
-      b_expr->v = inChar;
-      b_width = ihash_add(in_width_map, (long) inExpr);
-      b_width->i = (int) bw;
-    }
-    /* Prepare hidden_expr_list */
-    list_t *hidden_expr_list = list_new();
-    list_t *hidden_expr_name_list = list_new();
-    iHashtable *out_width_map = ihash_new(0);
-    for (auto &hiddenBWIt: hiddenBW) {
-      String hiddenName = hiddenBWIt.first;
-      unsigned bw = hiddenBWIt.second;
-      char *hiddenChar = new char[1 + strlen(hiddenName.c_str())];
-      sprintf(hiddenChar, "%s", hiddenName.c_str());
-      if (debug_verbose) {
-        printf("hiddenChar: %s\n", hiddenChar);
-      }
-      Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
-      ihash_bucket_t *b_expr2, *b_width2;
-      b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
-      b_expr2->v = hiddenChar;
-      b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
-      b_width2->i = (int) bw;
-      Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
-      list_append(hidden_expr_list, hiddenExpr);
-      list_append(hidden_expr_name_list, hiddenChar);
-      ihash_bucket_t *b_width = ihash_lookup(out_width_map, (long) hiddenExpr);
-      if (!b_width) {
-        b_width = ihash_add(out_width_map, (long) hiddenExpr);
-        b_width->i = (int) bw;
-      }
-    }
-    /* Prepare out_expr_list */
-    list_t *out_expr_list = list_new();
-    list_t *out_expr_name_list = list_new();
-    UIntVec processedResIDs;
-    unsigned numOuts = outRecord.size();
-    for (unsigned ii = 0; ii < numOuts; ii++) {
-      unsigned resID = outRecord.find(ii)->second;
-      char *resChar = new char[SHORT_STRING_LEN];
-      sprintf(resChar, "res%u", resID);
-      if (debug_verbose) {
-        printf("resChar: %s\n", resChar);
-      }
-      Expr *resExpr = getExprFromName(resChar, exprMap, true, -1);
-      list_append(out_expr_list, resExpr);
-      char *outChar = new char[SHORT_STRING_LEN];
-      sprintf(outChar, "out%d", ii);
-      list_append(out_expr_name_list, outChar);
-      if (std::find(processedResIDs.begin(), processedResIDs.end(), resID)
-          != processedResIDs.end()) {
-        continue;
-      }
-      ihash_bucket_t *b_width;
-      b_width = ihash_add(out_width_map, (long) resExpr);
-      unsigned bw = outBWList[ii];
-      b_width->i = (int) bw;
-      processedResIDs.push_back(resID);
-    }
-    /* Call the logic optimizer */
-    if (debug_verbose) {
-      listitem_t *li;
-      printf("in_expr_bundle:\n");
-      for (li = list_first (in_expr_list); li; li = list_next (li)) {
-        long key = (long) list_value(li);
-        char *val = (char *) ihash_lookup(in_expr_map, key)->v;
-        int bw = ihash_lookup(in_width_map, key)->i;
-        printf("key: %ld, val: %s, bw: %d\n", key, val, bw);
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-      }
-      printf("\nout_expr_bundle:\n");
-      for (li = list_first (out_expr_list); li; li = list_next (li)) {
-        long key = (long) list_value(li);
-        int bw = ihash_lookup(out_width_map, key)->i;
-        printf("key: %ld, bw: %d\n", key, bw);
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-      }
-      for (li = list_first (out_expr_name_list); li; li = list_next (li)) {
-        char *outName = (char *) list_value(li);
-        printf("outName: %s\n", outName);
-      }
-      printf("\nhidden expr:\n");
-      for (li = list_first (hidden_expr_list); li; li = list_next (li)) {
-        Expr *e = (Expr *) list_value (li);
-        print_expr(stdout, e);
-        printf("\n");
-        long key = (long) list_value(li);
-        int bw = ihash_lookup(out_width_map, key)->i;
-        printf("key: %ld, bw: %d\n", key, bw);
-      }
-      printf("\n");
-    }
-    const char *normalizedOp = getNormInstanceName(instance);
-    if (debug_verbose) {
-      printf("Run logic optimizer for %s\n", normalizedOp);
-    }
-    char *rtlModuleName = new char[strlen(normalizedOp) + 1];
-    sprintf(rtlModuleName, "%s", normalizedOp);
-    char *optimized_process_path = new char[strlen(rtlModuleName) + 16];
-    sprintf(optimized_process_path, "customFUs/%s.act", rtlModuleName);
-    expr_mapping_software software = yosys;
-    if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
-    bool tie_cells = false;
-    auto optimizer =
-        new ExternalExprOpt(software, bd, tie_cells, optimized_process_path);
-    ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
-                                                      in_expr_list,
-                                                      in_expr_map,
-                                                      in_width_map,
-                                                      out_expr_list,
-                                                      out_expr_name_list,
-                                                      out_width_map,
-                                                      hidden_expr_list,
-                                                      hidden_expr_name_list);
-    if (debug_verbose) {
-      printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
-             "Leak Power: %e W, delay: %e s\n",
-             normalizedOp,
-             info->area,
-             info->power_typ_dynamic,
-             info->power_typ_static,
-             info->delay_typ);
-    }
-    double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
-    double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
-    double delay = info->delay_typ * 1e12; // Delay (ps)
-    double area = info->area * 1e12;  // AREA (um^2)
-    /* adjust perf number by adding latch, etc. */
-    double *latchMetric = getOpMetric("latch1");
-    double *ebufMetric = getOpMetric("10ebuf");
-    double *pulseGenMetric = getOpMetric("pulseGen");
-    double *twoToOneMetric = getOpMetric("twoToOne");
-    double *hornMetric = getOpMetric("horn2");
-    if (!latchMetric || !ebufMetric || !pulseGenMetric || !twoToOneMetric
-        || !hornMetric) {
-      printf("No metric for the bundled-data control circuit!\n");
-      exit(-1);
-    }
-    double latchLP = getLP(latchMetric);
-    double latchEnergy = getEnergy(latchMetric);
-    double latchDelay = getDelay(latchMetric);
-    double latchArea = getArea(latchMetric);
-    double ebufLP = getLP(ebufMetric);
-    double ebufEnergy = getEnergy(ebufMetric);
-    double ebufDelay = getDelay(ebufMetric);
-    double ebufArea = getArea(ebufMetric);
-    double pulseGenLP = getLP(pulseGenMetric);
-    double pulseGenEnergy = getEnergy(pulseGenMetric);
-    double pulseGenArea = getArea(pulseGenMetric);
-    double twoToOneDelay = getDelay(twoToOneMetric);
-    double hornLP = getLP(hornMetric);
-    double hornEnergy = getEnergy(hornMetric);
-    double hornArea = getArea(hornMetric);
-    area = area + totalInBW * latchArea + lowBWInPorts * pulseGenArea
-        + highBWInPorts * (pulseGenArea + hornArea)
-        + delay / ebufDelay * ebufArea;
-    leakpower = leakpower + totalInBW * latchLP + lowBWInPorts * pulseGenLP
-        + highBWInPorts * (pulseGenLP + hornLP) + delay / ebufDelay * ebufLP;
-    energy = energy + totalInBW * latchEnergy + lowBWInPorts * pulseGenEnergy
-        + highBWInPorts * (pulseGenEnergy + hornEnergy)
-        + delay / ebufDelay * ebufEnergy;
-    delay = delay + twoToOneDelay + latchDelay;
-    /* get the final metric */
-    metric = new double[4];
-    metric[0] = leakpower;
-    metric[1] = energy;
-    metric[2] = delay;
-    metric[3] = area;
-    updateMetrics(normalizedOp, metric);
-    writeMetricsFile(normalizedOp, metric);
+    callLogicOptimizer(instance,
+                       inBW,
+                       hiddenBW,
+                       exprMap,
+                       hiddenExprs,
+                       outRecord,
+                       outBWList,
+                       metric);
 #endif
   }
   if (metric) {

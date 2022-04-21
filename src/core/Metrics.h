@@ -75,17 +75,25 @@ class Metrics {
 
   double *getBuffMetric(unsigned nBuff, unsigned bw);
 
-  double *getOrGenFUMetric(const char *instance
+  void callLogicOptimizer(const char *instance,
+                          StringMap<unsigned> &inBW,
+                          StringMap<unsigned> &hiddenBW,
+                          Map<const char *, Expr *> &exprMap,
+                          Map<Expr *, Expr *> &hiddenExprs,
+                          Map<unsigned int, unsigned int> &outRecord,
+                          UIntVec &outBWList,
+                          double *&metric);
+
+  double *getOrGenFUMetric(
 #if LOGIC_OPTIMIZER
-      ,
-                           StringMap<unsigned> &inBW,
-                           StringMap<unsigned> &hiddenBW,
-                           Map<const char *, Expr *> &exprMap,
-                           Map<Expr *, Expr *> &hiddenExprs,
-                           Map<unsigned int, unsigned int> &outRecord,
-                           UIntVec &outBWList
+      StringMap<unsigned> &inBW,
+      StringMap<unsigned> &hiddenBW,
+      Map<const char *, Expr *> &exprMap,
+      Map<Expr *, Expr *> &hiddenExprs,
+      Map<unsigned int, unsigned int> &outRecord,
+      UIntVec &outBWList,
 #endif
-  );
+      const char *instance);
 
   double *getSourceMetric(const char *instance);
 
@@ -149,7 +157,7 @@ class Metrics {
 
   static double getDelay(double metric[4]);
 
-  void readMetricsFile(const char* metricsFP);
+  void readMetricsFile(const char *metricsFP);
 };
 
 #endif //DFLOWMAP_METRICS_H

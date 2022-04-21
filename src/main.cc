@@ -36,6 +36,7 @@ int debug_verbose;
 char *outputDir;
 char *cached_metrics;
 char *custom_metrics;
+char *custom_fu_dir;
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
@@ -94,16 +95,16 @@ static void create_outfiles(char *&statsFilePath,
   sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
   size_t outputPathLen = strlen(outputDir);
 #if LOGIC_OPTIMIZER
-  char *customDir = new char[16 + outputPathLen];
-  sprintf(customDir, "%s/customF", outputDir);
-  custom_metrics = new char[16 + strlen(customDir)];
-  sprintf(custom_metrics, "%s/fu.metrics", customDir);
+  custom_fu_dir = new char[16 + outputPathLen];
+  sprintf(custom_fu_dir, "%s/customF", outputDir);
+  custom_metrics = new char[16 + strlen(custom_fu_dir)];
+  sprintf(custom_metrics, "%s/fu.metrics", custom_fu_dir);
 #endif
   if (!std::filesystem::is_directory(outputDir)
       || !std::filesystem::exists(outputDir)) {
     std::filesystem::create_directory(outputDir);
 #if LOGIC_OPTIMIZER
-    std::filesystem::create_directory(customDir);
+    std::filesystem::create_directory(custom_fu_dir);
     std::ofstream custom_metric_file;
     custom_metric_file.open(custom_metrics, std::fstream::app);
 #endif
@@ -193,8 +194,8 @@ open syn;
 #endif
 #if LOGIC_OPTIMIZER
     printf(
-        "customDir: %s, custom_metrics: %s, default_cache: %s, cached_metrics: %s\n",
-        customDir,
+        "custom_fu_dir: %s, custom_metrics: %s, default_cache: %s, cached_metrics: %s\n",
+        custom_fu_dir,
         custom_metrics,
         default_cache,
         cached_metrics);

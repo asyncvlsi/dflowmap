@@ -917,14 +917,13 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
 #endif
 #if LOGIC_OPTIMIZER
-  double *fuMetric = metrics->getOrGenFUMetric(instance,
-                                               inBW,
-                                               hiddenBW,
-                                               exprMap,
-                                               hiddenExprs,
-                                               outRecord,
-                                               outBWList
-  );
+  double *fuMetric = metrics->getOrGenFUMetric(
+      inBW,
+      hiddenBW,
+      exprMap,
+      hiddenExprs,
+      outRecord,
+      outBWList, instance);
 #endif
   chpBackend->printFU(
 #if LOGIC_OPTIMIZER
