@@ -32,6 +32,7 @@
 #include "src/common/common.h"
 #include "src/common/Helper.h"
 #include "src/common/config.h"
+#include "src/core/NameGenerator.h"
 #if LOGIC_OPTIMIZER
 #include <act/expropt.h>
 #endif
@@ -76,20 +77,24 @@ class Metrics {
 
   double *getOrGenCopyMetric(unsigned bitwidth, unsigned numOut);
 
-  double *getSinkMetric(unsigned bitwidth);
+  double *getSinkMetric();
 
   double *getOrGenInitMetric(unsigned bitwidth);
 
   double *getBuffMetric(unsigned nBuff, unsigned bw);
 
-  void callLogicOptimizer(const char *instance,
-                          StringMap<unsigned> &inBW,
-                          StringMap<unsigned> &hiddenBW,
-                          Map<const char *, Expr *> &exprMap,
-                          Map<Expr *, Expr *> &hiddenExprs,
-                          Map<unsigned int, unsigned int> &outRecord,
-                          UIntVec &outBWList,
-                          double *&metric);
+  void callLogicOptimizer(
+#if LOGIC_OPTIMIZER
+      const char *instance,
+      StringMap<unsigned> &inBW,
+      StringMap<unsigned> &hiddenBW,
+      Map<const char *, Expr *> &exprMap,
+      Map<Expr *, Expr *> &hiddenExprs,
+      Map<unsigned int, unsigned int> &outRecord,
+      UIntVec &outBWList,
+      double *&metric
+#endif
+  );
 
   double *getOrGenFUMetric(
 #if LOGIC_OPTIMIZER
@@ -102,7 +107,7 @@ class Metrics {
 #endif
       const char *instance);
 
-  double *getSourceMetric(const char *instance);
+  double *getSourceMetric();
 
   double *getOrGenMergeMetric(unsigned guardBW, unsigned inBW, unsigned numIn);
 

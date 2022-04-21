@@ -31,7 +31,7 @@ const char *NameGenerator::genMergeInstName(unsigned guardBW,
     sprintf(procName, "dflowstd::unpipe_%s", Constant::MERGE_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, guardBW, inBW);
+  sprintf(instance, "%s<%d,%u,%u>", procName, numInputs, guardBW, inBW);
   return instance;
 }
 

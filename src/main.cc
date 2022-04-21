@@ -213,9 +213,11 @@ static Metrics *createMetrics(const char *metricFile,
   } else {
     sprintf(customFUMetricsFP, "%s/customF/fu.metrics", outputDir);
   }
-  char *stdFUMetricsFP = new char[SHORT_STRING_LEN];
-  sprintf(stdFUMetricsFP, "dflow/dflow-std/std.metrics");
-
+  char *act_home = getenv("ACT_HOME");
+  char *stdFUMetricsFP = new char[SHORT_STRING_LEN + strlen(act_home)];
+  sprintf(stdFUMetricsFP,
+          "%s/include/act/dflow/dflow-std/std.metrics",
+          act_home);
   auto metrics = new Metrics(customFUMetricsFP,
                              stdFUMetricsFP,
                              statsFilePath);

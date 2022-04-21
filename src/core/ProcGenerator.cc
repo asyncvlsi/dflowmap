@@ -863,7 +863,7 @@ void ProcGenerator::createCopyProcs() {
 }
 
 void ProcGenerator::createSink(const char *name, unsigned bitwidth) {
-  double *metric = metrics->getSinkMetric(bitwidth);
+  double *metric = metrics->getSinkMetric();
   const char *instance = NameGenerator::genSinkInstName(bitwidth);
   chpBackend->printSink(metric, instance, name);
 }
@@ -872,7 +872,7 @@ void ProcGenerator::createSource(const char *outName,
                                  unsigned long val,
                                  unsigned bitwidth) {
   const char *instance = NameGenerator::genSourceInstName(val, bitwidth);
-  double *metric = metrics->getSourceMetric(instance);
+  double *metric = metrics->getSourceMetric();
   chpBackend->printSource(metric, instance, outName);
 }
 

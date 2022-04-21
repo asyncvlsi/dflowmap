@@ -49,7 +49,7 @@ class NameGenerator {
   static const char *genSplitInstName(unsigned guardBW,
                                       unsigned outBW,
                                       int numOut,
-                                      char* &procName);
+                                      char *&procName);
 
   static const char *genCopyInstName(unsigned bw, unsigned numOut);
 

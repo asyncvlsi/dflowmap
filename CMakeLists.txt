@@ -93,3 +93,10 @@ install(
         PATTERN "common.h"
         PATTERN "Constant.h"
         PATTERN "Helper.h")
+install(
+        DIRECTORY dflow-std/
+        DESTINATION include/act/dflow/dflow-std
+        COMPONENT Development
+        FILES_MATCHING
+        PATTERN "std.metrics"
+        PATTERN "dflow_stdlib.act")
