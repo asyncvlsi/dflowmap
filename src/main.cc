@@ -33,8 +33,9 @@
 #include "src/core/Metrics.h"
 
 int debug_verbose;
-char *baseDir;
 char *outputDir;
+char *cached_metrics;
+char *custom_metrics;
 
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
@@ -58,7 +59,7 @@ static void create_outfiles(char *&statsFilePath,
    * path1/path2/.../circuit.act. We need to extract the workload_name, which is
    * "circuit", as well as taking care of the file path.*/
   unsigned i = strlen(src);
-  baseDir = new char[i];
+  char *baseDir = new char[i];
   while (i > 0) {
     if (src[i - 1] == '/') {
       break;
@@ -75,34 +76,37 @@ static void create_outfiles(char *&statsFilePath,
   char *workload_name = new char[len - i - 3];
   snprintf(workload_name, len - i - 3, "%s", src + i);
   size_t workloadNameLen = strlen(workload_name);
-  printf("baseDir: %s, workload: %s\n", baseDir, workload_name);
-  /* create the default cache folder */
 #if LOGIC_OPTIMIZER
+  /* create the default cache folder */
   char *default_cache = new char[16 + baseDirLen];
   sprintf(default_cache, "%s/.dflow_cache", baseDir);
+  cached_metrics = new char[16 + strlen(default_cache)];
+  sprintf(cached_metrics, "%s/fu.metrics", default_cache);
   if (!std::filesystem::is_directory(default_cache)
       || !std::filesystem::exists(default_cache)) {
     std::filesystem::create_directory(default_cache);
-    char *default_metrics = new char[16 + strlen(default_cache)];
-    sprintf(default_metrics, "%s/fu.metrics", default_cache);
     std::ofstream metric_cache;
-    metric_cache.open(default_metrics, std::fstream::app);
+    metric_cache.open(cached_metrics, std::fstream::app);
   }
 #endif
   /* create output folder "${workload_name}_output" if it does not exist */
   outputDir = new char[baseDirLen + workloadNameLen + 8];
   sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
   size_t outputPathLen = strlen(outputDir);
+#if LOGIC_OPTIMIZER
+  char *customDir = new char[16 + outputPathLen];
+  sprintf(customDir, "%s/customF", outputDir);
+  custom_metrics = new char[16 + strlen(customDir)];
+  sprintf(custom_metrics, "%s/fu.metrics", customDir);
+#endif
   if (!std::filesystem::is_directory(outputDir)
       || !std::filesystem::exists(outputDir)) {
     std::filesystem::create_directory(outputDir);
-    char *customFolder = new char[16 + outputPathLen];
-    sprintf(customFolder, "%s/customF", outputDir);
-    std::filesystem::create_directory(customFolder);
-    char *custom_metrics = new char[16 + strlen(customFolder)];
-    sprintf(custom_metrics, "%s/fu.metrics", customFolder);
+#if LOGIC_OPTIMIZER
+    std::filesystem::create_directory(customDir);
     std::ofstream custom_metric_file;
     custom_metric_file.open(custom_metrics, std::fstream::app);
+#endif
   }
   /* generate statistics file */
   statsFilePath = new char[outputPathLen + workloadNameLen + 16];
@@ -171,6 +175,31 @@ open syn;
   fprintf(*netlistFp, "import \"%s_netlib.act\";\n", workload_name);
   fprintf(*netlistFp, "import \"dflow_stdlib_refine.act\";\n\n");
 #endif
+  if (debug_verbose) {
+    printf("baseDir: %s, workload_name: %s, outputDir: %s, statsFilePath: %s, "
+           "chp_file: %s, chp_lib: %s, conf_file: %s\n",
+           baseDir,
+           workload_name,
+           outputDir,
+           statsFilePath,
+           chp_file,
+           chp_lib,
+           conf_file);
+#if GEN_NETLIST
+    printf("netlist_file: %s, netlist_lib: %s, netlist_include: %s\n",
+           netlist_file,
+           netlist_lib,
+           netlist_include);
+#endif
+#if LOGIC_OPTIMIZER
+    printf(
+        "customDir: %s, custom_metrics: %s, default_cache: %s, cached_metrics: %s\n",
+        customDir,
+        custom_metrics,
+        default_cache,
+        cached_metrics);
+#endif
+  }
 }
 
 static Metrics *createMetrics(const char *metricFile,
@@ -182,7 +211,7 @@ static Metrics *createMetrics(const char *metricFile,
   } else {
     sprintf(customFUMetricsFP, "%s/customF/fu.metrics", outputDir);
   }
-  char* stdFUMetricsFP = new char[SHORT_STRING_LEN];
+  char *stdFUMetricsFP = new char[SHORT_STRING_LEN];
   sprintf(stdFUMetricsFP, "dflow/dflow-std/std.metrics");
   auto metrics = new Metrics(customFUMetricsFP, stdFUMetricsFP, statsFilePath);
   metrics->readMetricsFile();

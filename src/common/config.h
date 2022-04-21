@@ -38,7 +38,6 @@
 #define GEN_NETLIST false
 #endif
 
-extern int quiet_mode;
 extern int debug_verbose;
-extern char *baseDir;
-extern char *outputDir;
+extern char* cached_metrics;
+extern char* custom_metrics;
