@@ -97,8 +97,8 @@ install(
         PATTERN "Helper.h")
 
 install(
-        DIRECTORY dflow-std/
-        DESTINATION act/dflow-std
+        DIRECTORY dflow_std
+        DESTINATION act/dflow_std
         COMPONENT Development
         FILES_MATCHING
         PATTERN "dflow_stdlib.act")

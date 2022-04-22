@@ -126,7 +126,7 @@ static void create_outfiles(char *&statsFilePath,
     fatal_error("Could not open file `%s' for writing", chp_lib);
   }
   fprintf(*chpLibfp, R"(import globals;
-import "dflow-std/dflow_stdlib.act";
+import "dflow_std/dflow_stdlib.act";
 )");
   /* create configuration file */
   char *conf_file = new char[outputPathLen + workloadNameLen + 16];
@@ -160,7 +160,7 @@ import "dflow-std/dflow_stdlib.act";
 
   fprintf(*netlistIncludeFp, "import \"%s_lib.act\";\n", workload_name);
   fprintf(*netlistIncludeFp, R"(import globals;
-import "dflow-std/dflow_stdlib_refine.act";
+import "dflow_std/dflow_stdlib_refine.act";
 import "syn/bdopt/stdcells.act";
 open syn;
 )");
@@ -211,7 +211,7 @@ static Metrics *createMetrics(const char *metricFile,
   char *act_home = getenv("ACT_HOME");
   char *stdFUMetricsFP = new char[SHORT_STRING_LEN + strlen(act_home)];
   sprintf(stdFUMetricsFP,
-          "%s/act/dflow-std/dflow_stdlib_refine.metrics",
+          "%s/act/dflow_std/dflow_stdlib_refine.metrics",
           act_home);
   auto metrics = new Metrics(customFUMetricsFP,
                              stdFUMetricsFP,
