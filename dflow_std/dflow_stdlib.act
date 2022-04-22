@@ -19,7 +19,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-namespace dflowstd {
+namespace dflow_std {
 
 export namespace dflow_stdlib {
 
