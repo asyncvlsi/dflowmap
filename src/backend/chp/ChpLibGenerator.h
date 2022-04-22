@@ -37,7 +37,10 @@ class ChpLibGenerator {
 
   void printMemConfig(const char *procName);
 
-  void printConf(double *metric, const char *instance, unsigned numOutputs);
+  void printConf(double *metric,
+                 const char *instance,
+                 unsigned numOutputs,
+                 bool exitOnMissing = true);
 
   void printConf(double *metric, const char *instance);
 
@@ -46,9 +49,7 @@ class ChpLibGenerator {
                      const char *calc,
                      unsigned int numArgs,
                      unsigned int numOuts,
-#if LOGIC_OPTIMIZER
                      double *fuMetric,
-#endif
                      UIntVec &resBWList,
                      Map<unsigned int,
                          unsigned int> &outRecord);
@@ -58,10 +59,8 @@ class ChpLibGenerator {
                      const char *outSend,
                      unsigned int numArgs,
                      unsigned int numOuts,
-#if LOGIC_OPTIMIZER
                      const char *instance,
                      double *metric,
-#endif
                      UIntVec &resBW);
 
   void printMergeChpLib(const char *instance, double *metric);
@@ -82,7 +81,9 @@ class ChpLibGenerator {
 
   void printSinkChpLib(const char *instance, double *metric);
 
-  void printCopyChpLib(const char *instance, double *metric);
+  void printCopyChpLib(const char *instance,
+                       double *metric,
+                       unsigned numOuts);
 
   void printChpBlock(Process *p);
 

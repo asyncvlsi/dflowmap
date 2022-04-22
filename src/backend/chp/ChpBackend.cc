@@ -41,7 +41,7 @@ void ChpBackend::printCopyProcs(double *metric,
                                 const char *instance,
                                 const char *inName) {
   chpGenerator->printCopyChp(instance, inName);
-  chpLibGenerator->printCopyChpLib(instance, metric);
+  chpLibGenerator->printCopyChpLib(instance, metric, 0);
 #if GEN_NETLIST
   dflowNetBackend->printCopyNetlist(inName);
 #endif
@@ -83,16 +83,16 @@ void ChpBackend::printSource(double metric[4],
 }
 
 void ChpBackend::printFU(
-#if LOGIC_OPTIMIZER
     double *metric,
-#endif
     const char *instance,
     const char *procName,
     StringVec &argList,
     StringVec &outList,
     UIntVec &resBWList,
+#if GEN_NETLIST
     UIntVec &argBWList,
     UIntVec &outBWList,
+#endif
     const char *calc,
     Map<unsigned int, unsigned int> &outRecord,
     Vector<BuffInfo> &buffInfos) {
@@ -109,9 +109,7 @@ void ChpBackend::printFU(
                                  calc,
                                  numArgs,
                                  numOuts,
-#if LOGIC_OPTIMIZER
                                  metric,
-#endif
                                  resBWList,
                                  outRecord);
 #if GEN_NETLIST
@@ -121,7 +119,9 @@ void ChpBackend::printFU(
 
 void ChpBackend::printSplit(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             const char *procName,
+#endif
                             const char *splitName,
                             const char *guardName,
                             const char *inputName,
@@ -136,13 +136,15 @@ void ChpBackend::printSplit(double *metric,
                               outNameVec);
   chpLibGenerator->printSplitChpLib(instance, metric, numOutputs);
 #if GEN_NETLIST
-  dflowNetBackend->printSplitNetlist(procName, splitName, dataBW, numOutputs);
+  dflowNetBackend->printSplitNetlist(procName, splitName, dataBW);
 #endif
 }
 
 void ChpBackend::printMerge(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             const char *procName,
+#endif
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
@@ -154,14 +156,15 @@ void ChpBackend::printMerge(double *metric,
                               inNameVec);
   chpLibGenerator->printMergeChpLib(instance, metric);
 #if GEN_NETLIST
-  unsigned numInputs = inNameVec.size();
-  dflowNetBackend->printMergeNetlist(procName, outName, dataBW, numInputs);
+  dflowNetBackend->printMergeNetlist(procName, outName, dataBW);
 #endif
 }
 
 void ChpBackend::printMixer(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             const char *procName,
+#endif
                             const char *outName,
                             const char *coutName,
                             unsigned dataBW,
@@ -173,14 +176,15 @@ void ChpBackend::printMixer(double *metric,
                               inNameVec);
   chpLibGenerator->printMixerChpLib(instance, metric);
 #if GEN_NETLIST
-  unsigned numInputs = inNameVec.size();
-  dflowNetBackend->printMixerNetlist(procName, outName, dataBW, numInputs);
+  dflowNetBackend->printMixerNetlist(procName, outName, dataBW);
 #endif
 }
 
 void ChpBackend::printArbiter(double *metric,
                               const char *instance,
+#if GEN_NETLIST
                               const char *procName,
+#endif
                               const char *outName,
                               const char *coutName,
                               unsigned dataBW,
@@ -192,8 +196,7 @@ void ChpBackend::printArbiter(double *metric,
                                 inNameVec);
   chpLibGenerator->printArbiterChpLib(instance, metric);
 #if GEN_NETLIST
-  unsigned numInputs = inNameVec.size();
-  dflowNetBackend->printArbiterNetlist(procName, outName, dataBW, numInputs);
+  dflowNetBackend->printArbiterNetlist(procName, outName, dataBW);
 #endif
 }
 

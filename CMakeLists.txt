@@ -81,10 +81,12 @@ install(
         TARGETS dflowmap
         DESTINATION bin
 )
+
 install(
         TARGETS dflowchp
         DESTINATION lib
 )
+
 install(
         DIRECTORY src/common/
         DESTINATION include/act/dflow/common
@@ -93,10 +95,10 @@ install(
         PATTERN "common.h"
         PATTERN "Constant.h"
         PATTERN "Helper.h")
+
 install(
         DIRECTORY dflow-std/
-        DESTINATION include/act/dflow/dflow-std
+        DESTINATION act/dflow-std
         COMPONENT Development
         FILES_MATCHING
-        PATTERN "std.metrics"
         PATTERN "dflow_stdlib.act")

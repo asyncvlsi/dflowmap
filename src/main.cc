@@ -78,7 +78,6 @@ static void create_outfiles(char *&statsFilePath,
   char *workload_name = new char[len - i - 3];
   snprintf(workload_name, len - i - 3, "%s", src + i);
   size_t workloadNameLen = strlen(workload_name);
-#if LOGIC_OPTIMIZER
   /* create the default cache folder */
   cache_dir = new char[16 + baseDirLen];
   sprintf(cache_dir, "%s/.dflow_cache", baseDir);
@@ -90,25 +89,23 @@ static void create_outfiles(char *&statsFilePath,
     std::ofstream metric_cache;
     metric_cache.open(cached_metrics, std::fstream::app);
   }
-#endif
   /* create output folder "${workload_name}_output" if it does not exist */
   outputDir = new char[baseDirLen + workloadNameLen + 8];
   sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
   size_t outputPathLen = strlen(outputDir);
-#if LOGIC_OPTIMIZER
   custom_fu_dir = new char[16 + outputPathLen];
   sprintf(custom_fu_dir, "%s/customF", outputDir);
   custom_metrics = new char[16 + strlen(custom_fu_dir)];
   sprintf(custom_metrics, "%s/fu.metrics", custom_fu_dir);
-#endif
   if (!std::filesystem::is_directory(outputDir)
       || !std::filesystem::exists(outputDir)) {
     std::filesystem::create_directory(outputDir);
-#if LOGIC_OPTIMIZER
+  }
+  if (!std::filesystem::is_directory(custom_fu_dir)
+      || !std::filesystem::exists(custom_fu_dir)) {
     std::filesystem::create_directory(custom_fu_dir);
     std::ofstream custom_metric_file;
     custom_metric_file.open(custom_metrics, std::fstream::app);
-#endif
   }
   /* generate statistics file */
   statsFilePath = new char[outputPathLen + workloadNameLen + 16];
@@ -120,8 +117,7 @@ static void create_outfiles(char *&statsFilePath,
   if (!*chpFp) {
     fatal_error("Could not open file `%s' for writing", chp_file);
   }
-  fprintf(*chpFp, "import \"%s_lib.act\";\n", workload_name);
-  fprintf(*chpFp, "import \"dflow_stdlib.act\";\n\n");
+  fprintf(*chpFp, "import \"%s_lib.act\";\n\n", workload_name);
   /* generate chp lib file */
   char *chp_lib = new char[outputPathLen + workloadNameLen + 16];
   sprintf(chp_lib, "%s/%s_lib.act", outputDir, workload_name);
@@ -129,6 +125,9 @@ static void create_outfiles(char *&statsFilePath,
   if (!*chpLibfp) {
     fatal_error("Could not open file `%s' for writing", chp_lib);
   }
+  fprintf(*chpLibfp, R"(import globals;
+import "dflow-std/dflow_stdlib.act";
+)");
   /* create configuration file */
   char *conf_file = new char[outputPathLen + workloadNameLen + 16];
   sprintf(conf_file, "%s/%s.conf", outputDir, workload_name);
@@ -158,14 +157,13 @@ static void create_outfiles(char *&statsFilePath,
   if (!*netlistIncludeFp) {
     fatal_error("Could not open file `%s' for writing", netlist_include);
   }
+
   fprintf(*netlistIncludeFp, "import \"%s_lib.act\";\n", workload_name);
-  fprintf(*netlistIncludeFp, R"(
-import "dflow_stdlib_refine.act";
-import globals;
+  fprintf(*netlistIncludeFp, R"(import globals;
+import "dflow-std/dflow_stdlib_refine.act";
 import "syn/bdopt/stdcells.act";
 open syn;
 )");
-  fprintf(*netlistIncludeFp, "import \"dflow_stdlib_refine.act\";\n");
   /* generate netlist file */
   char *netlist_file = new char[outputPathLen + workloadNameLen + 16];
   sprintf(netlist_file, "%s/%s_netlist.act", outputDir, workload_name);
@@ -174,8 +172,7 @@ open syn;
     fatal_error("Could not open file `%s' for writing", netlist_file);
   }
   fprintf(*netlistFp, "import \"%s_chp.act\";\n", workload_name);
-  fprintf(*netlistFp, "import \"%s_netlib.act\";\n", workload_name);
-  fprintf(*netlistFp, "import \"dflow_stdlib_refine.act\";\n\n");
+  fprintf(*netlistFp, "import \"%s_netlib.act\";\n\n", workload_name);
 #endif
   if (debug_verbose) {
     printf("baseDir: %s, workload_name: %s, outputDir: %s, statsFilePath: %s, "
@@ -193,14 +190,12 @@ open syn;
            netlist_lib,
            netlist_include);
 #endif
-#if LOGIC_OPTIMIZER
     printf(
         "custom_fu_dir: %s, custom_metrics: %s, cache_dir: %s, cached_metrics: %s\n",
         custom_fu_dir,
         custom_metrics,
         cache_dir,
         cached_metrics);
-#endif
   }
 }
 
@@ -216,7 +211,7 @@ static Metrics *createMetrics(const char *metricFile,
   char *act_home = getenv("ACT_HOME");
   char *stdFUMetricsFP = new char[SHORT_STRING_LEN + strlen(act_home)];
   sprintf(stdFUMetricsFP,
-          "%s/include/act/dflow/dflow-std/std.metrics",
+          "%s/act/dflow-std/dflow_stdlib_refine.metrics",
           act_home);
   auto metrics = new Metrics(customFUMetricsFP,
                              stdFUMetricsFP,
@@ -282,9 +277,9 @@ int main(int argc, char **argv) {
 #endif
       act_file);
   Metrics *metrics = createMetrics(mfile, statsFilePath);
-#if GEN_NETLIST
-  auto chpGenerator = new ChpGenerator(chpFp, netlistFp);
+  auto chpGenerator = new ChpGenerator(chpFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
+#if GEN_NETLIST
   auto dflowNetGenerator = new DflowNetGenerator(netlistFp);
   auto dflowNetLibGenerator =
       new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp);
@@ -292,8 +287,6 @@ int main(int argc, char **argv) {
       new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator);
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator, dflowNetBackend);
 #else
-  auto chpGenerator = new ChpGenerator(chpFp);
-  auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator);
 #endif
 

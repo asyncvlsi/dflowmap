@@ -916,26 +916,27 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   StringMap<unsigned> &hiddenBW = dflowGenerator->getHiddenBWs();
   Map<Expr *, Expr *> &hiddenExprs = dflowGenerator->getHiddenExprs();
 #endif
-#if LOGIC_OPTIMIZER
   double *fuMetric = metrics->getOrGenFUMetric(
+#if LOGIC_OPTIMIZER
       inBW,
       hiddenBW,
       exprMap,
       hiddenExprs,
       outRecord,
-      outBWList, instance);
+      outBWList,
 #endif
+      instance);
   chpBackend->printFU(
-#if LOGIC_OPTIMIZER
       fuMetric,
-#endif
       instance,
       procName,
       argList,
       outList,
       resBWList,
+#if GEN_NETLIST
       argBWList,
       outBWList,
+#endif
       calc,
       outRecord,
       buffInfos);
@@ -1190,8 +1191,11 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       const char *instance =
           NameGenerator::genSplitInstName(guardBW, outBW, numOutputs, procName);
       chpBackend->printSplit(
-          metric, instance,
+          metric,
+          instance,
+#if GEN_NETLIST
           procName,
+#endif
           splitName,
           guardStr,
           inputStr,
@@ -1216,8 +1220,11 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                           numInputs,
                                           procName);
       chpBackend->printMerge(
-          metric, instance,
+          metric,
+          instance,
+#if GEN_NETLIST
           procName,
+#endif
           outputName,
           ctrlInName,
           inNameVec,
@@ -1245,8 +1252,11 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                             numInputs,
                                             procName);
         chpBackend->printMixer(
-            metric, instance,
+            metric,
+            instance,
+#if GEN_NETLIST
             procName,
+#endif
             outputName,
             ctrlOutName,
             dataBW,
@@ -1260,8 +1270,11 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                                               numInputs,
                                               procName);
         chpBackend->printArbiter(
-            metric, instance,
+            metric,
+            instance,
+#if GEN_NETLIST
             procName,
+#endif
             outputName,
             ctrlOutName,
             dataBW,

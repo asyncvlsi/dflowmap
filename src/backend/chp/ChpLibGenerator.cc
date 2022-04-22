@@ -75,15 +75,16 @@ void ChpLibGenerator::printMemConfig(const char *procName) {
 
 void ChpLibGenerator::printConf(double *metric,
                                 const char *instance,
-                                unsigned numOutputs) {
-  if (!checkAndUpdateInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
+                                unsigned numOutputs,
+                                bool exitOnMissing) {
+  if (!metric) {
+    if (exitOnMissing) {
+      printf("We could not find metrics for %s\n", instance);
+      exit(-1);
     }
+    return;
+  }
+  if (!checkAndUpdateInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
     for (unsigned i = 0; i < numOutputs; i++) {
       fprintf(confFp, "  begin out%d\n", i);
@@ -98,14 +99,14 @@ void ChpLibGenerator::printConf(double *metric,
 }
 
 void ChpLibGenerator::printConf(double *metric, const char *instance) {
-  if (!checkAndUpdateInstance(instance)) {
-    if (!metric) {
-      if (LOGIC_OPTIMIZER) {
-        printf("We could not find metrics for %s\n", instance);
-        exit(-1);
-      }
-      return;
+  if (!metric) {
+    if (LOGIC_OPTIMIZER) {
+      printf("We could not find metrics for %s\n", instance);
+      exit(-1);
     }
+    return;
+  }
+  if (!checkAndUpdateInstance(instance)) {
     fprintf(confFp, "begin %s\n", instance);
     fprintf(confFp, "  begin out\n");
     fprintf(confFp, "    int D %ld\n", (long) metric[2]);
@@ -122,9 +123,7 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
                                     const char *calc,
                                     unsigned int numArgs,
                                     unsigned int numOuts,
-#if LOGIC_OPTIMIZER
                                     double *fuMetric,
-#endif
                                     UIntVec &resBWList,
                                     Map<unsigned int,
                                         unsigned int> &outRecord) {
@@ -160,17 +159,14 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
   strcat(outSend, log);
-  printFUChpLib(
-      procName,
-      calc,
-      outSend,
-      numArgs,
-      numOuts,
-#if LOGIC_OPTIMIZER
-      instance,
-      fuMetric,
-#endif
-      resBWList);
+  printFUChpLib(procName,
+                calc,
+                outSend,
+                numArgs,
+                numOuts,
+                instance,
+                fuMetric,
+                resBWList);
 }
 
 void ChpLibGenerator::printFUChpLib(const char *procName,
@@ -178,10 +174,8 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
                                     const char *outSend,
                                     unsigned int numArgs,
                                     unsigned int numOuts,
-#if LOGIC_OPTIMIZER
                                     const char *instance,
                                     double *metric,
-#endif
                                     UIntVec &resBW) {
   if (!checkAndUpdateProcess(procName)) {
     fprintf(chpLibFp, "template<pint ");
@@ -241,9 +235,7 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
     fprintf(chpLibFp, "%s", outSend);
     fprintf(chpLibFp, "\n    ]\n  }\n}\n\n");
   }
-#if LOGIC_OPTIMIZER
-  printConf(metric, instance, numOuts);
-#endif
+  printConf(metric, instance, numOuts, LOGIC_OPTIMIZER);
 }
 
 void ChpLibGenerator::printMergeChpLib(const char *instance, double *metric) {
@@ -300,8 +292,10 @@ void ChpLibGenerator::printSinkChpLib(const char *instance, double *metric) {
   printConf(metric, instance);
 }
 
-void ChpLibGenerator::printCopyChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+void ChpLibGenerator::printCopyChpLib(const char *instance,
+                                      double *metric,
+                                      unsigned numOuts) {
+  printConf(metric, instance, numOuts);
 }
 
 void ChpLibGenerator::printChpBlock(Process *p) {

@@ -49,23 +49,25 @@ class ChpBackend {
   void printSource(double metric[4], const char *instance, const char *outName);
 
   void printFU(
-#if LOGIC_OPTIMIZER
       double *metric,
-#endif
       const char *instance,
       const char *procName,
       StringVec &argList,
       StringVec &outList,
       UIntVec &resBWList,
+#if GEN_NETLIST
       UIntVec &argBWList,
       UIntVec &outBWList,
+#endif
       const char *calc,
       Map<unsigned int, unsigned int> &outRecord,
       Vector<BuffInfo> &buffInfos);
 
   void printSplit(double *metric,
                   const char *instance,
+#if GEN_NETLIST
                   const char *procName,
+#endif
                   const char *splitName,
                   const char *guardName,
                   const char *inputName,
@@ -74,7 +76,9 @@ class ChpBackend {
 
   void printMerge(double *metric,
                   const char *instance,
+#if GEN_NETLIST
                   const char *procName,
+#endif
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
@@ -82,7 +86,9 @@ class ChpBackend {
 
   void printMixer(double *metric,
                   const char *instance,
+#if GEN_NETLIST
                   const char *procName,
+#endif
                   const char *outName,
                   const char *coutName,
                   unsigned dataBW,
@@ -90,7 +96,9 @@ class ChpBackend {
 
   void printArbiter(double *metric,
                     const char *instance,
+#if GEN_NETLIST
                     const char *procName,
+#endif
                     const char *outName,
                     const char *coutName,
                     unsigned dataBW,
