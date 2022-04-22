@@ -65,9 +65,6 @@ if (EXISTS $ENV{ACT_HOME}/lib/libdflownetgen.a)
     set_target_properties(DflowNetGen PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libdflownetgen.a)
 endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_EXE_LINKER_FLAGS "-ldl")
-
 # Set the output directory of static libraries
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
