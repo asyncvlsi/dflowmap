@@ -244,7 +244,7 @@ void ChpLibGenerator::printMergeChpLib(const char *instance, double *metric) {
 
 void ChpLibGenerator::printSplitChpLib(const char *instance,
                                        double *metric,
-                                       int numOutputs) {
+                                       unsigned numOutputs) {
   printConf(metric, instance, numOutputs);
 }
 

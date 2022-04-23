@@ -45,7 +45,7 @@ const char *NameGenerator::genMixerInstName(unsigned ctrlBW,
     sprintf(procName, "unpipe_%s", Constant::MIXER_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, inBW, ctrlBW);
+  sprintf(instance, "%s<%d,%u,%u>", procName, numInputs, inBW, ctrlBW);
   return instance;
 }
 
@@ -59,7 +59,7 @@ const char *NameGenerator::genArbiterInstName(unsigned ctrlBW,
     sprintf(procName, "unpipe_%s", Constant::ARBITER_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d,%d>", procName, numInputs, inBW, ctrlBW);
+  sprintf(instance, "%s<%d,%u,%u>", procName, numInputs, inBW, ctrlBW);
   return instance;
 }
 
@@ -73,7 +73,7 @@ const char *NameGenerator::genSplitInstName(unsigned guardBW,
     sprintf(procName, "unpipe_%s", Constant::SPLIT_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%d,%d>", procName, numOut, guardBW, outBW);
+  sprintf(instance, "%s<%d,%u,%u>", procName, numOut, guardBW, outBW);
   return instance;
 }
 

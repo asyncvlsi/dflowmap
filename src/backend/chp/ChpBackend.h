@@ -38,15 +38,36 @@ class ChpBackend {
              ChpLibGenerator *chpLibGenerator);
 #endif
 
-  void printCopyProcs(double *metric, const char *instance, const char *inName);
+  void printCopyProcs(double *metric,
+                      const char *instance,
+                      const char *inName,
+#if GEN_NETLIST
+      unsigned bw,
+#endif
+                      unsigned numOut);
 
-  void printSink(double metric[4], const char *instance, const char *inName);
+  void printSink(
+#if GEN_NETLIST
+      unsigned bw,
+#endif
+      double metric[4],
+      const char *instance,
+      const char *inName
+  );
 
   void printBuff(Vector<BuffInfo> &buffInfos);
 
   void printChannel(const char *chanName, unsigned bitwidth);
 
-  void printSource(double metric[4], const char *instance, const char *outName);
+  void printSource(
+#if GEN_NETLIST
+      unsigned long val,
+      unsigned bw,
+#endif
+      double metric[4],
+      const char *instance,
+      const char *outName
+  );
 
   void printFU(
       double *metric,
@@ -66,7 +87,8 @@ class ChpBackend {
   void printSplit(double *metric,
                   const char *instance,
 #if GEN_NETLIST
-                  const char *procName,
+      const char *procName,
+      unsigned guardBW,
 #endif
                   const char *splitName,
                   const char *guardName,
@@ -77,7 +99,8 @@ class ChpBackend {
   void printMerge(double *metric,
                   const char *instance,
 #if GEN_NETLIST
-                  const char *procName,
+      const char *procName,
+      unsigned guardBW,
 #endif
                   const char *outName,
                   const char *guardName,
@@ -87,7 +110,8 @@ class ChpBackend {
   void printMixer(double *metric,
                   const char *instance,
 #if GEN_NETLIST
-                  const char *procName,
+      const char *procName,
+      unsigned guardBW,
 #endif
                   const char *outName,
                   const char *coutName,
@@ -97,7 +121,8 @@ class ChpBackend {
   void printArbiter(double *metric,
                     const char *instance,
 #if GEN_NETLIST
-                    const char *procName,
+      const char *procName,
+      unsigned guardBW,
 #endif
                     const char *outName,
                     const char *coutName,

@@ -857,7 +857,14 @@ void ProcGenerator::createCopyProcs() {
       double *metric = metrics->getOrGenCopyMetric(bitwidth, numOut);
       const char
           *instance = NameGenerator::genCopyInstName(bitwidth, numOut);
-      chpBackend->printCopyProcs(metric, instance, inName);
+      chpBackend->printCopyProcs(
+          metric,
+          instance,
+          inName,
+#if GEN_NETLIST
+          bitwidth,
+#endif
+          numOut);
     }
   }
 }
@@ -865,7 +872,13 @@ void ProcGenerator::createCopyProcs() {
 void ProcGenerator::createSink(const char *name, unsigned bitwidth) {
   double *metric = metrics->getSinkMetric();
   const char *instance = NameGenerator::genSinkInstName(bitwidth);
-  chpBackend->printSink(metric, instance, name);
+  chpBackend->printSink(
+#if GEN_NETLIST
+      bitwidth,
+#endif
+      metric,
+      instance,
+      name);
 }
 
 void ProcGenerator::createSource(const char *outName,
@@ -873,7 +886,14 @@ void ProcGenerator::createSource(const char *outName,
                                  unsigned bitwidth) {
   const char *instance = NameGenerator::genSourceInstName(val, bitwidth);
   double *metric = metrics->getSourceMetric();
-  chpBackend->printSource(metric, instance, outName);
+  chpBackend->printSource(
+#if GEN_NETLIST
+      val,
+      bitwidth,
+#endif
+      metric,
+      instance,
+      outName);
 }
 
 void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
@@ -1195,6 +1215,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           instance,
 #if GEN_NETLIST
           procName,
+          guardBW,
 #endif
           splitName,
           guardStr,
@@ -1224,6 +1245,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           instance,
 #if GEN_NETLIST
           procName,
+          ctrlBW,
 #endif
           outputName,
           ctrlInName,
@@ -1256,6 +1278,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
             instance,
 #if GEN_NETLIST
             procName,
+            ctrlBW,
 #endif
             outputName,
             ctrlOutName,
@@ -1274,6 +1297,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
             instance,
 #if GEN_NETLIST
             procName,
+            ctrlBW,
 #endif
             outputName,
             ctrlOutName,

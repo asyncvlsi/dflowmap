@@ -65,7 +65,7 @@ class ChpLibGenerator {
 
   void printMergeChpLib(const char *instance, double *metric);
 
-  void printSplitChpLib(const char *instance, double *metric, int numOutputs);
+  void printSplitChpLib(const char *instance, double *metric, unsigned int numOutputs);
 
   void printArbiterChpLib(const char *instance, double *metric);
 

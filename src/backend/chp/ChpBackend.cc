@@ -39,21 +39,29 @@ ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
 
 void ChpBackend::printCopyProcs(double *metric,
                                 const char *instance,
-                                const char *inName) {
-  chpGenerator->printCopyChp(instance, inName);
-  chpLibGenerator->printCopyChpLib(instance, metric, 0);
+                                const char *inName,
 #if GEN_NETLIST
-  dflowNetBackend->printCopyNetlist(inName);
+                                unsigned bw,
+#endif
+                                unsigned numOut) {
+  chpGenerator->printCopyChp(instance, inName);
+  chpLibGenerator->printCopyChpLib(instance, metric, numOut);
+#if GEN_NETLIST
+  dflowNetBackend->printCopyNetlist(inName, bw, numOut, 1, 1);
 #endif
 }
 
-void ChpBackend::printSink(double metric[4],
-                           const char *instance,
-                           const char *inName) {
+void ChpBackend::printSink(
+#if GEN_NETLIST
+    unsigned bw,
+#endif
+    double metric[4],
+    const char *instance,
+    const char *inName) {
   chpGenerator->printSinkChp(instance, inName);
   chpLibGenerator->printSinkChpLib(instance, metric);
 #if GEN_NETLIST
-  dflowNetBackend->printSinkNetlist(inName);
+  dflowNetBackend->printSinkNetlist(inName, bw);
 #endif
 }
 
@@ -61,7 +69,7 @@ void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
   chpGenerator->printBuffChp(buffInfos);
   chpLibGenerator->printBuffChpLib(buffInfos);
 #if GEN_NETLIST
-  dflowNetBackend->printBuffNetlist(buffInfos);
+  dflowNetBackend->printBuffNetlist(buffInfos, 1, 1);
 #endif
 }
 
@@ -72,13 +80,18 @@ void ChpBackend::printChannel(const char *chanName, unsigned int bitwidth) {
 #endif
 }
 
-void ChpBackend::printSource(double metric[4],
-                             const char *instance,
-                             const char *outName) {
+void ChpBackend::printSource(
+#if GEN_NETLIST
+    unsigned long val,
+    unsigned bw,
+#endif
+    double metric[4],
+    const char *instance,
+    const char *outName) {
   chpGenerator->printSourceChp(instance, outName);
   chpLibGenerator->printSourceChpLib(instance, metric);
 #if GEN_NETLIST
-  dflowNetBackend->printSourceNetlist(outName);
+  dflowNetBackend->printSourceNetlist(outName, val, bw);
 #endif
 }
 
@@ -113,7 +126,12 @@ void ChpBackend::printFU(
                                  resBWList,
                                  outRecord);
 #if GEN_NETLIST
-  dflowNetBackend->printFUNetlist(instance, fuInstName, argBWList, outBWList);
+  dflowNetBackend->printFUNetlist(instance,
+                                  fuInstName,
+                                  argBWList,
+                                  outBWList,
+                                  1,
+                                  1);
 #endif
 }
 
@@ -121,6 +139,7 @@ void ChpBackend::printSplit(double *metric,
                             const char *instance,
 #if GEN_NETLIST
                             const char *procName,
+                            unsigned guardBW,
 #endif
                             const char *splitName,
                             const char *guardName,
@@ -136,7 +155,12 @@ void ChpBackend::printSplit(double *metric,
                               outNameVec);
   chpLibGenerator->printSplitChpLib(instance, metric, numOutputs);
 #if GEN_NETLIST
-  dflowNetBackend->printSplitNetlist(procName, splitName, dataBW);
+  dflowNetBackend->printSplitNetlist(procName,
+                                     splitName,
+                                     dataBW,
+                                     guardBW,
+                                     numOutputs,
+                                     1);
 #endif
 }
 
@@ -144,6 +168,7 @@ void ChpBackend::printMerge(double *metric,
                             const char *instance,
 #if GEN_NETLIST
                             const char *procName,
+                            unsigned guardBW,
 #endif
                             const char *outName,
                             const char *guardName,
@@ -156,7 +181,13 @@ void ChpBackend::printMerge(double *metric,
                               inNameVec);
   chpLibGenerator->printMergeChpLib(instance, metric);
 #if GEN_NETLIST
-  dflowNetBackend->printMergeNetlist(procName, outName, dataBW);
+  size_t numInputs = inNameVec.size();
+  dflowNetBackend->printMergeNetlist(procName,
+                                     outName,
+                                     dataBW,
+                                     guardBW,
+                                     numInputs,
+                                     1);
 #endif
 }
 
@@ -164,6 +195,7 @@ void ChpBackend::printMixer(double *metric,
                             const char *instance,
 #if GEN_NETLIST
                             const char *procName,
+                            unsigned guardBW,
 #endif
                             const char *outName,
                             const char *coutName,
@@ -176,7 +208,13 @@ void ChpBackend::printMixer(double *metric,
                               inNameVec);
   chpLibGenerator->printMixerChpLib(instance, metric);
 #if GEN_NETLIST
-  dflowNetBackend->printMixerNetlist(procName, outName, dataBW);
+  size_t numInputs = inNameVec.size();
+  dflowNetBackend->printMixerNetlist(procName,
+                                     outName,
+                                     dataBW,
+                                     guardBW,
+                                     numInputs,
+                                     1);
 #endif
 }
 
@@ -184,6 +222,7 @@ void ChpBackend::printArbiter(double *metric,
                               const char *instance,
 #if GEN_NETLIST
                               const char *procName,
+                              unsigned guardBW,
 #endif
                               const char *outName,
                               const char *coutName,
@@ -196,7 +235,13 @@ void ChpBackend::printArbiter(double *metric,
                                 inNameVec);
   chpLibGenerator->printArbiterChpLib(instance, metric);
 #if GEN_NETLIST
-  dflowNetBackend->printArbiterNetlist(procName, outName, dataBW);
+  size_t numInputs = inNameVec.size();
+  dflowNetBackend->printArbiterNetlist(procName,
+                                       outName,
+                                       dataBW,
+                                       guardBW,
+                                       numInputs,
+                                       1);
 #endif
 }
 
