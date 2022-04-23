@@ -276,13 +276,13 @@ void ChpLibGenerator::printBuffChpLib(Vector<BuffInfo> &buffInfos) {
     double *metric = buffInfo.metric;
     if ((numBuff > 1) || (!hasInitVal)) {
       char *buffInstance = new char[1024];
-      sprintf(buffInstance, "dflowstd::onebuf<%u>", bw);
+      sprintf(buffInstance, "onebuf<%u>", bw);
       printOneBuffChpLib(buffInstance, metric);
     }
     if (hasInitVal) {
       char *initInstance = new char[1024];
       unsigned long initVal = buffInfo.initVal;
-      sprintf(initInstance, "dflowstd::init<%lu,%u>", initVal, bw);
+      sprintf(initInstance, "init<%lu,%u>", initVal, bw);
       printInitChpLib(initInstance, metric);
     }
   }

@@ -126,7 +126,10 @@ static void create_outfiles(char *&statsFilePath,
     fatal_error("Could not open file `%s' for writing", chp_lib);
   }
   fprintf(*chpLibfp, R"(import globals;
-import "dflow_std/dflow_stdlib.act";
+import dflow_std::dflow_stdlib;
+
+open dflow_std::dflow_stdlib;
+
 )");
   /* create configuration file */
   char *conf_file = new char[outputPathLen + workloadNameLen + 16];
@@ -146,7 +149,6 @@ import "dflow_std/dflow_stdlib.act";
   fprintf(*netlistLibFp,
           "import \"%s_netlist_include.act\";\n\n",
           workload_name);
-  fprintf(*netlistLibFp, "open dflowstd;\n\n");
   /* generate netlist include file */
   char *netlist_include = new char[outputPathLen + workloadNameLen + 16];
   sprintf(netlist_include,
@@ -157,13 +159,15 @@ import "dflow_std/dflow_stdlib.act";
   if (!*netlistIncludeFp) {
     fatal_error("Could not open file `%s' for writing", netlist_include);
   }
-
-  fprintf(*netlistIncludeFp, "import \"%s_lib.act\";\n", workload_name);
   fprintf(*netlistIncludeFp, R"(import globals;
-import "dflow_std/dflow_stdlib_refine.act";
+import dflow_std::dflow_stdlib_refine;
 import "syn/bdopt/stdcells.act";
 open syn;
+open dflow_std::dflow_stdlib_refine;
+
 )");
+  fprintf(*netlistIncludeFp, "import \"%s_lib.act\";\n", workload_name);
+
   /* generate netlist file */
   char *netlist_file = new char[outputPathLen + workloadNameLen + 16];
   sprintf(netlist_file, "%s/%s_netlist.act", outputDir, workload_name);

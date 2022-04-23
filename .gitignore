@@ -38,3 +38,4 @@ build/
 *.stat
 *.act
 config.in
+*_out/

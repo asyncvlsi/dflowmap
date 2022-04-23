@@ -71,10 +71,7 @@ double *Metrics::getOpMetric(const char *instance) {
     printf("Try to get metric for null instance!\n");
     exit(-1);
   }
-  std::string metricInstance(instance);
-  auto it = metricInstance.find("dflowstd::");
-  if (it != std::string::npos) metricInstance.erase(it, 10);
-  const char *normInstance = getNormInstanceName(metricInstance.c_str());
+  const char *normInstance = getNormInstanceName(instance);
   if (debug_verbose) {
     printf("get op metric for (%s, %s)\n", instance, normInstance);
   }
