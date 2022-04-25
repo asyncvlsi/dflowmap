@@ -86,10 +86,7 @@ class ChpBackend {
 
   void printSplit(double *metric,
                   const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-      unsigned guardBW,
-#endif
+                  unsigned guardBW,
                   const char *splitName,
                   const char *guardName,
                   const char *inputName,
@@ -98,10 +95,7 @@ class ChpBackend {
 
   void printMerge(double *metric,
                   const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-      unsigned guardBW,
-#endif
+                  unsigned guardBW,
                   const char *outName,
                   const char *guardName,
                   CharPtrVec &inNameVec,
@@ -109,10 +103,7 @@ class ChpBackend {
 
   void printMixer(double *metric,
                   const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-      unsigned guardBW,
-#endif
+                  unsigned guardBW,
                   const char *outName,
                   const char *coutName,
                   unsigned dataBW,
@@ -120,10 +111,7 @@ class ChpBackend {
 
   void printArbiter(double *metric,
                     const char *instance,
-#if GEN_NETLIST
-      const char *procName,
-      unsigned guardBW,
-#endif
+                    unsigned guardBW,
                     const char *outName,
                     const char *coutName,
                     unsigned dataBW,

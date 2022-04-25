@@ -1213,10 +1213,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       chpBackend->printSplit(
           metric,
           instance,
-#if GEN_NETLIST
-          procName,
           guardBW,
-#endif
           splitName,
           guardStr,
           inputStr,
@@ -1243,10 +1240,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       chpBackend->printMerge(
           metric,
           instance,
-#if GEN_NETLIST
-          procName,
           ctrlBW,
-#endif
           outputName,
           ctrlInName,
           inNameVec,
@@ -1276,10 +1270,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         chpBackend->printMixer(
             metric,
             instance,
-#if GEN_NETLIST
-            procName,
             ctrlBW,
-#endif
             outputName,
             ctrlOutName,
             dataBW,
@@ -1295,10 +1286,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
         chpBackend->printArbiter(
             metric,
             instance,
-#if GEN_NETLIST
-            procName,
             ctrlBW,
-#endif
             outputName,
             ctrlOutName,
             dataBW,
