@@ -314,6 +314,7 @@ void ChpLibGenerator::printCustomNamespace(ActNamespace *ns) {
   for (it = it.begin(); it != it.end(); it++) {
     Type *t = *it;
     auto p = dynamic_cast<Process *>(t);
+    if (!p) continue;
     if (p->isExpanded()) {
       p->Print(chpLibFp);
       if (isMEM) {
