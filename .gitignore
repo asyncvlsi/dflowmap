@@ -39,3 +39,9 @@ build/
 *.act
 config.in
 *_out/
+cmake-build-grace/
+.clion.source.upload.marker
+.rs_rl538.tstamp
+config.in
+configure
+hier_tmp2.lec.do
