@@ -137,7 +137,9 @@ void ChpBackend::printFU(
 
 void ChpBackend::printSplit(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             unsigned guardBW,
+#endif
                             const char *splitName,
                             const char *guardName,
                             const char *inputName,
@@ -179,7 +181,9 @@ void ChpBackend::printSplit(double *metric,
 
 void ChpBackend::printMerge(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             unsigned guardBW,
+#endif
                             const char *outName,
                             const char *guardName,
                             CharPtrVec &inNameVec,
@@ -221,7 +225,9 @@ void ChpBackend::printMerge(double *metric,
 
 void ChpBackend::printMixer(double *metric,
                             const char *instance,
+#if GEN_NETLIST
                             unsigned guardBW,
+#endif
                             const char *outName,
                             const char *coutName,
                             unsigned dataBW,
@@ -257,7 +263,9 @@ void ChpBackend::printMixer(double *metric,
 
 void ChpBackend::printArbiter(double *metric,
                               const char *instance,
+#if GEN_NETLIST
                               unsigned guardBW,
+#endif
                               const char *outName,
                               const char *coutName,
                               unsigned dataBW,
