@@ -126,6 +126,7 @@ static void create_outfiles(char *&statsFilePath,
     fatal_error("Could not open file `%s' for writing", chp_lib);
   }
   fprintf(*chpLibfp, R"(import globals;
+import std;
 import dflow_std::dflow_stdlib;
 
 open dflow_std::dflow_stdlib;
@@ -150,7 +151,7 @@ open dflow_std::dflow_stdlib;
           "import \"%s_netlist_include.act\";\n\n",
           workload_name);
   /* generate netlist include file */
-  char *netlist_include = new char[outputPathLen + workloadNameLen + 16];
+  char *netlist_include = new char[outputPathLen + workloadNameLen + 64];
   sprintf(netlist_include,
           "%s/%s_netlist_include.act",
           outputDir,
@@ -160,8 +161,10 @@ open dflow_std::dflow_stdlib;
     fatal_error("Could not open file `%s' for writing", netlist_include);
   }
   fprintf(*netlistIncludeFp, R"(import globals;
+import std;
 import dflow_std::dflow_stdlib_refine;
 import "syn/bdopt/stdcells.act";
+
 open syn;
 open dflow_std::dflow_stdlib_refine;
 
@@ -298,6 +301,7 @@ int main(int argc, char **argv) {
   ActNamespaceiter i(a->Global());
   for (i = i.begin(); i != i.end(); i++) {
     ActNamespace *ns = *i;
+    if (!ns) continue;
     if (!ns->isExported()) {
       backend->printCustomNamespace(ns);
     }

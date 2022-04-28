@@ -249,6 +249,32 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
   return finalExprName;
 }
 
+const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
+                                       Expr *expr,
+                                       int &resSuffix,
+                                       unsigned &resBW) {
+  StringVec operandList;
+  IntVec opTypeList;
+  char *finalExprName = new char[100];
+  resSuffix++;
+  sprintf(finalExprName, "res%d", resSuffix);
+  while (expr) {
+    Expr *operand = expr->u.e.l;
+    int opType = (operand->type == E_INT) ? E_INT : E_VAR;
+    opTypeList.push_back(opType);
+    const char *operand_name =
+        printExpr(dflowGenerator, operand, resSuffix, resBW);
+    operandList.push_back(operand_name);
+    expr = expr->u.e.r;
+  }
+  dflowGenerator->printChpConcatExpr(operandList, resSuffix, resBW);
+  dflowGenerator->prepareConcatExprForOpt(operandList,
+                                          opTypeList,
+                                          finalExprName,
+                                          resBW);
+  return finalExprName;
+}
+
 const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                                      Expr *expr,
                                      int &resSuffix,
@@ -280,161 +306,64 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       return dflowGenerator->handleEVar(oriVarName, mappedVarName, argBW);
     }
     case E_AND: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "&",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "&", type, resSuffix, resBW);
     }
     case E_OR: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "|",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "|", type, resSuffix, resBW);
     }
     case E_NOT: {
-      return EMIT_UNI(dflowGenerator,
-                      expr,
-                      "~",
-                      resSuffix,
-                      resBW);
+      return EMIT_UNI(dflowGenerator, expr, "~", resSuffix, resBW);
     }
     case E_PLUS: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "+",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "+", type, resSuffix, resBW);
     }
     case E_MINUS: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "-",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "-", type, resSuffix, resBW);
     }
     case E_MULT: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "*",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "*", type, resSuffix, resBW);
     }
     case E_DIV: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "/",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "/", type, resSuffix, resBW);
     }
     case E_MOD: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "%",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "%", type, resSuffix, resBW);
     }
     case E_LSL: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "<<",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "<<", type, resSuffix, resBW);
     }
     case E_LSR: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      ">>",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, ">>", type, resSuffix, resBW);
     }
     case E_ASR: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      ">>>",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, ">>>", type, resSuffix, resBW);
     }
     case E_UMINUS: {
-      return EMIT_UNI(dflowGenerator,
-                      expr,
-                      "-",
-                      resSuffix,
-                      resBW);
+      return EMIT_UNI(dflowGenerator, expr, "-", resSuffix, resBW);
     }
     case E_XOR: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "^",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "^", type, resSuffix, resBW);
     }
     case E_LT: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "<",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "<", type, resSuffix, resBW);
     }
     case E_GT: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      ">",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, ">", type, resSuffix, resBW);
     }
     case E_LE: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "<=",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "<=", type, resSuffix, resBW);
     }
     case E_GE: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      ">=",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, ">=", type, resSuffix, resBW);
     }
     case E_EQ: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "=",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "=", type, resSuffix, resBW);
     }
     case E_NE: {
-      return EMIT_BIN(dflowGenerator,
-                      expr,
-                      "!=",
-                      type,
-                      resSuffix,
-                      resBW);
+      return EMIT_BIN(dflowGenerator, expr, "!=", type, resSuffix, resBW);
     }
     case E_COMPLEMENT: {
-      return EMIT_UNI(dflowGenerator,
-                      expr,
-                      "~",
-                      resSuffix,
-                      resBW);
+      return EMIT_UNI(dflowGenerator, expr, "~", resSuffix, resBW);
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
@@ -451,24 +380,18 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
         print_expr(stdout, lExpr);
         printf(", resBW: %u\n", resBW);
       }
-      return printExpr(dflowGenerator,
-                       lExpr,
-                       resSuffix,
-                       resBW);
+      return printExpr(dflowGenerator, lExpr, resSuffix, resBW);
     }
     case E_BUILTIN_BOOL: {
       Expr *lExpr = expr->u.e.l;
       resBW = 1;
-      return printExpr(dflowGenerator,
-                       lExpr,
-                       resSuffix,
-                       resBW);
+      return printExpr(dflowGenerator, lExpr, resSuffix, resBW);
     }
     case E_QUERY: {
-      return EMIT_QUERY(dflowGenerator,
-                        expr,
-                        resSuffix,
-                        resBW);
+      return EMIT_QUERY(dflowGenerator, expr, resSuffix, resBW);
+    }
+    case E_CONCAT: {
+      return EMIT_CONCAT(dflowGenerator, expr, resSuffix, resBW);
     }
     default: {
       print_expr(stdout, expr);
@@ -633,6 +556,14 @@ void ProcGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
       collectExprUses(cExpr, recordedOps);
       collectExprUses(lExpr, recordedOps);
       collectExprUses(rExpr, recordedOps);
+      break;
+    }
+    case E_CONCAT: {
+      while (expr) {
+        Expr *operand = expr->u.e.l;
+        collectExprUses(operand, recordedOps);
+        expr = expr->u.e.r;
+      }
       break;
     }
     default: {

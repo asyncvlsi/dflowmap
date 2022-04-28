@@ -48,6 +48,10 @@ class DflowGenerator {
                     int resSuffix,
                     unsigned resBW);
 
+  void printChpConcatExpr(StringVec &operandList,
+                          int resSuffix,
+                          unsigned resBW);
+
   void printChpUniExpr(const char *op,
                        const char *exprName,
                        int resSuffix,
@@ -94,6 +98,11 @@ class DflowGenerator {
                             const char *expr_name,
                             int expr_type,
                             unsigned bw);
+
+  void prepareConcatExprForOpt(StringVec &operandList,
+                               IntVec &opTypeList,
+                               const char *expr_name,
+                               unsigned bw);
 
   const char *getCalc();
 

@@ -77,15 +77,37 @@ void DflowGenerator::printChpPort(const char *exprName,
   strcat(calc, subCalc);
 }
 
+void DflowGenerator::printChpConcatExpr(StringVec &operandList,
+                                        const int resSuffix,
+                                        unsigned resBW) {
+  char *curCal = new char[MAX_CALC_LEN];
+  sprintf(curCal, "      res%d := {", resSuffix);
+  size_t numOps = operandList.size();
+  for (size_t i = 0; i < numOps; i++) {
+    strcat(curCal, operandList[i].c_str());
+    if (i != numOps - 1) {
+      strcat(curCal, ", ");
+    }
+  }
+  strcat(curCal, "};\n");
+  strcat(calc, curCal);
+  if (debug_verbose) {
+    printf("concat expr res%d has bw %u\n", resSuffix, resBW);
+    printf("%s\n", curCal);
+  }
+  if (resBW == 0) {
+    printf("resBW is 0!\n");
+    exit(-1);
+  }
+  resBWList.push_back(resBW);
+}
+
 void DflowGenerator::printChpUniExpr(const char *op,
                                      const char *exprName,
                                      const int resSuffix,
                                      unsigned resBW) {
   char *curCal = new char[128 + strlen(exprName)];
   sprintf(curCal, "      res%d := %s %s;\n", resSuffix, op, exprName);
-  if (debug_verbose) {
-    printf("%s\n", curCal);
-  }
   strcat(calc, curCal);
   if (debug_verbose) {
     printf("uni res%d has bw %u\n", resSuffix, resBW);
@@ -235,8 +257,34 @@ void DflowGenerator::prepareUniExprForOpt(const char *lexpr_name,
   }
 }
 
+void DflowGenerator::prepareConcatExprForOpt(StringVec &operandList,
+                                             IntVec &opTypeList,
+                                             const char *expr_name,
+                                             unsigned bw) {
+  Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
+  Expr *expr = new Expr;
+  expr->type = E_CONCAT;
+  Expr *rootExpr = expr;
+  size_t numOps = operandList.size();
+  for (size_t i = 0; i < numOps; i++) {
+    Expr *opExpr =
+        getExprFromName(operandList[i].c_str(), exprMap, false, opTypeList[i]);
+    expr->u.e.l = opExpr;
+    expr->u.e.r = new Expr;
+    expr = expr->u.e.r;
+  }
+  hiddenBWMap.insert({expr_name, bw});
+  hiddenExprs.insert({rhs, rootExpr});
+  if (debug_verbose) {
+    printf("rhs: ");
+    print_expr(stdout, rhs);
+    printf(", resExpr: ");
+    print_expr(stdout, rootExpr);
+    printf(".\n");
+  }
+}
+
 const char *DflowGenerator::getCalc() {
-//    calc[strlen(calc) - 2] = ';';
   return calc;
 }
 
@@ -270,17 +318,17 @@ Map<Expr *, Expr *> &DflowGenerator::getHiddenExprs() {
 
 void DflowGenerator::dump() {
   printf("arg list:\n");
-  for (auto &arg : argList) {
+  for (auto &arg: argList) {
     printf("%s ", arg.c_str());
   }
   printf("\n");
   printf("arg bw list:\n");
-  for (auto &bw : argBWList) {
+  for (auto &bw: argBWList) {
     printf("%u ", bw);
   }
   printf("\n");
   printf("res bw list:\n");
-  for (auto &resBW : resBWList) {
+  for (auto &resBW: resBWList) {
     printf("%u ", resBW);
   }
   printf("\n");

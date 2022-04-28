@@ -83,6 +83,11 @@ class ProcGenerator {
                        int &resSuffix,
                        unsigned &resBW);
 
+  const char *EMIT_CONCAT(DflowGenerator *dflowGenerator,
+                          Expr *expr,
+                          int &resSuffix,
+                          unsigned &resBW);
+
   const char *printExpr(DflowGenerator *dflowGenerator,
                         Expr *expr,
                         int &resSuffix,
