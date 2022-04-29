@@ -170,8 +170,10 @@ void ChpBackend::printSplit(double *metric,
                                          guardBW,
                                          dataBW);
 #else
+  unsigned PD = 1;
   dflowNetBackend->printUnpipeSplitNetlist(splitName,
                                            ADDR,
+                                           PD,
                                            numOutputs,
                                            guardBW,
                                            dataBW);
