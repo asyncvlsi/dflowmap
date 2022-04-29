@@ -317,7 +317,8 @@ void ChpBackend::createChpBlock(Process *p) {
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {
-  if (strcmp(ns->getName(), Constant::STD_NAMESPACE) == 0) return;
+  auto stdNS = ActNamespace::Global()->findNS(Constant::STD_NAMESPACE);
+  if (ns == stdNS) return;
   chpGenerator->printCustomNamespace(ns);
   chpLibGenerator->printCustomNamespace(ns);
 }

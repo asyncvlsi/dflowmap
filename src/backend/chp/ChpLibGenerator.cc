@@ -303,6 +303,7 @@ void ChpLibGenerator::printChpBlock(Process *p) {
     printf("Process %s does NOT have CHP block!\n", p->getName());
     exit(-1);
   }
+  printf("chp block? %s\n", p->getName());
   p->Print(chpLibFp);
 }
 

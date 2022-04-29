@@ -29,7 +29,7 @@
 #include <act/types.h>
 #include <algorithm>
 #include <filesystem>
-#include "src/core/ProcGenerator.h"
+#include "DflowMapPass.h"
 #include "src/core/Metrics.h"
 
 int debug_verbose;
@@ -52,9 +52,9 @@ static void create_outfiles(char *&statsFilePath,
                             FILE **chpLibfp,
                             FILE **conffp,
 #if GEN_NETLIST
-                            FILE **netlistFp,
-                            FILE **netlistLibFp,
-                            FILE **netlistIncludeFp,
+    FILE **netlistFp,
+    FILE **netlistLibFp,
+    FILE **netlistIncludeFp,
 #endif
                             const char *src) {
   /* "src" contains the path to the act file, which is in the form of
@@ -283,6 +283,7 @@ int main(int argc, char **argv) {
       &netlistIncludeFp,
 #endif
       act_file);
+
   Metrics *metrics = createMetrics(mfile, statsFilePath);
   auto chpGenerator = new ChpGenerator(chpFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
@@ -306,25 +307,9 @@ int main(int argc, char **argv) {
       backend->printCustomNamespace(ns);
     }
   }
-  /* declare all of the act processes */
-  ActTypeiter it(a->Global());
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (p->isExpanded()) {
-      backend->printProcDeclaration(p);
-    }
-  }
   /* generate chp implementation for each act process */
-  Map<const char *, unsigned> procCount;
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (p->isExpanded()) {
-      auto procGenerator = new ProcGenerator(metrics, backend, p);
-      procGenerator->run();
-    }
-  }
+  auto dflowmap_pass = new DflowMapPass(a, "dflowmap", metrics, backend);
+  dflowmap_pass->run(nullptr);
   backend->printFileEnding();
   metrics->dump();
 

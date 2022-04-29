@@ -1325,22 +1325,23 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
 }
 
 ProcGenerator::ProcGenerator(Metrics *metrics,
-                             ChpBackend *chpBackend,
-                             Process *p) {
+                             ChpBackend *chpBackend) {
   this->metrics = metrics;
   this->chpBackend = chpBackend;
-  this->p = p;
-  this->sc = p->CurScope();
 }
 
-void ProcGenerator::run() {
+int ProcGenerator::run(Process *p) {
+  auto stdNS = ActNamespace::Global()->findNS(Constant::STD_NAMESPACE);
+  if (p->getns() == stdNS) return 0;
+  this->sc = p->CurScope();
+  this->p = p;
   const char *pName = p->getName();
   if (debug_verbose) {
     printf("processing %s\n", pName);
   }
   if (p->getlang()->getchp()) {
     chpBackend->createChpBlock(p);
-    return;
+    return 0;
   }
   if (!p->getlang()->getdflow()) {
     printf("Process `%s': no dataflow body", p->getName());
@@ -1363,4 +1364,6 @@ void ProcGenerator::run() {
     }
   }
   chpBackend->printProcEnding();
+  return 0;
 }
+

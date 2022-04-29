@@ -50,10 +50,7 @@
 class ProcGenerator {
  public:
   ProcGenerator(Metrics *metrics,
-                ChpBackend *chpBackend,
-                Process *p);
-
-  void run();
+                ChpBackend *chpBackend);
 
   const char *getActIdOrCopyName(ActId *actId);
 
@@ -163,6 +160,8 @@ class ProcGenerator {
                          const char *exprName,
                          DflowGenerator *dflowGenerator);
 
+  int run(Process *p);
+
  private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
@@ -180,6 +179,7 @@ class ProcGenerator {
   void createSource(const char *outName,
                     unsigned long val,
                     unsigned bitwidth);
+
 };
 
 #endif //DFLOWMAP_CHPPROCGENERATOR_H
