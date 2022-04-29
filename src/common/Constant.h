@@ -31,6 +31,7 @@ public:
   static constexpr const char* MIXER_PREFIX = "mixer";
   static constexpr const char* SPLIT_PREFIX = "split";
   static constexpr const char* MEM_NAMESPACE = "mem";
+  static constexpr const char* STD_NAMESPACE = "std";
 };
 
 #endif //DFLOWMAP_CONSTANT_H

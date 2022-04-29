@@ -41,7 +41,7 @@ void ChpBackend::printCopyProcs(double *metric,
                                 const char *instance,
                                 const char *inName,
 #if GEN_NETLIST
-                                unsigned bw,
+    unsigned bw,
 #endif
                                 unsigned numOut) {
   chpGenerator->printCopyChp(instance, inName);
@@ -138,7 +138,7 @@ void ChpBackend::printFU(
 void ChpBackend::printSplit(double *metric,
                             const char *instance,
 #if GEN_NETLIST
-                            unsigned guardBW,
+    unsigned guardBW,
 #endif
                             const char *splitName,
                             const char *guardName,
@@ -182,7 +182,7 @@ void ChpBackend::printSplit(double *metric,
 void ChpBackend::printMerge(double *metric,
                             const char *instance,
 #if GEN_NETLIST
-                            unsigned guardBW,
+    unsigned guardBW,
 #endif
                             const char *outName,
                             const char *guardName,
@@ -226,7 +226,7 @@ void ChpBackend::printMerge(double *metric,
 void ChpBackend::printMixer(double *metric,
                             const char *instance,
 #if GEN_NETLIST
-                            unsigned guardBW,
+    unsigned guardBW,
 #endif
                             const char *outName,
                             const char *coutName,
@@ -264,7 +264,7 @@ void ChpBackend::printMixer(double *metric,
 void ChpBackend::printArbiter(double *metric,
                               const char *instance,
 #if GEN_NETLIST
-                              unsigned guardBW,
+    unsigned guardBW,
 #endif
                               const char *outName,
                               const char *coutName,
@@ -315,6 +315,7 @@ void ChpBackend::createChpBlock(Process *p) {
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {
+  if (strcmp(ns->getName(), Constant::STD_NAMESPACE) == 0) return;
   chpGenerator->printCustomNamespace(ns);
   chpLibGenerator->printCustomNamespace(ns);
 }

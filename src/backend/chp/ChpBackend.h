@@ -22,6 +22,7 @@
 #ifndef DFLOWMAP__CHPBACKEND_H_
 #define DFLOWMAP__CHPBACKEND_H_
 
+#include "src/common/Constant.h"
 #include "src/backend/chp/ChpGenerator.h"
 #include "src/backend/chp/ChpLibGenerator.h"
 #if GEN_NETLIST
