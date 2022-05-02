@@ -28,7 +28,6 @@
 #include <act/lang.h>
 #include <act/types.h>
 #include <algorithm>
-#include <filesystem>
 #include "DflowMapPass.h"
 #include "src/core/Metrics.h"
 
@@ -52,9 +51,9 @@ static void create_outfiles(char *&statsFilePath,
                             FILE **chpLibfp,
                             FILE **conffp,
 #if GEN_NETLIST
-    FILE **netlistFp,
-    FILE **netlistLibFp,
-    FILE **netlistIncludeFp,
+                            FILE **netlistFp,
+                            FILE **netlistLibFp,
+                            FILE **netlistIncludeFp,
 #endif
                             const char *src) {
   /* "src" contains the path to the act file, which is in the form of
@@ -83,12 +82,8 @@ static void create_outfiles(char *&statsFilePath,
   sprintf(cache_dir, "%s/.dflow_cache", baseDir);
   cached_metrics = new char[16 + strlen(cache_dir)];
   sprintf(cached_metrics, "%s/fu.metrics", cache_dir);
-  if (!std::filesystem::is_directory(cache_dir)
-      || !std::filesystem::exists(cache_dir)) {
-    std::filesystem::create_directory(cache_dir);
-    std::ofstream metric_cache;
-    metric_cache.open(cached_metrics, std::fstream::app);
-  }
+  createDirectoryIfNotExist(cache_dir);
+  createFileIfNotExist(cached_metrics, std::fstream::app);
   /* create output folder "${workload_name}_output" if it does not exist */
   outputDir = new char[baseDirLen + workloadNameLen + 8];
   sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
@@ -97,16 +92,12 @@ static void create_outfiles(char *&statsFilePath,
   sprintf(custom_fu_dir, "%s/customF", outputDir);
   custom_metrics = new char[16 + strlen(custom_fu_dir)];
   sprintf(custom_metrics, "%s/fu.metrics", custom_fu_dir);
-  if (!std::filesystem::is_directory(outputDir)
-      || !std::filesystem::exists(outputDir)) {
-    std::filesystem::create_directory(outputDir);
-  }
-  if (!std::filesystem::is_directory(custom_fu_dir)
-      || !std::filesystem::exists(custom_fu_dir)) {
-    std::filesystem::create_directory(custom_fu_dir);
-    std::ofstream custom_metric_file;
-    custom_metric_file.open(custom_metrics, std::fstream::app);
-  }
+  createDirectoryIfNotExist(outputDir);
+  createDirectoryIfNotExist(custom_fu_dir);
+  createFileIfNotExist(custom_metrics, std::fstream::app);
+  char *errMsg = new char[128];
+  sprintf(errMsg, "Fail to copy raw input ACT file into the output dir!\n");
+  copyFileToTargetDir(src, outputDir, errMsg);
   /* generate statistics file */
   statsFilePath = new char[outputPathLen + workloadNameLen + 16];
   sprintf(statsFilePath, "%s/%s.stat", outputDir, workload_name);

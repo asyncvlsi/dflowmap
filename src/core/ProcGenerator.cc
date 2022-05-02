@@ -61,9 +61,10 @@ void ProcGenerator::collectBitwidthInfo() {
     c = tmp->Canonical(p->CurScope());
     delete tmp;
     int bitwidth = TypeFactory::bitWidth(vx->t);
-    if (bitwidth <= 0) {
+    if (bitwidth < 0) {
       if (debug_verbose) {
         printf("%s has negative bw %d!\n", varName, bitwidth);
+        exit(-1);
       }
     } else {
       if (debug_verbose) {

@@ -23,6 +23,8 @@
 #define DFLOWMAP__HELPER_H_
 #include <act/act.h>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include "Constant.h"
 #include "common.h"
 
@@ -56,6 +58,14 @@ void getCurProc(const char *str, char *val);
 void getActConnectionName(act_connection *actConnection, char *buff, int sz);
 
 void print_dflow(FILE *fp, list_t *dflow);
+
+void createDirectoryIfNotExist(const char *dir);
+
+void createFileIfNotExist(const char *file, std::ios_base::openmode mode);
+
+void copyFileToTargetDir(const char *srcFile,
+                         const char *targetDir,
+                         const char *errMsg);
 
 template<class T>
 bool hasInVector(Vector<T> &vector, T &elem) {

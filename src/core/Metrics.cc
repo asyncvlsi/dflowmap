@@ -104,20 +104,10 @@ double *Metrics::getCachedMetric(const char *instance) {
       char *cached_netlist_file =
           new char[strlen(cache_dir) + strlen(normInstance) + 8];
       sprintf(cached_netlist_file, "%s/%s.act", cache_dir, normInstance);
-      std::filesystem::path sourceFile = cached_netlist_file;
-      std::filesystem::path targetParent = custom_fu_dir;
-      auto target = targetParent / sourceFile.filename();
-      try {
-        std::filesystem::copy_file(cached_netlist_file,
-                                   target,
-                                   std::filesystem::copy_options::overwrite_existing);
-      } catch (std::exception &e) {
-        printf(
-            "Fail to copy the optimized netlist file from cache to the output directory!\n"
-            "Reason is: %s\n",
-            e.what());
-        exit(-1);
-      }
+      char *errMsg = new char[128];
+      sprintf(errMsg,
+              "Fail to copy the optimized netlist file from cache to the output directory!\n");
+      copyFileToTargetDir(cached_netlist_file, custom_fu_dir, errMsg);
       /* update the local metric file */
       double *metric = cachedMetricsIt.second;
       writeLocalMetricFile(instance, metric);
@@ -511,18 +501,10 @@ void Metrics::callLogicOptimizer(
                                                     hidden_expr_list,
                                                     hidden_expr_name_list);
   /* copy the optimized netlist file to the cache */
-  std::filesystem::path sourceFile = optimized_netlist_file;
-  std::filesystem::path targetParent = cache_dir;
-  auto target = targetParent / sourceFile.filename();
-  try {
-    std::filesystem::copy_file(optimized_netlist_file,
-                               target,
-                               std::filesystem::copy_options::overwrite_existing);
-  } catch (std::exception &e) {
-    printf("Fail to copy the optimized netlist file to the cache directory!\n"
-           "Reason is: %s\n", e.what());
-    exit(-1);
-  }
+  char *errMsg = new char[128];
+  sprintf(errMsg,
+          "Fail to copy the optimized netlist file to the cache directory!\n");
+  copyFileToTargetDir(optimized_netlist_file, cache_dir, errMsg);
   if (debug_verbose) {
     printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
            "Leak Power: %e W, delay: %e s\n",

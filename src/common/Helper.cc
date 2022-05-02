@@ -45,14 +45,14 @@ const char *getNormActIdName(const char *src) {
 }
 
 void printIntVec(IntVec &intVec) {
-  for (auto &val : intVec) {
+  for (auto &val: intVec) {
     printf("%d ", val);
   }
   printf("\n");
 }
 
 void printULongVec(ULongVec &longVec) {
-  for (auto &val : longVec) {
+  for (auto &val: longVec) {
     printf("%lu ", val);
   }
   printf("\n");
@@ -87,7 +87,7 @@ Expr *getExprFromName(const char *name,
                       Map<const char *, Expr *> &exprMap,
                       bool exitOnMissing,
                       int exprType) {
-  for (auto &exprMapIt : exprMap) {
+  for (auto &exprMapIt: exprMap) {
     if (strcmp(name, exprMapIt.first) == 0) {
       return exprMapIt.second;
     }
@@ -152,5 +152,36 @@ void print_dflow(FILE *fp, list_t *dflow) {
       fprintf(fp, ";");
     }
     fprintf(fp, "\n");
+  }
+}
+
+void createDirectoryIfNotExist(const char *dir) {
+  if (!std::filesystem::is_directory(dir)
+      || !std::filesystem::exists(dir)) {
+    std::filesystem::create_directory(dir);
+  }
+}
+
+void createFileIfNotExist(const char *file, std::ios_base::openmode mode) {
+  if (!std::filesystem::is_regular_file(file)
+      || !std::filesystem::exists(std::filesystem::path(file))) {
+    std::ofstream file_stream;
+    file_stream.open(file, mode);
+  }
+}
+
+void copyFileToTargetDir(const char *srcFile,
+                         const char *targetDir,
+                         const char *errMsg) {
+  std::filesystem::path sourceFile = srcFile;
+  std::filesystem::path targetParent = targetDir;
+  auto target = targetParent / sourceFile.filename();
+  try {
+    std::filesystem::copy_file(srcFile,
+                               target,
+                               std::filesystem::copy_options::overwrite_existing);
+  } catch (std::exception &e) {
+    printf("%s. Reason is: %s\n", errMsg, e.what());
+    exit(-1);
   }
 }
