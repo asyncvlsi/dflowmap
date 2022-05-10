@@ -27,6 +27,7 @@ DflowMapPass::DflowMapPass(Act *a,
                            ChpBackend *backend) : ActPass(a, name) {
   this->metrics = metrics;
   this->backend = backend;
+  _count = 0;
 }
 
 void *DflowMapPass::local_op(Process *p, int mode) {
@@ -34,5 +35,6 @@ void *DflowMapPass::local_op(Process *p, int mode) {
   if (!p->isExpanded() || !p->isDefined()) return nullptr;
   auto proc_generator = new ProcGenerator(metrics, backend);
   proc_generator->run(p);
+  _count++;
   return nullptr;
 }

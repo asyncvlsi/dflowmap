@@ -304,5 +304,9 @@ int main(int argc, char **argv) {
   backend->printFileEnding();
   metrics->dump();
 
+  if (dflowmap_pass->numTranslated() == 0) {
+    warning ("No expanded processes found; no CHP mapping generated.");
+  }
+
   return 0;
 }

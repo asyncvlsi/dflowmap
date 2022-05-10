@@ -29,10 +29,14 @@ class DflowMapPass : public ActPass {
  public:
   DflowMapPass(Act *a, const char *name, Metrics *metrics, ChpBackend *backend);
 
+  int numTranslated() { return _count; }
+
  private:
   Metrics *metrics;
   ChpBackend *backend;
   void *local_op(Process *p, int mode);
+
+  int _count;
 };
 
 #endif //DFLOWMAP_SRC_DFLOWMAPPASS_H_
