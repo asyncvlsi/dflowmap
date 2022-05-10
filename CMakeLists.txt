@@ -38,7 +38,7 @@ add_compile_options(
         -Wwrite-strings
         -Wformat-security
         -Wundef)
-add_compile_options(-O2 -march=native)
+add_compile_options(-O2)
 
 include_directories(./)
 add_library(ActLib SHARED IMPORTED)
