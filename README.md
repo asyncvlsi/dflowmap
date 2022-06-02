@@ -18,7 +18,7 @@ program into circuit backend description.
   it as `expropt`. If a commercial optimizer is available, then add
   `exproptcommercial` in a new line after `expropt`
 * to compile the tool, run `sh build.sh`, and the binary is located at
-  `build/src/dflowmap`
+  `bin/dflowmap`
 
 ## Running instructions
 Suppose we want to generate CHP description for the dfadd benchmark located at
@@ -26,7 +26,7 @@ Suppose we want to generate CHP description for the dfadd benchmark located at
  and four output files will be generated in the same path with the input act file:
   * dfadd_lib.act: library of CHP processes used by dfadd
   * dfadd_chp.act: instances of CHP processes synthesized for dfadd. It invokes 
-  `dfadd_lib.act` for the implementation of each CHP process
+  `dfadd_chplib.act` for the implementation of each CHP process
   * dfadd.conf: configuration file which specifues the performance (delay, area,
     leakage power, execution energy) of each CHP process
   * dfadd.stat: performance statistics of the generated CHP instances
