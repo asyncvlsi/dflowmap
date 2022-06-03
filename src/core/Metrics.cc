@@ -327,15 +327,15 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
 
 double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
   char *instance = new char[100];
-  sprintf(instance, "latch%u", bw);
+  sprintf(instance, "latch1");
   double *uniMetric = getOpMetric(instance);
   double *metric = nullptr;
   if (uniMetric) {
     metric = new double[4];
-    metric[0] = nBuff * metric[0];
-    metric[1] = nBuff * metric[1];
-    metric[2] = nBuff * metric[2];
-    metric[3] = nBuff * metric[3];
+    metric[0] = nBuff * metric[0]; // leakage
+    metric[1] = nBuff * metric[1]; // energy
+    metric[2] =  metric[2];        // delay
+    metric[3] = nBuff * metric[3]; // area
     updateStatistics(instance, metric);
   }
   return metric;
