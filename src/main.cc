@@ -306,7 +306,10 @@ int main(int argc, char **argv) {
   auto dflowmap_pass = new DflowMapPass(a, "dflowmap", metrics, backend);
   dflowmap_pass->run(nullptr);
   backend->printFileEnding();
-  metrics->dump();
+
+  if (metrics->validMetrics()) {
+    metrics->dump();
+  }
 
   if (dflowmap_pass->numTranslated() == 0) {
     warning ("No expanded processes found; no CHP mapping generated.");

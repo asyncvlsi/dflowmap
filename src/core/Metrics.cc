@@ -186,6 +186,13 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
     printf("Read metric file: %s\n", metricsFP);
   }
   std::ifstream metricFp(metricsFP);
+  if (metricFp.fail()) {
+    if (debug_verbose) {
+      printf ("--> failed to open file!\n");
+    }
+    _have_metrics = false;
+    return;
+  }
   std::string line;
   while (std::getline(metricFp, line)) {
     std::istringstream iss(line);
@@ -229,9 +236,17 @@ void Metrics::readMetricsFile() {
 Metrics::Metrics(const char *customFUMetricsFP,
                  const char *stdFUMetricsFP,
                  const char *statisticsFP) {
+  _have_metrics = true;
   this->custom_metrics = customFUMetricsFP;
   this->std_metrics = stdFUMetricsFP;
   this->statisticsFilePath = statisticsFP;
+
+  totalArea = 0;
+  totalLeakPowewr = 0;
+  mergeArea = 0;
+  splitArea = 0;
+  mergeLeakPower = 0;
+  splitLeakPower = 0;
 }
 
 unsigned Metrics::getEquivalentBW(unsigned oriBW) {
@@ -252,6 +267,10 @@ unsigned Metrics::getEquivalentBW(unsigned oriBW) {
 }
 
 double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
+  if (!_have_metrics) {
+    return NULL;
+  }
+  
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
   sprintf(instance, "copy<%u,%u>", bitwidth, numOut);
@@ -316,6 +335,10 @@ double *Metrics::getSourceMetric() {
 }
 
 double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
+  if (!_have_metrics) {
+    return NULL;
+  }
+
   char *instance = new char[100];
   sprintf(instance, "init%u", bitwidth);
   double *metric = getOpMetric(instance);
@@ -332,10 +355,10 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
   double *metric = nullptr;
   if (uniMetric) {
     metric = new double[4];
-    metric[0] = nBuff * metric[0]; // leakage
-    metric[1] = nBuff * metric[1]; // energy
-    metric[2] =  metric[2];        // delay
-    metric[3] = nBuff * metric[3]; // area
+    metric[0] = nBuff * uniMetric[0]; // leakage
+    metric[1] = nBuff * uniMetric[1]; // energy
+    metric[2] =  uniMetric[2];        // delay
+    metric[3] = nBuff * uniMetric[3]; // area
     updateStatistics(instance, metric);
   }
   return metric;
@@ -353,6 +376,17 @@ void Metrics::callLogicOptimizer(
     double *&metric
 #endif
 ) {
+  if (!_have_metrics) {
+#if LOGIC_OPTIMIZER    
+    metric = new double[4];
+    metric[0] = 0;
+    metric[1] = 0;
+    metric[2] = 0;
+    metric[3] = 0;
+#endif    
+    return;
+  }
+    
 #if LOGIC_OPTIMIZER
   if (debug_verbose) {
     printf("Will run logic optimizer for %s\n", instance);
@@ -618,6 +652,10 @@ double *Metrics::getOrGenFUMetric(
 double *Metrics::getOrGenMergeMetric(unsigned guardBW,
                                      unsigned inBW,
                                      unsigned numIn) {
+  if (!_have_metrics) {
+    return NULL;
+  }
+  
   char *procName = new char[MAX_INSTANCE_LEN];
   const char *instance =
       NameGenerator::genMergeInstName(guardBW, inBW, numIn, procName);
@@ -737,6 +775,10 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
 double *Metrics::getOrGenSplitMetric(unsigned guardBW,
                                      unsigned inBW,
                                      unsigned numOut) {
+  if (!_have_metrics) {
+    return NULL;
+  }
+  
   char *procName = new char[MAX_INSTANCE_LEN];
   const char *instance =
       NameGenerator::genSplitInstName(guardBW, inBW, numOut, procName);

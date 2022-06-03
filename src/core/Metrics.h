@@ -118,7 +118,12 @@ class Metrics {
                          unsigned inBW,
                          unsigned coutBW);
 
+  bool validMetrics() { return _have_metrics; }
+
  private:
+
+  bool _have_metrics;
+  
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
   Map<const char *, double *> opMetrics;
 
@@ -127,23 +132,23 @@ class Metrics {
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<unsigned, Map<unsigned, unsigned >> copyStatistics;
 
-  double totalArea = 0;
+  double totalArea;
 
   /* instanceName, area (um^2) of all of the instances of the process */
   Map<const char *, double> areaStatistics;
 
-  double totalLeakPowewr = 0;
+  double totalLeakPowewr;
 
   /* instanceName, LeakPower (nW) of all of the instances of the process */
   Map<const char *, double> leakpowerStatistics;
 
-  double mergeArea = 0;
+  double mergeArea;
 
-  double splitArea = 0;
+  double splitArea;
 
-  double mergeLeakPower = 0;
+  double mergeLeakPower;
 
-  double splitLeakPower = 0;
+  double splitLeakPower;
 
   /* instanceName, # of instances */
   Map<const char *, int> instanceCnt;
