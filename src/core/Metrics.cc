@@ -519,10 +519,23 @@ void Metrics::callLogicOptimizer(
            info->power_typ_static,
            info->delay_typ);
   }
-  double leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
-  double energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
-  double delay = info->delay_typ * 1e12; // Delay (ps)
-  double area = info->area * 1e12;  // AREA (um^2)
+
+  double leakpower, energy, delay, area;
+
+  if (info->delay_typ == -1) {
+    /* wires */
+    leakpower = 0;
+    energy = 0;
+    delay = 0;
+    area = 0;
+  }
+  else {
+    leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
+    energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
+    delay = info->delay_typ * 1e12; // Delay (ps)
+    area = info->area * 1e12;  // AREA (um^2)
+  }
+  
   /* adjust perf number by adding latch, etc. */
   double *latchMetric = getOpMetric("latch1");
   double *ebufMetric = getOpMetric("10ebuf");
