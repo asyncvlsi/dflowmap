@@ -314,6 +314,9 @@ void ChpBackend::printProcEnding() {
 
 void ChpBackend::createChpBlock(Process *p, int where) {
   chpLibGenerator->printChpBlock(p, where);
+#if GEN_NETLIST
+  dflowNetBackend->printDflowBlock(p);
+#endif  
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {
