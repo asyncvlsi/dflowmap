@@ -33,7 +33,7 @@
 
 class ChpLibGenerator {
  public:
-  ChpLibGenerator(FILE *chpLibFp, FILE *confFp);
+  ChpLibGenerator(FILE *chpLibFp, FILE *chpFp, FILE *confFp);
 
   void printMemConfig(const char *procName);
 
@@ -85,7 +85,7 @@ class ChpLibGenerator {
                        double *metric,
                        unsigned numOuts);
 
-  void printChpBlock(Process *p);
+  void printChpBlock(Process *p, int where);
 
   void printCustomNamespace(ActNamespace *ns);
 
@@ -95,6 +95,7 @@ class ChpLibGenerator {
   const char *processes[MAX_PROCESSES];
   const char *instances[MAX_PROCESSES];
   FILE *chpLibFp;
+  FILE *chpFp;
   FILE *confFp;
 
   bool checkAndUpdateInstance(const char *instance);

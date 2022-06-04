@@ -312,8 +312,8 @@ void ChpBackend::printProcEnding() {
 #endif
 }
 
-void ChpBackend::createChpBlock(Process *p) {
-  chpLibGenerator->printChpBlock(p);
+void ChpBackend::createChpBlock(Process *p, int where) {
+  chpLibGenerator->printChpBlock(p, where);
 }
 
 void ChpBackend::printCustomNamespace(ActNamespace *ns) {

@@ -1341,11 +1341,11 @@ int ProcGenerator::run(Process *p) {
     printf("processing %s\n", pName);
   }
   if (p->getlang()->getchp()) {
-    chpBackend->createChpBlock(p);
+    chpBackend->createChpBlock(p,0);
     return 0;
   }
   if (!p->getlang()->getdflow()) {
-    printf("Process `%s': no dataflow body\n", p->getName());
+    chpBackend->createChpBlock(p,1);
     return 0;
   }
   chpBackend->printProcHeader(p);

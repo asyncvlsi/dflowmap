@@ -132,7 +132,7 @@ class ChpBackend {
 
   void printProcEnding();
 
-  void createChpBlock(Process *p);
+  void createChpBlock(Process *p, int where);
 
   void printCustomNamespace(ActNamespace *ns);
 

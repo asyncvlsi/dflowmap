@@ -21,7 +21,7 @@
 
 #include "ChpLibGenerator.h"
 
-ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp,
+ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp, FILE *chpFp,
                                  FILE *confFp) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     processes[i] = nullptr;
@@ -36,6 +36,7 @@ ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp,
   fprintf(confFp, "begin sim.chp\n");
   this->chpLibFp = chpLibFp;
   this->confFp = confFp;
+  this->chpFp = chpFp;
 }
 
 bool ChpLibGenerator::checkAndUpdateInstance(const char *instance) {
@@ -298,12 +299,19 @@ void ChpLibGenerator::printCopyChpLib(const char *instance,
   printConf(metric, instance, numOuts);
 }
 
-void ChpLibGenerator::printChpBlock(Process *p) {
+void ChpLibGenerator::printChpBlock(Process *p, int where) {
+#if 0
   if (!p->getlang()->getchp()) {
     printf("Process %s does NOT have CHP block!\n", p->getName());
     exit(-1);
   }
-  p->Print(chpLibFp);
+#endif
+  if (p->getlang()->getchp()) {
+    p->Print(chpLibFp);
+  }
+  else {
+    p->Print(chpFp);
+  }
 }
 
 void ChpLibGenerator::printCustomNamespace(ActNamespace *ns) {

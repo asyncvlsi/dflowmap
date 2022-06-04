@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
   /* read in the ACT file */
   Act *a = new Act(act_file);
   a->Expand();
-  a->mangle(nullptr);
+  //a->mangle(nullptr);
 
   if (debug_verbose) {
     fprintf(stdout, "Processing ACT file %s!\n", act_file);
@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
 
   Metrics *metrics = createMetrics(mfile, statsFilePath);
   auto chpGenerator = new ChpGenerator(chpFp);
-  auto chpLibGenerator = new ChpLibGenerator(chpLibFp, confFp);
+  auto chpLibGenerator = new ChpLibGenerator(chpLibFp, chpFp, confFp);
 #if GEN_NETLIST
   auto dflowNetGenerator = new DflowNetGenerator(netlistFp);
   auto dflowNetLibGenerator =
