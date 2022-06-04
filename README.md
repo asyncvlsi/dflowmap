@@ -19,6 +19,7 @@ program into circuit backend description.
   `exproptcommercial` in a new line after `expropt`
 * to compile the tool, run `sh build.sh`, and the binary is located at
   `bin/dflowmap`
+* to install the tool, go into the `build` directory and type `make install`
 
 ## Running instructions
 Suppose we want to generate CHP description for the dfadd benchmark located at
