@@ -1345,8 +1345,8 @@ int ProcGenerator::run(Process *p) {
     return 0;
   }
   if (!p->getlang()->getdflow()) {
-    printf("Process `%s': no dataflow body", p->getName());
-    exit(-1);
+    printf("Process `%s': no dataflow body\n", p->getName());
+    return 0;
   }
   chpBackend->printProcHeader(p);
   collectBitwidthInfo();
