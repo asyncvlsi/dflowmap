@@ -22,9 +22,10 @@ program into circuit backend description.
 
 ## Running instructions
 Suppose we want to generate CHP description for the dfadd benchmark located at
-`tests/dfadd.act`. Run `bin/dflowmap dfadd.act` in the home directory,
- and four output files will be generated in the same path with the input act file:
-  * dfadd_lib.act: library of CHP processes used by dfadd
+`tests/dfadd.act`. Run `bin/dflowmap tests/dfadd.act` in the home directory,
+ and the following output files will be generated in the same directory:
+  * dfadd.act: the raw input ACT file
+  * dfadd_chplib.act: library of CHP processes used by dfadd
   * dfadd_chp.act: instances of CHP processes synthesized for dfadd. It invokes 
   `dfadd_chplib.act` for the implementation of each CHP process
   * dfadd.conf: configuration file which specifues the performance (delay, area,
