@@ -67,6 +67,9 @@ void Metrics::updateCachedMetrics(const char *instance, double *metric) {
 }
 
 double *Metrics::getOpMetric(const char *instance) {
+  if (!_have_metrics) {
+    return NULL;
+  }
   if (instance == nullptr) {
     printf("Try to get metric for null instance!\n");
     exit(-1);
@@ -90,6 +93,9 @@ double *Metrics::getOpMetric(const char *instance) {
 }
 
 double *Metrics::getCachedMetric(const char *instance) {
+  if (!_have_metrics) {
+    return NULL;
+  }
   if (instance == nullptr) {
     printf("Try to get metric for null instance!\n");
     exit(-1);
@@ -313,6 +319,9 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
 }
 
 double *Metrics::getSinkMetric() {
+  if (!_have_metrics) {
+    return NULL;
+  }
   char *unitInstance = new char[1500];
   sprintf(unitInstance, "sink_1_");
   double *metric = getOpMetric(unitInstance);
@@ -324,6 +333,9 @@ double *Metrics::getSinkMetric() {
 }
 
 double *Metrics::getSourceMetric() {
+  if (!_have_metrics) {
+    return NULL;
+  }
   char *unitInstance = new char[8];
   sprintf(unitInstance, "source1");
   double *metric = getOpMetric(unitInstance);
@@ -349,6 +361,9 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
 }
 
 double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
+  if (!_have_metrics) {
+    return NULL;
+  }
   char *instance = new char[100];
   sprintf(instance, "latch1");
   double *uniMetric = getOpMetric(instance);
@@ -627,6 +642,9 @@ double *Metrics::getOrGenFUMetric(
     UIntVec &outBWList,
 #endif
     const char *instance) {
+  if (!_have_metrics) {
+    return NULL;
+  }
   double *metric = getOpMetric(instance);
   if (!metric) {
     metric = getCachedMetric(instance);
