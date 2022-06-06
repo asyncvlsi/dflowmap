@@ -246,7 +246,7 @@ void ChpLibGenerator::printMergeChpLib(const char *instance, double *metric) {
 void ChpLibGenerator::printSplitChpLib(const char *instance,
                                        double *metric,
                                        unsigned numOutputs) {
-  printConf(metric, instance, numOutputs);
+  printConf(metric, instance, numOutputs, LOGIC_OPTIMIZER);
 }
 
 void ChpLibGenerator::printArbiterChpLib(const char *instance, double *metric) {
@@ -296,7 +296,7 @@ void ChpLibGenerator::printSinkChpLib(const char *instance, double *metric) {
 void ChpLibGenerator::printCopyChpLib(const char *instance,
                                       double *metric,
                                       unsigned numOuts) {
-  printConf(metric, instance, numOuts);
+  printConf(metric, instance, numOuts, LOGIC_OPTIMIZER);
 }
 
 void ChpLibGenerator::printChpBlock(Process *p, int where) {
