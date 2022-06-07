@@ -39,9 +39,11 @@ char *custom_metrics;
 char *custom_fu_dir;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qv] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qv] [-p <procname>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
+  fprintf(stderr,
+          " -p <process>: specify the top-level process; unexpanded process allowed\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   exit(1);
 }
