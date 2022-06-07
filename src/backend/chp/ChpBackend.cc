@@ -146,7 +146,7 @@ void ChpBackend::printFU(
       delay_units++;
     }
     if (delay_units == 0) {
-      printf ("WHAT!?\n");
+      delay_units = 1;
     }
   }
   
