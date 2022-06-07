@@ -225,13 +225,20 @@ static Metrics *createMetrics(const char *metricFile,
 int main(int argc, char **argv) {
   int ch;
   char *mfile = nullptr;
+  char *procname = nullptr;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
 
   debug_verbose = 0;
 
-  while ((ch = getopt(argc, argv, "vqm:")) != -1) {
+  while ((ch = getopt(argc, argv, "vqm:p:")) != -1) {
     switch (ch) {
+      case 'p':
+        if (procname) {
+          FREE (procname);
+        }
+        procname = Strdup (optarg);
+        break;
       case 'v':debug_verbose++;
         break;
       case 'm':
@@ -254,6 +261,18 @@ int main(int argc, char **argv) {
   Act *a = new Act(act_file);
   a->Expand();
   //a->mangle(nullptr);
+
+  Process *spec_proc = NULL;
+  if (procname) {
+    spec_proc = a->findProcess (procname);
+    if (!spec_proc) { 
+      fatal_error ("Could not find process `%s'\n", procname);
+    }
+    if (!spec_proc->isExpanded()) {
+      spec_proc = spec_proc->Expand (ActNamespace::Global(),
+				     spec_proc->CurScope(), 0, NULL);
+    }
+  }
 
   if (debug_verbose) {
     fprintf(stdout, "Processing ACT file %s!\n", act_file);
@@ -304,7 +323,7 @@ int main(int argc, char **argv) {
   }
   /* generate chp implementation for each act process */
   auto dflowmap_pass = new DflowMapPass(a, "dflowmap", metrics, backend);
-  dflowmap_pass->run(nullptr);
+  dflowmap_pass->run(spec_proc);
   backend->printFileEnding();
 
   if (metrics->validMetrics()) {
