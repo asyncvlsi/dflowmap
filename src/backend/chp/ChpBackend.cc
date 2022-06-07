@@ -117,6 +117,15 @@ void ChpBackend::printFU(
 #endif
   unsigned numArgs = argList.size();
   unsigned numOuts = outList.size();
+
+  double unit_delay;
+  if (config_exists ("expropt.unit_delay")) {
+    unit_delay = config_get_real ("expropt.unit_delay");
+  }
+  else {
+    unit_delay = 100.0; // ps default units
+  }
+  
   chpLibGenerator->printFUChpLib(instance,
                                  procName,
                                  calc,
@@ -126,12 +135,28 @@ void ChpBackend::printFU(
                                  resBWList,
                                  outRecord);
 #if GEN_NETLIST
+
+  unsigned int delay_units;
+  if (!metric) {
+    delay_units = 1;
+  }
+  else {
+    delay_units = metric[2]/unit_delay;
+    if (delay_units < metric[2]/unit_delay) {
+      delay_units++;
+    }
+    if (delay_units == 0) {
+      printf ("WHAT!?\n");
+    }
+  }
+  
   dflowNetBackend->printFUNetlist(instance,
                                   fuInstName,
                                   argBWList,
                                   outBWList,
                                   1,
-                                  1);
+                                  1,
+				  delay_units);
 #endif
 }
 
