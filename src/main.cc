@@ -97,6 +97,9 @@ static void create_outfiles(char *&statsFilePath,
   size_t outputPathLen = strlen(outputDir);
   custom_fu_dir = new char[16 + outputPathLen];
   sprintf(custom_fu_dir, "%s/customF", outputDir);
+  if (invalidate_cache) {
+    removeDirectoryIfExist(custom_fu_dir);
+  }
   custom_metrics = new char[16 + strlen(custom_fu_dir)];
   sprintf(custom_metrics, "%s/fu.metrics", custom_fu_dir);
   createDirectoryIfNotExist(outputDir);
