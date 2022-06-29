@@ -59,6 +59,8 @@ void getActConnectionName(act_connection *actConnection, char *buff, int sz);
 
 void print_dflow(FILE *fp, list_t *dflow);
 
+void removeDirectoryIfExist(const char *dir);
+
 void createDirectoryIfNotExist(const char *dir);
 
 void createFileIfNotExist(const char *file, std::ios_base::openmode mode);

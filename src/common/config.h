@@ -39,6 +39,7 @@
 #endif
 
 extern int debug_verbose;
+extern bool invalidate_cache;
 extern char *cached_metrics;
 extern char *custom_metrics;
 extern char *custom_fu_dir;

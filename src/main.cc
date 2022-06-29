@@ -32,6 +32,7 @@
 #include "src/core/Metrics.h"
 
 int debug_verbose;
+bool invalidate_cache;
 char *outputDir;
 char *cache_dir;
 char *cached_metrics;
@@ -39,12 +40,13 @@ char *custom_metrics;
 char *custom_fu_dir;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qv] [-p <procname>] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qv] [-p <procname>] [-m <metrics>] [-i] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
           " -p <process>: specify the top-level process; unexpanded process allowed\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
+  fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
   exit(1);
 }
 
@@ -84,6 +86,9 @@ static void create_outfiles(char *&statsFilePath,
   sprintf(cache_dir, "%s/.dflow_cache", baseDir);
   cached_metrics = new char[16 + strlen(cache_dir)];
   sprintf(cached_metrics, "%s/fu.metrics", cache_dir);
+  if (invalidate_cache) {
+    removeDirectoryIfExist(cache_dir);
+  }
   createDirectoryIfNotExist(cache_dir);
   createFileIfNotExist(cached_metrics, std::fstream::app);
   /* create output folder "${workload_name}_output" if it does not exist */
@@ -230,10 +235,9 @@ int main(int argc, char **argv) {
   char *procname = nullptr;
   /* initialize ACT library */
   Act::Init(&argc, &argv);
-
   debug_verbose = 0;
-
-  while ((ch = getopt(argc, argv, "vqm:p:")) != -1) {
+  invalidate_cache = false;
+  while ((ch = getopt(argc, argv, "vqm:p:i")) != -1) {
     switch (ch) {
       case 'p':
         if (procname) {
@@ -249,6 +253,9 @@ int main(int argc, char **argv) {
         }
         mfile = Strdup(optarg);
         break;
+      case 'i':
+        invalidate_cache = true;
+        break;;
       case '?':
       default:usage(argv[0]);
         break;

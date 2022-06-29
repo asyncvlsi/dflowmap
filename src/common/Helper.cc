@@ -155,6 +155,12 @@ void print_dflow(FILE *fp, list_t *dflow) {
   }
 }
 
+void removeDirectoryIfExist(const char *dir) {
+  if (std::filesystem::is_directory(dir) && std::filesystem::exists(dir)) {
+    std::filesystem::remove_all(dir);
+  }
+}
+
 void createDirectoryIfNotExist(const char *dir) {
   if (!std::filesystem::is_directory(dir)
       || !std::filesystem::exists(dir)) {
