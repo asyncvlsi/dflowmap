@@ -144,7 +144,7 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
     if (i < numOuts - 1) {
       sprintf(subSend, "out%u!res%u, ", outID, resSuffix);
     } else {
-      sprintf(subSend, "out%u!res%u;\n", outID, resSuffix);
+      sprintf(subSend, "out%u!res%u%c\n", outID, resSuffix, quiet_mode ? ' ' : ';');
     }
     strcat(outSend, subSend);
     i++;
@@ -162,7 +162,7 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
   strcat(log, subLog);
   }
   else {
-  sprintf (log, "     skip");
+  sprintf (log, "");
   }
   strcat(outSend, log);
   printFUChpLib(procName,
