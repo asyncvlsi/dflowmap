@@ -150,6 +150,7 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
     i++;
   }
   char *log = new char[1500];
+  if (!quiet_mode) {
   sprintf(log, "      log(\"send (\", ");
   for (auto &outResSuffix: resSuffixVec) {
     char *subLog = new char[100];
@@ -159,6 +160,10 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
   char *subLog = new char[100];
   sprintf(subLog, "\")\")");
   strcat(log, subLog);
+  }
+  else {
+  sprintf (log, "     skip");
+  }
   strcat(outSend, log);
   printFUChpLib(procName,
                 calc,
@@ -224,6 +229,7 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
         fprintf(chpLibFp, "in%d?x%d, ", i, i);
       }
     }
+    if (!quiet_mode) {
     fprintf(chpLibFp, "      log(\"receive (\", ");
     for (unsigned i = 0; i < numArgs; i++) {
       if (i == numArgs - 1) {
@@ -231,6 +237,7 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
       } else {
         fprintf(chpLibFp, "x%d, \",\", ", i);
       }
+    }
     }
     fprintf(chpLibFp, "%s", calc);
     fprintf(chpLibFp, "%s", outSend);

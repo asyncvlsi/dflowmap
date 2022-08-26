@@ -33,6 +33,7 @@
 
 int debug_verbose;
 bool invalidate_cache;
+bool quiet_mode;
 char *outputDir;
 char *cache_dir;
 char *cached_metrics;
@@ -40,12 +41,13 @@ char *custom_metrics;
 char *custom_fu_dir;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qv] [-p <procname>] [-m <metrics>] [-i] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
           " -p <process>: specify the top-level process; unexpanded process allowed\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
+  fprintf(stderr, " -q : quiet mode CHP output (no auto-generated log statements)\n");
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
   exit(1);
 }
@@ -240,8 +242,12 @@ int main(int argc, char **argv) {
   Act::Init(&argc, &argv);
   debug_verbose = 0;
   invalidate_cache = false;
+  quiet_mode = false;
   while ((ch = getopt(argc, argv, "vqm:p:i")) != -1) {
     switch (ch) {
+      case 'q': 
+        quiet_mode = true;
+        break;
       case 'p':
         if (procname) {
           FREE (procname);
