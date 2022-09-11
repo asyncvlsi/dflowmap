@@ -13,10 +13,6 @@ program into circuit backend description.
 
 ## Build instructions:
 
-* in `config.in`, specify which logic opimizer is available. If no optimizer is
-  available, leave it blank. If an open-source optimizer is available, specify
-  it as `expropt`. If a commercial optimizer is available, then add
-  `exproptcommercial` in a new line after `expropt`
 * to compile the tool, run `sh build.sh`, and the binary is located at
   `bin/dflowmap`
 * to install the tool, go into the `build` directory and type `make install`
