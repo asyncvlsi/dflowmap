@@ -55,6 +55,8 @@ void ProcGenerator::collectBitwidthInfo() {
   ActInstiter inst(p->CurScope());
   for (inst = inst.begin(); inst != inst.end(); inst++) {
     ValueIdx *vx = *inst;
+    if (TypeFactory::isParamType (vx->t)) continue;
+
     act_connection *c;
     const char *varName = vx->getName();
     auto tmp = ActId::parseId(vx->getName());
