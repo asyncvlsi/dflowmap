@@ -228,8 +228,8 @@ static Metrics *createMetrics(const char *metricFile,
   const char *act_home = getenv("ACT_HOME");
   const char *tech = getenv ("ACT_TECH");
   char *stdFUMetricsFP = new char[SHORT_STRING_LEN + strlen(act_home)];
-  sprintf(stdFUMetricsFP, "%s/conf/%s/dflow_stdlib.metrics",
-          act_home, tech);
+  sprintf(stdFUMetricsFP, "%s/conf/%s/dflow_%s.metrics",
+          act_home, tech, family);
   auto metrics = new Metrics(customFUMetricsFP,
                              stdFUMetricsFP,
                              statsFilePath);
