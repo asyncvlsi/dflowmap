@@ -279,7 +279,7 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
-  sprintf(instance, "copy<%u,%u>", bitwidth, numOut);
+  sprintf(instance, "lib::copy<%u,%u>", bitwidth, numOut);
   double *metric = getOpMetric(instance);
   if (!metric) {
     char *equivInstance = new char[1500];
@@ -290,10 +290,10 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
     unsigned equivBW = getEquivalentBW(bitwidth);
     if (debug_verbose) {
       printf(
-          "We are handling copy_%u_%u, and we are using mapping it to %d "
-          "copy_%u_2_\n", bitwidth, numOut, equivN, equivBW);
+          "We are handling copy<%u,%u>, and we are using mapping it to %d "
+          "copy<%u,2>\n", bitwidth, numOut, equivN, equivBW);
     }
-    sprintf(equivInstance, "copy<%u,2>", equivBW);
+    sprintf(equivInstance, "lib::copy<%u,2>", equivBW);
     double *equivMetric = getOpMetric(equivInstance);
     if (!equivMetric) {
       printf("Missing metrics for copy %s\n", equivInstance);
@@ -323,7 +323,7 @@ double *Metrics::getSinkMetric() {
     return NULL;
   }
   char *unitInstance = new char[1500];
-  sprintf(unitInstance, "sink_1_");
+  sprintf(unitInstance, "lib::sink<1>");
   double *metric = getOpMetric(unitInstance);
   if (!metric) {
     printf("We fail to find metric for the stdlib process %s!\n", unitInstance);
@@ -337,7 +337,7 @@ double *Metrics::getSourceMetric() {
     return NULL;
   }
   char *unitInstance = new char[8];
-  sprintf(unitInstance, "source1");
+  sprintf(unitInstance, "lib::source<1>");
   double *metric = getOpMetric(unitInstance);
   if (!metric) {
     printf("We fail to find metric for the stdlib process %s!\n", unitInstance);
@@ -352,7 +352,7 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
   }
 
   char *instance = new char[100];
-  sprintf(instance, "init%u", bitwidth);
+  sprintf(instance, "lib::init<%u>", bitwidth);
   double *metric = getOpMetric(instance);
   if (metric) {
     updateStatistics(instance, metric);

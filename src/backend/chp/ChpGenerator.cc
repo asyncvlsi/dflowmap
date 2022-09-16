@@ -97,7 +97,7 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
     char *prevInName = new char[strlen(finalOutput) + 7];
     sprintf(prevInName, "%s_bufIn", finalOutput);
     char *onebufInstance = new char[1024];
-    sprintf(onebufInstance, "onebuf<%u>", bw);
+    sprintf(onebufInstance, "lib::onebuf<%u>", bw);
     for (unsigned i = 0; i < nBuff - 1; i++) {
       char *chanName = new char[strlen(finalOutput) + 1024];
       sprintf(chanName, "%s_buf%u", finalOutput, i);
