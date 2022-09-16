@@ -107,7 +107,7 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
     }
     if (hasInitVal) {
       char *initProcName = new char[1024];
-      sprintf(initProcName, "init<%lu,%u>", initVal, bw);
+      sprintf(initProcName, "lib::init<%lu,%u>", initVal, bw);
       printInitChp(initProcName, prevInName, finalOutput);
     } else {
       printOneBuffChp(onebufInstance, prevInName, finalOutput);

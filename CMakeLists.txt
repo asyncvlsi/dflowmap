@@ -97,7 +97,14 @@ install(
 
 install(
         DIRECTORY dflow_std/
-        DESTINATION act/dflow_std
+        DESTINATION act/std/dflow
         COMPONENT Development
         FILES_MATCHING
-        PATTERN "dflow_stdlib.act")
+        PATTERN "lib.act")
+
+install(
+	DIRECTORY dflow_std/
+	DESTINATION conf/generic/
+	COMPONENT Development
+	FILES_MATCHING
+	PATTERN "dflow_stdlib.metrics")

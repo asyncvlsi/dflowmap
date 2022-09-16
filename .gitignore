@@ -36,7 +36,6 @@ lib/
 build/
 *.conf
 *.stat
-*.act
 config.in
 *_out/
 cmake-build-grace/

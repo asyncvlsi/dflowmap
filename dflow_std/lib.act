@@ -19,9 +19,11 @@
  * Boston, MA  02110-1301, USA.
  */
 
-namespace dflow_std {
+namespace std {
 
-export namespace dflow_stdlib {
+export namespace dflow {
+
+export namespace lib {
 
 export
 template<pint V, W>
@@ -182,6 +184,8 @@ defproc pipe_split(chan?(int<W1>)ctrl; chan?(int<W2>)in;
       log("send ", x)
     ]
   }
+}
+
 }
 
 }

@@ -39,13 +39,16 @@ char *cache_dir;
 char *cached_metrics;
 char *custom_metrics;
 char *custom_fu_dir;
+char *family;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-f <family>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
           " -p <process>: specify the top-level process; unexpanded process allowed\n");
+  fprintf (stderr,
+	  " -f <family> : specify circuit family for control (default: qdi)\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   fprintf(stderr, " -q : quiet mode CHP output (no auto-generated log statements)\n");
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
@@ -131,11 +134,11 @@ static void create_outfiles(char *&statsFilePath,
   fprintf(*chpLibfp, R"(import globals;
 import std;
 import std::cells;
-import dflow_std::dflow_stdlib;
+import std::dflow::lib;
 
 open std;
 open std::cells;
-open dflow_std::dflow_stdlib;
+open std::dflow;
 
 )");
   /* create configuration file */
@@ -169,13 +172,13 @@ open dflow_std::dflow_stdlib;
   fprintf(*netlistIncludeFp, R"(import globals;
 import std;
 import std::cells;
-import dflow_std::dflow_stdlib_refine;
+import std::dflow::%s;
 
 open std;
 open std::cells;
-open dflow_std::dflow_stdlib_refine;
+open std::dflow;
 
-)");
+)", family);
   fprintf(*netlistIncludeFp, "import \"%s_chplib.act\";\n", workload_name);
 
   /* generate netlist file */
@@ -222,11 +225,11 @@ static Metrics *createMetrics(const char *metricFile,
   } else {
     sprintf(customFUMetricsFP, "%s/customF/fu.metrics", outputDir);
   }
-  char *act_home = getenv("ACT_HOME");
+  const char *act_home = getenv("ACT_HOME");
+  const char *tech = getenv ("ACT_TECH");
   char *stdFUMetricsFP = new char[SHORT_STRING_LEN + strlen(act_home)];
-  sprintf(stdFUMetricsFP,
-          "%s/act/dflow_std/dflow_stdlib_refine.metrics",
-          act_home);
+  sprintf(stdFUMetricsFP, "%s/conf/%s/dflow_stdlib.metrics",
+          act_home, tech);
   auto metrics = new Metrics(customFUMetricsFP,
                              stdFUMetricsFP,
                              statsFilePath);
@@ -238,13 +241,20 @@ int main(int argc, char **argv) {
   int ch;
   char *mfile = nullptr;
   char *procname = nullptr;
+  family = Strdup ("qdi");
   /* initialize ACT library */
   Act::Init(&argc, &argv);
   debug_verbose = 0;
   invalidate_cache = false;
   quiet_mode = false;
-  while ((ch = getopt(argc, argv, "vqm:p:i")) != -1) {
+  while ((ch = getopt(argc, argv, "vqm:p:if:")) != -1) {
     switch (ch) {
+      case 'f':
+	if (family) {
+	  FREE (family);
+	}
+	family = Strdup (optarg);
+	break;
       case 'q': 
         quiet_mode = true;
         break;
@@ -320,11 +330,11 @@ int main(int argc, char **argv) {
   auto chpGenerator = new ChpGenerator(chpFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, chpFp, confFp);
 #if GEN_NETLIST
-  auto dflowNetGenerator = new DflowNetGenerator(netlistFp);
+  auto dflowNetGenerator = new DflowNetGenerator(netlistFp, family);
   auto dflowNetLibGenerator =
-      new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp);
+      new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp, family);
   auto dflowNetBackend =
-      new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator);
+      new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator, family);
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator, dflowNetBackend);
 #else
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator);
