@@ -36,51 +36,179 @@
 #include <act/expropt.h>
 #endif
 
+
+#define METRIC_LEAK_POWER 0
+#define METRIC_DYN_ENERGY 1
+#define METRIC_DELAY      2
+#define METRIC_AREA       3
+
+
+/*
+ * Model for metrics
+ */
+class MetricGen {
+
+private:
+  struct m_eqn {
+    double t_log, t_lin;
+  } m[4];
+  double t_const[4];
+
+  // reeturn metric given bit-width
+  double getEqn (int id, int bw) {
+    assert (0 <= id && id < 4);
+    struct m_eqn *x = &m[id];
+    double x_const = t_const[id];
+    int lg;
+
+    if (bw > 0) {
+      lg = ceil(log(bw)/log(2));
+      if (lg < 1) {
+	lg = 1;
+      }
+    }
+    else {
+      lg = 0;
+    }
+    
+    return x_const + x->t_log*lg + x->t_lin*bw;
+  }
+
+public:
+
+  MetricGen() {
+    for (int i=0; i < 4; i++) {
+      m[i].t_log = 0;
+      m[i].t_lin = 0;
+      t_const[i] = 0;
+    }
+  }
+
+  MetricGen (double *d) {
+    for (int i=0; i < 4; i++) {
+      t_const[i] = d[i];
+      m[i].t_log = 0;
+      m[i].t_lin = 0;
+    }
+  }
+
+  void populateDouble (double *d) {
+    for (int i=0; i < 4; i++) {
+      d[i] = t_const[i];
+    }
+  }
+
+  double *getConst () {
+    return t_const;
+  }
+     
+  bool operator==(MetricGen &x) {
+    for (int i=0; i < 4; i++) {
+      if (x.t_const[i] != t_const[i]) return false;
+      if (x.m[i].t_log != m[i].t_log) return false;
+      if (x.m[i].t_lin != m[i].t_lin) return false;
+    }
+    return true;
+  }
+	
+  bool readMetrics (FILE *fp) {
+    for (int i=0; i < 4; i++) {
+      if (fscanf (fp, "c=%lg,lg=%lg,li=%lg",
+		  &t_const[i], &m[i].t_log, &m[i].t_lin) != 3) {
+	if (fscanf (fp, "%lg", &t_const[i]) != 1) {
+	  return false;
+	}
+	else {
+	  m[i].t_log = 0;
+	  m[i].t_lin = 0;
+	}
+      }
+    }
+    return true;
+  }
+
+  bool readOneMetrics (int i, const char *s) {
+    assert (0 <= i && i < 4);
+    if (sscanf (s, "c=%lg,lg=%lg,li=%lg",
+		&t_const[i], &m[i].t_log, &m[i].t_lin) != 3) {
+      if (sscanf (s, "%lg", &t_const[i]) != 1) {
+	return false;
+      }
+      else {
+	m[i].t_log = 0;
+	m[i].t_lin = 0;
+      }
+    }
+    return true;
+  }
+
+  void writeMetrics (FILE *fp) {
+    for (int i=0; i < 4; i++) {
+      fprintf (fp, "c=%lg,lg=%lg,li=%lg",
+	       t_const[i], m[i].t_log, m[i].t_lin);
+      if (i != 3) {
+	fprintf (fp, " ");
+      }
+    }
+  }
+
+  char *metricToString (int i) {
+    char buf[1024];
+    assert (0 <= i && i < 4);
+    snprintf (buf, 1024, "c=%g,lg=%g,li=%g",
+	      t_const[i], m[i].t_log, m[i].t_lin);
+    return Strdup (buf);
+  }
+
+  double getEnergy (int bw) { return getEqn (METRIC_DYN_ENERGY, bw); }
+  double getLeak (int bw) { return getEqn (METRIC_LEAK_POWER, bw); }
+  double getArea (int bw) { return getEqn (METRIC_AREA, bw); }
+  double getDelay (int bw) { return getEqn (METRIC_DELAY, bw); }
+};
+      
 class Metrics {
  public:
   Metrics(const char *customFUMetricsFP,
           const char *stdFUMetricsFP,
           const char *statisticsFP);
 
-  void updateMetrics(const char *instance, double *metric);
+  void readMetricsFile();
 
-  void updateCachedMetrics(const char *instance, double *metric);
+private:
+  void updateMetrics(const char *instance, double *metric);
+  void updateTemplMetrics(const char *instance, MetricGen *metric);
+  double *calcMetric (const char *templ, int bitwidth);
+
+  void updateCachedMetrics(const char *instance,  double *metric);
 
   void updateCopyStatistics(unsigned bitwidth, unsigned numOutputs);
 
-  void updateStatistics(const char *instName, double metric[4]);
+  void updateStatistics(const char *instName, double *metric);
 
   void printOpMetrics();
-
-  double *getOpMetric(const char *instance);
-
-  double *getCachedMetric(const char *instance);
 
   int getInstanceCnt(const char *instance);
 
   double getInstanceArea(const char *instance);
 
-  void readMetricsFile();
-
   void writeLocalMetricFile(const char *instance, double *metric);
 
   void writeCachedMetricFile(const char *instance, double *metric);
 
-  void updateMergeMetrics(double metric[4]);
+  void updateMergeMetrics(double *metric);
 
-  void updateSplitMetrics(double metric[4]);
-
-  void dump();
+  void updateSplitMetrics(double *metric);
 
   static unsigned getEquivalentBW(unsigned oriBW);
 
-  double *getOrGenCopyMetric(unsigned bitwidth, unsigned numOut);
+  double *getOpMetric(const char *instance);
 
-  double *getSinkMetric();
+  // to be fixed!
+  double *getxOpMetric(const char *instance);
 
-  double *getOrGenInitMetric(unsigned bitwidth);
+  MetricGen *getTemplMetric (const char *instance);
 
-  double *getBuffMetric(unsigned nBuff, unsigned bw);
+  double *getCachedMetric(const char *instance);
 
   void callLogicOptimizer(
 #if LOGIC_OPTIMIZER
@@ -95,6 +223,10 @@ class Metrics {
 #endif
   );
 
+public:
+  
+  void dump();
+
   double *getOrGenFUMetric(
 #if LOGIC_OPTIMIZER
       StringMap<unsigned> &inBW,
@@ -106,7 +238,7 @@ class Metrics {
 #endif
       const char *instance);
 
-  double *getSourceMetric();
+  double *getSourceMetric(int bw);
 
   double *getOrGenMergeMetric(unsigned guardBW, unsigned inBW, unsigned numIn);
 
@@ -115,10 +247,20 @@ class Metrics {
   double *getArbiterMetric(unsigned numInputs, unsigned inBW, unsigned coutBW);
 
   double *getMixerMetric(unsigned numInputs,
-                         unsigned inBW,
-                         unsigned coutBW);
+			    unsigned inBW,
+			    unsigned coutBW);
 
+  double *getOrGenCopyMetric(unsigned bitwidth, unsigned numOut);
+
+  double *getSinkMetric(int bw);
+
+  double *getOrGenInitMetric(unsigned bitwidth);
+
+  double *getBuffMetric(unsigned nBuff, unsigned bw);
+
+  
   bool validMetrics() { return _have_metrics; }
+
 
  private:
 
@@ -126,8 +268,8 @@ class Metrics {
   
   /* operator, (leak power (nW), dyn energy (e-15J), delay (ps), area (um^2)) */
   Map<const char *, double *> opMetrics;
-
   Map<const char *, double *> cachedMetrics;
+  Map<const char *, MetricGen *> templMetrics;
 
   /* copy bitwidth,< # of output, # of instances of this COPY> */
   Map<unsigned, Map<unsigned, unsigned >> copyStatistics;
@@ -175,7 +317,7 @@ class Metrics {
 
   static double getDelay(double metric[4]);
 
-  void readMetricsFile(const char *metricsFP, bool forCache);
+  void readMetricsFile(const char *metricsFP, bool forCache, bool stdfile);
 };
 
 #endif //DFLOWMAP_METRICS_H

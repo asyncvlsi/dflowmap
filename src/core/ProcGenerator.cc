@@ -804,7 +804,7 @@ void ProcGenerator::createCopyProcs() {
 }
 
 void ProcGenerator::createSink(const char *name, unsigned bitwidth) {
-  double *metric = metrics->getSinkMetric();
+  double *metric = metrics->getSinkMetric(bitwidth);
   const char *instance = NameGenerator::genSinkInstName(bitwidth);
   chpBackend->printSink(
 #if GEN_NETLIST
@@ -819,7 +819,7 @@ void ProcGenerator::createSource(const char *outName,
                                  unsigned long val,
                                  unsigned bitwidth) {
   const char *instance = NameGenerator::genSourceInstName(val, bitwidth);
-  double *metric = metrics->getSourceMetric();
+  double *metric = metrics->getSourceMetric(bitwidth);
   chpBackend->printSource(
 #if GEN_NETLIST
       val,

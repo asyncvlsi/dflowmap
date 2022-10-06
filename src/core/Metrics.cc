@@ -43,6 +43,24 @@ void Metrics::updateMetrics(const char *instance, double *metric) {
   opMetrics.insert(std::make_pair(normInstance, metric));
 }
 
+void Metrics::updateTemplMetrics(const char *instance, MetricGen *metric) {
+  for (auto &opMetricsIt: templMetrics) {
+    if (!strcmp(opMetricsIt.first, instance)) {
+      if (debug_verbose) {
+        printf("We already have metric info for %s\n", instance);
+      }
+      MetricGen *oldMetric = opMetricsIt.second;
+      if (!(*oldMetric == *metric)) {
+        printf("We find different metric record for %s\n", instance);
+        exit(-1);
+      }
+      return;
+    }
+  }
+  templMetrics[instance] = metric;
+}
+
+
 void Metrics::updateCachedMetrics(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
   for (auto &cachedMetricsIt: cachedMetrics) {
@@ -92,6 +110,53 @@ double *Metrics::getOpMetric(const char *instance) {
   return nullptr;
 }
 
+MetricGen *Metrics::getTemplMetric(const char *instance) {
+  if (!_have_metrics) {
+    return NULL;
+  }
+  if (instance == nullptr) {
+    printf("Try to get metric for null instance!\n");
+    exit(-1);
+  }
+  if (debug_verbose) {
+    printf("get op metric for %s\n", instance);
+  }
+  for (auto &opMetricsIt: templMetrics) {
+    if (!strcmp(opMetricsIt.first, instance)) {
+      MetricGen *metric = opMetricsIt.second;
+      return metric;
+    }
+  }
+  if (debug_verbose) {
+    printf("We don't have metric info for `%s`\n", instance);
+  }
+  return nullptr;
+}
+
+double *Metrics::calcMetric (const char *instance, int bitwidth)
+{
+  MetricGen *mg = getTemplMetric (instance);
+  if (!mg) {
+    return nullptr;
+  }
+  double *metric = new double[4];
+  metric[METRIC_LEAK_POWER] = mg->getLeak (bitwidth);
+  metric[METRIC_DYN_ENERGY] = mg->getEnergy (bitwidth);
+  metric[METRIC_DELAY] =  mg->getDelay (bitwidth);
+  metric[METRIC_AREA] = mg->getArea (bitwidth);
+  return metric;
+}
+
+
+double *Metrics::getxOpMetric(const char *instance) {
+  MetricGen *mg = getTemplMetric (instance);
+  if (mg) {
+    return mg->getConst();
+  }
+  return nullptr;
+}
+
+
 double *Metrics::getCachedMetric(const char *instance) {
   if (!_have_metrics) {
     return NULL;
@@ -134,7 +199,7 @@ double Metrics::getLP(double metric[4]) {
     printf("Try to extract LP for null metric!\n");
     exit(-1);
   }
-  return metric[0];
+  return metric[METRIC_LEAK_POWER];
 }
 
 double Metrics::getEnergy(double metric[4]) {
@@ -142,7 +207,7 @@ double Metrics::getEnergy(double metric[4]) {
     printf("Try to extract energy for null metric!\n");
     exit(-1);
   }
-  return metric[1];
+  return metric[METRIC_DYN_ENERGY];
 }
 
 double Metrics::getDelay(double metric[4]) {
@@ -150,7 +215,7 @@ double Metrics::getDelay(double metric[4]) {
     printf("Try to extract delay for null metric!\n");
     exit(-1);
   }
-  return metric[2];
+  return metric[METRIC_DELAY];
 }
 
 double Metrics::getArea(double metric[4]) {
@@ -158,7 +223,7 @@ double Metrics::getArea(double metric[4]) {
     printf("Try to extract area for null metric!\n");
     exit(-1);
   }
-  return metric[3];
+  return metric[METRIC_AREA];
 }
 
 void Metrics::printOpMetrics() {
@@ -187,7 +252,7 @@ void Metrics::writeCachedMetricFile(const char *instance, double *metric) {
   metricFp.close();
 }
 
-void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
+void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile) {
   if (debug_verbose) {
     printf("Read metric file: %s\n", metricsFP);
   }
@@ -205,6 +270,7 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
     char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;
     auto metric = new double[4];
+    MetricGen *mg = new MetricGen;
     bool emptyLine = true;
     do {
       std::string numStr;
@@ -213,7 +279,14 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
       if (!numStr.empty()) {
         emptyLine = false;
         if (metricCount >= 0) {
-          metric[metricCount] = std::strtod(numStr.c_str(), nullptr);
+	  if (stdfile) {
+	    if (!mg->readOneMetrics (metricCount, numStr.c_str())) {
+	      warning ("%s: error reading metric %d", instance, metricCount);
+	    }
+	  }
+	  else {
+	    metric[metricCount] = std::strtod(numStr.c_str(), nullptr);
+	  }
         } else {
           sprintf(instance, "%s", numStr.c_str());
         }
@@ -224,19 +297,31 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache) {
       printf("%s has %d metrics!\n", metricsFP, metricCount);
       exit(-1);
     }
-    if (emptyLine) continue;
+    if (emptyLine) {
+      delete mg;
+      delete [] metric;
+      continue;
+    }
     if (forCache) {
       updateCachedMetrics(instance, metric);
+      delete mg;
     } else {
-      updateMetrics(instance, metric);
+      if (stdfile) {
+	delete [] metric;
+	updateTemplMetrics (instance, mg);
+      }
+      else {
+	updateMetrics(instance, metric);
+	delete mg;
+      }
     }
   }
 }
 
 void Metrics::readMetricsFile() {
-  readMetricsFile(std_metrics, false);
-  readMetricsFile(custom_metrics, false);
-  readMetricsFile(cached_metrics, true);
+  readMetricsFile(std_metrics, false, true);
+  readMetricsFile(custom_metrics, false, false);
+  readMetricsFile(cached_metrics, true, false);
 }
 
 Metrics::Metrics(const char *customFUMetricsFP,
@@ -276,38 +361,28 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   if (!_have_metrics) {
     return NULL;
   }
-  
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
   sprintf(instance, "lib::copy<%u,%u>", bitwidth, numOut);
   double *metric = getOpMetric(instance);
   if (!metric) {
     char *equivInstance = new char[1500];
-    int equivN = int(ceil(log2(numOut))) - 1;
-    if (equivN < 1) {
-      equivN = 1;
+    /*
+      COPY implemented as a tree of 2-way copies
+    */
+    sprintf(equivInstance, "lib::copy<%u,2>", bitwidth);
+    metric = getOpMetric (equivInstance);
+    if (!metric) {
+      metric = calcMetric ("lib::copy<1,2>", bitwidth);
+      if (!metric) {
+	printf("Missing metrics for copy %s\n", equivInstance);
+	exit(-1);
+      }
     }
-    unsigned equivBW = getEquivalentBW(bitwidth);
-    if (debug_verbose) {
-      printf(
-          "We are handling copy<%u,%u>, and we are using mapping it to %d "
-          "copy<%u,2>\n", bitwidth, numOut, equivN, equivBW);
-    }
-    sprintf(equivInstance, "lib::copy<%u,2>", equivBW);
-    double *equivMetric = getOpMetric(equivInstance);
-    if (!equivMetric) {
-      printf("Missing metrics for copy %s\n", equivInstance);
-      exit(-1);
-    }
-    if (equivN == 1) {
-      metric = equivMetric;
-    } else {
-      metric = new double[4];
-      metric[0] = equivN * equivMetric[0];
-      metric[1] = equivN * equivMetric[1];
-      metric[2] = equivN * equivMetric[2];
-      metric[3] = equivN * equivMetric[3];
-    }
+    metric[METRIC_LEAK_POWER] *= (numOut-1);
+    metric[METRIC_DYN_ENERGY] *= (numOut-1);
+    metric[METRIC_DELAY] *= ceil(log(numOut)/log(2));
+    metric[METRIC_AREA] *= (numOut-1);
     updateMetrics(instance, metric);
     writeLocalMetricFile(instance, metric);
     writeCachedMetricFile(instance, metric);
@@ -318,31 +393,46 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   return metric;
 }
 
-double *Metrics::getSinkMetric() {
+double *Metrics::getSinkMetric(int bw) {
   if (!_have_metrics) {
     return NULL;
   }
-  char *unitInstance = new char[1500];
-  sprintf(unitInstance, "lib::sink<1>");
-  double *metric = getOpMetric(unitInstance);
+  char *instance = new char[100];
+  sprintf (instance, "lib::sink<%d>", bw);
+  double *metric = getOpMetric (instance);
+  if (metric) {
+    updateStatistics (instance, metric);
+    return metric;
+  }
+
+  metric = calcMetric ("lib::sink<1>", bw);
   if (!metric) {
-    printf("We fail to find metric for the stdlib process %s!\n", unitInstance);
+    printf("We fail to find metric for the stdlib process lib::sink!\n");
     exit(-1);
   }
+
+  updateStatistics(instance, metric);
   return metric;
 }
 
-double *Metrics::getSourceMetric() {
+double *Metrics::getSourceMetric(int bw) {
   if (!_have_metrics) {
     return NULL;
   }
-  char *unitInstance = new char[8];
-  sprintf(unitInstance, "lib::source<1>");
-  double *metric = getOpMetric(unitInstance);
+  char *instance = new char[64];
+  sprintf (instance, "lib::source<%d>", bw);
+
+  double *metric = getOpMetric (instance);
   if (!metric) {
-    printf("We fail to find metric for the stdlib process %s!\n", unitInstance);
-    exit(-1);
+    metric = calcMetric ("lib::source<1>", bw);
+    if (!metric) {
+      printf("We fail to find metric for the stdlib process lib::source!\n");
+      exit(-1);
+    }
   }
+
+  updateStatistics(instance, metric);
+  
   return metric;
 }
 
@@ -354,9 +444,14 @@ double *Metrics::getOrGenInitMetric(unsigned int bitwidth) {
   char *instance = new char[100];
   sprintf(instance, "lib::init<%u>", bitwidth);
   double *metric = getOpMetric(instance);
-  if (metric) {
-    updateStatistics(instance, metric);
+  if (!metric) {
+    metric = calcMetric ("lib::init<1>", bitwidth);
+    if (!metric) {
+      fatal_error ("Failed to find metric for lib::init");
+    }
   }
+  updateStatistics(instance, metric);
+
   return metric;
 }
 
@@ -365,18 +460,25 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
     return NULL;
   }
   char *instance = new char[100];
-  sprintf(instance, "latch1");
-  double *uniMetric = getOpMetric(instance);
   double *metric = nullptr;
-  if (uniMetric) {
-    metric = new double[4];
-    metric[0] = nBuff * uniMetric[0]; // leakage
-    metric[1] = nBuff * uniMetric[1]; // energy
-    metric[2] =  uniMetric[2];        // delay
-    metric[3] = nBuff * uniMetric[3]; // area
-    updateStatistics(instance, metric);
+
+  sprintf (instance, "lib::onebuf<%d>", bw);
+  metric = getOpMetric (instance);
+  if (!metric) {
+    metric = calcMetric ("lib::onebuf<1>", bw);
+    if (!metric) {
+      return nullptr;
+    }
   }
-  return metric;
+
+  double *actual = new double[4];
+  for (int i=0; i < 4; i++) {
+    actual[i] = nBuff * metric[i];
+  }
+  
+  updateStatistics (instance, actual);
+  
+  return actual;
 }
 
 void Metrics::callLogicOptimizer(
@@ -580,17 +682,23 @@ void Metrics::callLogicOptimizer(
   }
   else {
     leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
-    energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J
+    energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J (fJ)
     delay = info->delay_typ * 1e12; // Delay (ps)
     area = info->area * 1e12;  // AREA (um^2)
   }
+
+
+  /* XXX:
+
+     check model here
+  */
   
   /* adjust perf number by adding latch, etc. */
-  double *latchMetric = getOpMetric("latch1");
-  double *ebufMetric = getOpMetric("10ebuf");
-  double *pulseGenMetric = getOpMetric("pulseGen");
-  double *twoToOneMetric = getOpMetric("twoToOne");
-  double *hornMetric = getOpMetric("horn2");
+  double *latchMetric = getxOpMetric("latch1");
+  double *ebufMetric = getxOpMetric("10ebuf");
+  double *pulseGenMetric = getxOpMetric("pulseGen");
+  double *twoToOneMetric = getxOpMetric("twoToOne");
+  double *hornMetric = getxOpMetric("horn2");
   if (!latchMetric || !ebufMetric || !pulseGenMetric || !twoToOneMetric
       || !hornMetric) {
     printf("No metric for the bundled-data control circuit!\n");
@@ -673,113 +781,30 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
   if (!_have_metrics) {
     return NULL;
   }
-  
+
   char *procName = new char[MAX_INSTANCE_LEN];
+  
   const char *instance =
       NameGenerator::genMergeInstName(guardBW, inBW, numIn, procName);
   double *metric = getOpMetric(instance);
-  unsigned equivBW = getEquivalentBW(inBW);
-  const char *equivInstance =
-      NameGenerator::genMergeInstName(guardBW, equivBW, numIn, procName);
+
   if (!metric) {
-    if (equivBW != inBW) {
-      metric = getOpMetric(equivInstance);
-    }
+    const char *equivInstance =
+      NameGenerator::genMergeInstName(guardBW, inBW, (1 << guardBW), procName);
+    metric = getOpMetric (equivInstance);
+
     if (!metric) {
-      double *mergeCtrlMetric = getOpMetric("mergeControl");
-      double *muxMetric = getOpMetric("mux1");
-      double *decodeMetric = getOpMetric("decodeTwoToFour");
-      double mergeCtrlLP = getLP(mergeCtrlMetric);
-      double mergeCtrlEnergy = getEnergy(mergeCtrlMetric);
-      double mergeCtrlDelay = getDelay(mergeCtrlMetric);
-      double mergeCtrlArea = getArea(mergeCtrlMetric);
-      double muxLP = getLP(muxMetric);
-      double muxEnergy = getEnergy(muxMetric);
-      double muxArea = getArea(muxMetric);
-      double decodeLP = getLP(decodeMetric);
-      double decodeEnergy = getEnergy(decodeMetric);
-      double decodeDelay = getDelay(decodeMetric);
-      double decodeArea = getArea(decodeMetric);
-      double lp;
-      double energy;
-      double delay;
-      double area;
-      if (PIPELINE) {
-        double *latchMetric = getOpMetric("latch1");
-        double *hornMetric = getOpMetric("horn2");
-        double *pulseGenMetric = getOpMetric("pulseGen");
-        if (!latchMetric || !hornMetric || !pulseGenMetric || !decodeMetric
-            || !mergeCtrlMetric || !muxMetric) {
-          printf("No enough info to calculate metric for (%s, %s)!\n",
-                 equivInstance, instance);
-          exit(-1);
-        }
-        double latchLP = getLP(latchMetric);
-        double latchEnergy = getEnergy(latchMetric);
-        double latchArea = getArea(latchMetric);
-        double hornLP = getLP(hornMetric);
-        double hornEnergy = getEnergy(hornMetric);
-        double hornDelay = getDelay(hornMetric);
-        double hornArea = getArea(hornMetric);
-        double pulseGenLP = getLP(pulseGenMetric);
-        double pulseGenEnergy = getEnergy(pulseGenMetric);
-        double pulseGenDelay = getDelay(pulseGenMetric);
-        double pulseGenArea = getArea(pulseGenMetric);
-        double pulseLP;
-        double pulseEnergy;
-        double pulseDelay;
-        double pulseArea;
-        if (inBW < 32) {
-          pulseLP = pulseGenLP;
-          pulseEnergy = pulseGenEnergy;
-          pulseDelay = pulseGenDelay;
-          pulseArea = pulseGenArea;
-        } else {
-          pulseLP = pulseGenLP + hornLP;
-          pulseEnergy = pulseGenEnergy + hornEnergy;
-          pulseDelay = pulseGenDelay + hornDelay;
-          pulseArea = pulseGenArea + hornArea;
-        }
-        if (debug_verbose) {
-          printf("For %s, mergeCtrlArea: %f, latchArea: %f, decodeArea: %f, "
-                 "pulseArea: %f, muxArea: %f\n",
-                 instance,
-                 mergeCtrlArea,
-                 latchArea,
-                 decodeArea,
-                 pulseArea,
-                 muxArea);
-        }
-        lp = mergeCtrlLP + latchLP * guardBW + decodeLP
-            + numIn * (pulseLP + inBW * muxLP / 2) + inBW * latchLP;
-        energy = mergeCtrlEnergy + latchEnergy * guardBW + decodeEnergy
-            + pulseEnergy + inBW * muxEnergy / 2 + inBW * latchEnergy;
-        delay = mergeCtrlDelay + decodeDelay + pulseDelay;
-        area = mergeCtrlArea + latchArea * guardBW + decodeArea
-            + numIn * (pulseArea + inBW * muxArea / 2) + inBW * latchArea;
-      } else {
-        if (!decodeMetric || !mergeCtrlMetric || !muxMetric) {
-          printf("No enough info to calculate metric for (%s, %s)!\n",
-                 equivInstance, instance);
-          exit(-1);
-        }
-        if (debug_verbose) {
-          printf("For %s, mergeCtrlArea: %f, decodeArea: %f, muxArea: %f\n",
-                 instance,
-                 mergeCtrlArea,
-                 decodeArea,
-                 muxArea);
-        }
-        lp = mergeCtrlLP + decodeLP + numIn * (inBW * muxLP / 2);
-        energy = mergeCtrlEnergy + decodeEnergy + inBW * muxEnergy / 2;
-        delay = mergeCtrlDelay + decodeDelay;
-        area = mergeCtrlArea + decodeArea + numIn * (inBW * muxArea / 2);
+      const char *basicInstance =
+	NameGenerator::genMergeInstName(guardBW, 1, (1 << guardBW), procName);
+
+      metric = calcMetric (basicInstance, inBW);
+
+      if (!metric) {
+	printf("No enough info to calculate metric for %s or %s!\n",
+	       equivInstance, instance);
+	exit(-1);
       }
-      metric = new double[4];
-      metric[0] = lp;
-      metric[1] = energy;
-      metric[2] = delay;
-      metric[3] = area;
+
       updateMetrics(instance, metric);
       writeLocalMetricFile(instance, metric);
       writeCachedMetricFile(instance, metric);
@@ -802,46 +827,21 @@ double *Metrics::getOrGenSplitMetric(unsigned guardBW,
       NameGenerator::genSplitInstName(guardBW, inBW, numOut, procName);
   double *metric = getOpMetric(instance);
   if (!metric) {
-    unsigned equivBW = getEquivalentBW(inBW);
     const char *equivInstance =
-        NameGenerator::genSplitInstName(guardBW, equivBW, numOut, procName);
+      NameGenerator::genSplitInstName(guardBW, inBW, (1 << guardBW), procName);
     metric = getOpMetric(equivInstance);
     if (!metric) {
       const char *basicInstance =
-          NameGenerator::genSplitInstName(1, equivBW, 2, procName);
-      double *basicMetric = getOpMetric(basicInstance);
-      double *decodeMetric = getOpMetric("decodeTwoToFour");
-      double *invMetric = getOpMetric("inv1");
-      if (!basicMetric || !decodeMetric || !invMetric) {
-        printf("No enough info to calculate metric for (%s, %s)!\n",
+	NameGenerator::genSplitInstName(guardBW, 1, (1 << guardBW), procName);
+
+      metric = calcMetric (basicInstance, inBW);
+      
+      if (!metric) {
+        printf("No enough info to calculate metric for %s or %s!\n",
                equivInstance, instance);
         exit(-1);
       }
-      double basicLP = getLP(basicMetric);
-      double basicEnergy = getEnergy(basicMetric);
-      double basicDelay = getDelay(basicMetric);
-      double basicArea = getArea(basicMetric);
-      double decodeLP = getLP(decodeMetric);
-      double decodeEnergy = getEnergy(decodeMetric);
-      double decodeDelay = getDelay(decodeMetric);
-      double decodeArea = getArea(decodeMetric);
-      double invLP = getLP(invMetric);
-      double invEnergy = getEnergy(invMetric);
-      double invDelay = getDelay(invMetric);
-      double invArea = getArea(invMetric);
-      double lp = basicLP + decodeLP + ceil((double) numOut / 2) * invLP;
-      double energy =
-          basicEnergy + decodeEnergy + +ceil((double) numOut / 2) * invEnergy;
-      double
-          delay =
-          basicDelay + decodeDelay + ceil((double) numOut / 2) * invDelay;
-      double
-          area = basicArea + decodeArea + ceil((double) numOut / 2) * invArea;
-      metric = new double[4];
-      metric[0] = lp;
-      metric[1] = energy;
-      metric[2] = delay;
-      metric[3] = area;
+
       updateMetrics(instance, metric);
       writeLocalMetricFile(instance, metric);
       writeCachedMetricFile(instance, metric);
