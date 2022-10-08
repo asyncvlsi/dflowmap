@@ -143,6 +143,10 @@ class ChpBackend {
   ChpLibGenerator *chpLibGenerator;
 #if GEN_NETLIST
   DflowNetBackend *dflowNetBackend;
+  
+  // pulse width and capture delay parameters
+  int PW, CD;
+  int PD_SPLIT, PD_MERGE; // pass delay 
 #endif
 };
 

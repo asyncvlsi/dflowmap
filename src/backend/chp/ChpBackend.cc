@@ -28,6 +28,14 @@ ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
   this->chpGenerator = chpGenerator;
   this->chpLibGenerator = chpLibGenerator;
   this->dflowNetBackend = dflowNetBackend;
+
+  /* 
+   * This needs to be initialized based on the process technology
+   */
+  PW = 4;
+  CD = 2;
+  PD_SPLIT = 1;
+  PD_MERGE = 2;
 }
 #else
 ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
@@ -47,7 +55,7 @@ void ChpBackend::printCopyProcs(double *metric,
   chpGenerator->printCopyChp(instance, inName);
   chpLibGenerator->printCopyChpLib(instance, metric, numOut);
 #if GEN_NETLIST
-  dflowNetBackend->printCopyNetlist(inName, bw, numOut, 1, 1);
+  dflowNetBackend->printCopyNetlist(inName, bw, numOut, CD, PW);
 #endif
 }
 
@@ -69,7 +77,7 @@ void ChpBackend::printBuff(Vector<BuffInfo> &buffInfos) {
   chpGenerator->printBuffChp(buffInfos);
   chpLibGenerator->printBuffChpLib(buffInfos);
 #if GEN_NETLIST
-  dflowNetBackend->printBuffNetlist(buffInfos, 1, 1);
+  dflowNetBackend->printBuffNetlist(buffInfos, CD, PW);
 #endif
 }
 
@@ -154,8 +162,8 @@ void ChpBackend::printFU(
                                   fuInstName,
                                   argBWList,
                                   outBWList,
-                                  1,
-                                  1,
+                                  CD, 
+                                  PW,
 				  delay_units);
 #endif
 }
@@ -181,10 +189,10 @@ void ChpBackend::printSplit(double *metric,
 #if GEN_NETLIST
   unsigned ADDR = 1;
 #if PIPELINE
-  unsigned C_CD = 1;
-  unsigned C_PW = 1;
-  unsigned D_CD = 1;
-  unsigned D_PW = 1;
+  unsigned C_CD = CD;
+  unsigned C_PW = PW;
+  unsigned D_CD = CD;
+  unsigned D_PW = PW;
   dflowNetBackend->printPipeSplitNetlist(splitName,
                                          C_CD,
                                          C_PW,
@@ -195,10 +203,9 @@ void ChpBackend::printSplit(double *metric,
                                          guardBW,
                                          dataBW);
 #else
-  unsigned PD = 1;
   dflowNetBackend->printUnpipeSplitNetlist(splitName,
                                            ADDR,
-                                           PD,
+                                           PD_SPLIT,
                                            numOutputs,
                                            guardBW,
                                            dataBW);
@@ -225,9 +232,8 @@ void ChpBackend::printMerge(double *metric,
   size_t numInputs = inNameVec.size();
   unsigned ADDR = 1;
 #if PIPELINE
-  unsigned C_CD = 1;
-  unsigned D_CD = 1;
-  unsigned PW = 1;
+  unsigned C_CD = CD;
+  unsigned D_CD = CD;
   unsigned SEL = 1;
   dflowNetBackend->printPipeMergeNetlist(outName,
                                          C_CD,
@@ -239,10 +245,9 @@ void ChpBackend::printMerge(double *metric,
                                          guardBW,
                                          dataBW);
 #else
-  unsigned PD = 1;
   dflowNetBackend->printUnpipeMergeNetlist(outName,
                                            ADDR,
-                                           PD,
+                                           PD_MERGE,
                                            numInputs,
                                            guardBW,
                                            dataBW);
@@ -269,8 +274,8 @@ void ChpBackend::printMixer(double *metric,
   size_t numInputs = inNameVec.size();
   unsigned ADDR = 1;
 #if PIPELINE
-  unsigned D_CD = 1;
-  unsigned D_PW = 1;
+  unsigned D_CD = CD;
+  unsigned D_PW = PW;
   dflowNetBackend->printPipeMixerNetlist(outName,
                                          ADDR,
                                          D_CD,
