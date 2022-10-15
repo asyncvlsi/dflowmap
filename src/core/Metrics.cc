@@ -265,7 +265,9 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile
     return;
   }
   std::string line;
+  int lineno = 0;
   while (std::getline(metricFp, line)) {
+    lineno++;
     std::istringstream iss(line);
     char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;
@@ -275,13 +277,13 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile
     do {
       std::string numStr;
       iss >> numStr;
-      if (numStr.rfind("###", 0) == 0) break;
+      if (numStr.find("#", 0) == 0) break;
       if (!numStr.empty()) {
         emptyLine = false;
         if (metricCount >= 0) {
 	  if (stdfile) {
 	    if (!mg->readOneMetrics (metricCount, numStr.c_str())) {
-	      warning ("%s: error reading metric %d", instance, metricCount);
+	      warning ("%s: error reading metric %d (line %d)", instance, metricCount, lineno);
 	    }
 	  }
 	  else {
@@ -294,7 +296,7 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile
       }
     } while (iss);
     if (!emptyLine && (metricCount != 4)) {
-      printf("%s has %d metrics!\n", metricsFP, metricCount);
+      printf("%s has %d metrics! (%d)\n", metricsFP, metricCount, lineno);
       exit(-1);
     }
     if (emptyLine) {
@@ -512,18 +514,10 @@ void Metrics::callLogicOptimizer(
   list_t *in_expr_list = list_new();
   iHashtable *in_expr_map = ihash_new(0);
   iHashtable *in_width_map = ihash_new(0);
-  unsigned totalInBW = 0;
-  unsigned lowBWInPorts = 0;
-  unsigned highBWInPorts = 0;
+
   for (auto &inBWIt: inBW) {
     String inName = inBWIt.first;
     unsigned bw = inBWIt.second;
-    totalInBW += bw;
-    if (bw >= 32) {
-      highBWInPorts++;
-    } else {
-      lowBWInPorts++;
-    }
     char *inChar = new char[strlen(inName.c_str()) + 1];
     sprintf(inChar, "%s", inName.c_str());
     if (debug_verbose) {
@@ -687,47 +681,45 @@ void Metrics::callLogicOptimizer(
     area = info->area * 1e12;  // AREA (um^2)
   }
 
+  
 
   /* XXX:
 
      check model here
   */
-  
-  /* adjust perf number by adding latch, etc. */
-  double *latchMetric = getxOpMetric("latch1");
-  double *ebufMetric = getxOpMetric("10ebuf");
-  double *pulseGenMetric = getxOpMetric("pulseGen");
-  double *twoToOneMetric = getxOpMetric("twoToOne");
-  double *hornMetric = getxOpMetric("horn2");
-  if (!latchMetric || !ebufMetric || !pulseGenMetric || !twoToOneMetric
-      || !hornMetric) {
-    printf("No metric for the bundled-data control circuit!\n");
-    exit(-1);
+  int n_inputs = inBW.size();
+  double avg_bw = 0;
+
+  for (auto &inBWIt: inBW) {
+    avg_bw += inBWIt.second;
   }
-  double latchLP = getLP(latchMetric);
-  double latchEnergy = getEnergy(latchMetric);
-  double latchDelay = getDelay(latchMetric);
-  double latchArea = getArea(latchMetric);
-  double ebufLP = getLP(ebufMetric);
-  double ebufEnergy = getEnergy(ebufMetric);
-  double ebufDelay = getDelay(ebufMetric);
-  double ebufArea = getArea(ebufMetric);
-  double pulseGenLP = getLP(pulseGenMetric);
-  double pulseGenEnergy = getEnergy(pulseGenMetric);
-  double pulseGenArea = getArea(pulseGenMetric);
-  double twoToOneDelay = getDelay(twoToOneMetric);
-  double hornLP = getLP(hornMetric);
-  double hornEnergy = getEnergy(hornMetric);
-  double hornArea = getArea(hornMetric);
-  area = area + totalInBW * latchArea + lowBWInPorts * pulseGenArea
-      + highBWInPorts * (pulseGenArea + hornArea)
-      + delay / ebufDelay * ebufArea;
-  leakpower = leakpower + totalInBW * latchLP + lowBWInPorts * pulseGenLP
-      + highBWInPorts * (pulseGenLP + hornLP) + delay / ebufDelay * ebufLP;
-  energy = energy + totalInBW * latchEnergy + lowBWInPorts * pulseGenEnergy
-      + highBWInPorts * (pulseGenEnergy + hornEnergy)
-      + delay / ebufDelay * ebufEnergy;
-  delay = delay + twoToOneDelay + latchDelay;
+  avg_bw /= n_inputs;
+
+  char *procname = new char[MAX_INSTANCE_LEN];
+  snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,%d>",
+	    n_inputs, (int)avg_bw );
+
+  double *ctrlmetric = getOpMetric (procname);
+
+  if (!ctrlmetric) {
+    snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,1>", n_inputs);
+    ctrlmetric = calcMetric (procname, (int)avg_bw);
+
+    if (!ctrlmetric) {
+      warning ("Update calibration to include %d-input functions", n_inputs);
+      snprintf (procname, MAX_INSTANCE_LEN, "lib::func<8,1,1>");
+      ctrlmetric = calcMetric (procname, (int)avg_bw);
+
+      if (!ctrlmetric) {
+	fatal_error ("Missing 8-input function!");
+      }
+    }
+  }
+
+  area = area + ctrlmetric[METRIC_AREA];
+  leakpower = leakpower + ctrlmetric[METRIC_LEAK_POWER];
+  energy = energy + ctrlmetric[METRIC_DYN_ENERGY];
+  delay = delay + ctrlmetric[METRIC_DELAY];
   /* get the final metric */
   metric = new double[4];
   metric[0] = leakpower;
