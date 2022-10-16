@@ -634,11 +634,13 @@ void Metrics::callLogicOptimizer(
   expr_mapping_software software = yosys;
   if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
   bool tie_cells = false;
-  char *act_home = getenv("ACT_HOME");
-  char* stdcell_path = new char[strlen(act_home) + 128];
-  sprintf(stdcell_path, "%s/act/std/cells.act", act_home);
-  config_set_string("expropt.act_cell_lib_bd", stdcell_path);
-  config_set_string("expropt.act_cell_lib_bd_namespace", "std::cells");
+
+  // This should be set in the expropt config file
+  //char *act_home = getenv("ACT_HOME");
+  //char* stdcell_path = new char[strlen(act_home) + 128];
+  //sprintf(stdcell_path, "%s/act/std/cells.act", act_home);
+  //config_set_string("expropt.act_cell_lib_bd", stdcell_path);
+  //config_set_string("expropt.act_cell_lib_bd_namespace", "std::cells");
   auto optimizer =
       new ExternalExprOpt(software, bd, tie_cells, optimized_netlist_file);
   ExprBlockInfo *info = optimizer->run_external_opt(rtlModuleName,
