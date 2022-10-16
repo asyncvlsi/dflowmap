@@ -27,6 +27,7 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <assert.h>
 #include <act/act.h>
 #include "src/common/common.h"
 #include "src/common/Helper.h"
