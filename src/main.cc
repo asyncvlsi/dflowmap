@@ -40,15 +40,18 @@ char *cached_metrics;
 char *custom_metrics;
 char *custom_fu_dir;
 char *family;
+char *chan_type;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-f <family>] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
           " -p <process>: specify the top-level process; unexpanded process allowed\n");
   fprintf (stderr,
 	  " -f <family> : specify circuit family for control (default: qdi)\n");
+  fprintf (stderr,
+	  " -c <chan>   : specify the templated channel type used for the circuit (default: bd)\n");
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   fprintf(stderr, " -q : quiet mode CHP output (no auto-generated log statements)\n");
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
@@ -242,18 +245,25 @@ int main(int argc, char **argv) {
   char *mfile = nullptr;
   char *procname = nullptr;
   family = Strdup ("qdi");
+  chan_type = Strdup ("bd");
   /* initialize ACT library */
   Act::Init(&argc, &argv);
   debug_verbose = 0;
   invalidate_cache = false;
   quiet_mode = false;
-  while ((ch = getopt(argc, argv, "vqm:p:if:")) != -1) {
+  while ((ch = getopt(argc, argv, "vqm:p:if:c:")) != -1) {
     switch (ch) {
       case 'f':
 	if (family) {
 	  FREE (family);
 	}
 	family = Strdup (optarg);
+	break;
+      case 'c':
+	if (chan_type) {
+	  FREE (chan_type);
+	}
+	chan_type = Strdup (optarg);
 	break;
       case 'q': 
         quiet_mode = true;
@@ -330,11 +340,11 @@ int main(int argc, char **argv) {
   auto chpGenerator = new ChpGenerator(chpFp);
   auto chpLibGenerator = new ChpLibGenerator(chpLibFp, chpFp, confFp);
 #if GEN_NETLIST
-  auto dflowNetGenerator = new DflowNetGenerator(netlistFp, family);
+  auto dflowNetGenerator = new DflowNetGenerator(netlistFp, family, chan_type);
   auto dflowNetLibGenerator =
-      new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp, family);
+    new DflowNetLibGenerator(netlistLibFp, netlistIncludeFp, family, chan_type);
   auto dflowNetBackend =
-      new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator, family);
+    new DflowNetBackend(dflowNetGenerator, dflowNetLibGenerator, family);
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator, dflowNetBackend);
 #else
   auto backend = new ChpBackend(chpGenerator, chpLibGenerator);
