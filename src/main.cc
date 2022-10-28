@@ -137,13 +137,13 @@ static void create_outfiles(char *&statsFilePath,
   fprintf(*chpLibfp, R"(import globals;
 import std;
 import std::cells;
-import std::dflow::lib;
+import %s; 
 
 open std;
 open std::cells;
 open std::dflow;
 
-)");
+)", quiet_mode ? "\"std/dflow/libq.act\"" : "std::dflow::lib");
   /* create configuration file */
   char *conf_file = new char[outputPathLen + workloadNameLen + 16];
   sprintf(conf_file, "%s/%s.conf", outputDir, workload_name);

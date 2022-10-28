@@ -100,4 +100,4 @@ install(
         DESTINATION act/std/dflow
         COMPONENT Development
         FILES_MATCHING
-        PATTERN "lib.act")
+        PATTERN "lib*.act")
