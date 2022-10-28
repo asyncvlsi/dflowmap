@@ -20,6 +20,7 @@
  */
 
 #include "ChpLibGenerator.h"
+#include <assert.h>
 
 ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp, FILE *chpFp,
                                  FILE *confFp) {
@@ -162,7 +163,7 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
   strcat(log, subLog);
   }
   else {
-  sprintf (log, "");
+  log[0] = '\0';
   }
   strcat(outSend, log);
   printFUChpLib(procName,
@@ -246,34 +247,57 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
   printConf(metric, instance, numOuts, LOGIC_OPTIMIZER);
 }
 
+static char *_add_ns (const char *s)
+{
+  char *tmp;
+  tmp = (char *) malloc (strlen (s) + 13);
+  assert (tmp);
+  sprintf (tmp, "std::dflow::%s", s);
+  return tmp;
+}
+
 void ChpLibGenerator::printMergeChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printSplitChpLib(const char *instance,
                                        double *metric,
                                        unsigned numOutputs) {
-  printConf(metric, instance, numOutputs, LOGIC_OPTIMIZER);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp, numOutputs, LOGIC_OPTIMIZER);
+  free (tmp);
 }
 
 void ChpLibGenerator::printArbiterChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printMixerChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printSourceChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printInitChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printOneBuffChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printBuffChpLib(Vector<BuffInfo> &buffInfos) {
@@ -284,26 +308,30 @@ void ChpLibGenerator::printBuffChpLib(Vector<BuffInfo> &buffInfos) {
     double *metric = buffInfo.metric;
     if ((numBuff > 1) || (!hasInitVal)) {
       char *buffInstance = new char[1024];
-      sprintf(buffInstance, "onebuf<%u>", bw);
+      sprintf(buffInstance, "lib::onebuf<%u>", bw);
       printOneBuffChpLib(buffInstance, metric);
     }
     if (hasInitVal) {
       char *initInstance = new char[1024];
       unsigned long initVal = buffInfo.initVal;
-      sprintf(initInstance, "init<%lu,%u>", initVal, bw);
+      sprintf(initInstance, "lib::init<%lu,%u>", initVal, bw);
       printInitChpLib(initInstance, metric);
     }
   }
 }
 
 void ChpLibGenerator::printSinkChpLib(const char *instance, double *metric) {
-  printConf(metric, instance);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp);
+  free (tmp);
 }
 
 void ChpLibGenerator::printCopyChpLib(const char *instance,
                                       double *metric,
                                       unsigned numOuts) {
-  printConf(metric, instance, numOuts, LOGIC_OPTIMIZER);
+  char *tmp = _add_ns (instance);
+  printConf(metric, tmp, numOuts, LOGIC_OPTIMIZER);
+  free (tmp);
 }
 
 void ChpLibGenerator::printChpBlock(Process *p, int where) {
