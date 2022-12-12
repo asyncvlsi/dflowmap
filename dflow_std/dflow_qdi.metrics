@@ -1,0 +1,62 @@
+#------
+#
+# <comp-name> <leakage (nW)> <energy (fJ)> <delay (ps)> <area (um^2)>
+#
+# Generic file
+#
+#------
+#
+#
+# -- metrics for dataflow source
+#
+lib::source<1>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow sink
+#
+lib::sink<1>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow one-place buffer
+#
+lib::onebuf<1>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow func: single output buffer
+#
+lib::func<1,1,1>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow init-token buffer
+#
+lib::init<1>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow two-way copy
+#
+lib::copy<1,2>     c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow 2-way split
+#
+lib::unpipe_split<2,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow 2-way merge
+#
+lib::unpipe_merge<2,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow func: 2-input single output
+#
+lib::func<2,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<3,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<4,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<5,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<5,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<6,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<7,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::func<8,1,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+# -- metrics for dataflow 4-way split
+#
+lib::unpipe_split<4,2,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::unpipe_split<8,3,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+#
+#
+# -- metrics for dataflow 4-way merge
+#
+lib::unpipe_merge<4,2,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::unpipe_merge<8,3,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1

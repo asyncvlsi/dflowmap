@@ -101,3 +101,10 @@ install(
         COMPONENT Development
         FILES_MATCHING
         PATTERN "lib*.act")
+
+install(
+        DIRECTORY dflow_std/
+        DESTINATION conf/generic/
+        COMPONENT Development
+        FILES_MATCHING
+        PATTERN "dflow_qdi.metrics")
