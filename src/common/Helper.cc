@@ -78,8 +78,8 @@ Expr *genExprFromStr(const char *str, int exprType) {
 Expr *genExprFromInt(unsigned long val) {
   Expr *expr = new Expr;
   expr->type = E_INT;
-  expr->u.v = val;
-  expr->u.v_extra = nullptr;
+  expr->u.ival.v = val;
+  expr->u.ival.v_extra = nullptr;
   return expr;
 }
 

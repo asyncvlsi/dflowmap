@@ -285,7 +285,7 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
   int type = expr->type;
   switch (type) {
     case E_INT: {
-      unsigned long val = expr->u.v;
+      unsigned long val = expr->u.ival.v;
       const char *valStr = strdup(std::to_string(val).c_str());
       return valStr;
     }
@@ -373,7 +373,7 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       if (resBW == 0) {
         Expr *rExpr = expr->u.e.r;
         if (rExpr) {
-          resBW = rExpr->u.v;
+          resBW = rExpr->u.ival.v;
         } else {
           resBW = 1;
         }
@@ -930,7 +930,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
     }
   }
   if (type == E_INT) {
-    unsigned long val = expr->u.v;
+    unsigned long val = expr->u.ival.v;
     createSource(outName, val, outBW);
     if (bufExpr) {
       print_expr(stdout, expr);
@@ -971,7 +971,7 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
                                unsigned outID,
                                unsigned outBW,
                                Vector<BuffInfo> &buffInfos) {
-  unsigned long numBuff = bufExpr->u.v;
+  unsigned long numBuff = bufExpr->u.ival.v;
   unsigned long initVal = -1;
   bool hasInitVal = false;
   if (initExpr) {
@@ -980,7 +980,7 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
       printf("The init value is not E_INT type!\n");
       exit(-1);
     }
-    initVal = initExpr->u.v;
+    initVal = initExpr->u.ival.v;
     hasInitVal = true;
   }
   double *buffMetric = metrics->getBuffMetric(numBuff, outBW);
