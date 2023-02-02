@@ -43,7 +43,7 @@ ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp, FILE *chpFp,
 bool ChpLibGenerator::checkAndUpdateInstance(const char *instance) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     if (instances[i] == nullptr) {
-      instances[i] = instance;
+      instances[i] = Strdup (instance);
       return false;
     } else if (!strcmp(instances[i], instance)) {
       return true;
@@ -55,7 +55,7 @@ bool ChpLibGenerator::checkAndUpdateInstance(const char *instance) {
 bool ChpLibGenerator::checkAndUpdateProcess(const char *process) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     if (processes[i] == nullptr) {
-      processes[i] = process;
+      processes[i] = Strdup (process);
       return false;
     } else if (!strcmp(processes[i], process)) {
       return true;
