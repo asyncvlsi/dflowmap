@@ -55,7 +55,7 @@ bool ChpLibGenerator::checkAndUpdateInstance(const char *instance) {
 bool ChpLibGenerator::checkAndUpdateProcess(const char *process) {
   for (unsigned i = 0; i < MAX_PROCESSES; i++) {
     if (processes[i] == nullptr) {
-      processes[i] = Strdup (process);
+      processes[i] = process;
       return false;
     } else if (!strcmp(processes[i], process)) {
       return true;

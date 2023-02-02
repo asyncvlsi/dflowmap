@@ -363,9 +363,13 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   if (!_have_metrics) {
     return NULL;
   }
+
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
   sprintf(instance, "lib::copy<%u,%u>", bitwidth, numOut);
+#if 0
+  printf (" looking-for: %s\n", instance);
+#endif  
   double *metric = getOpMetric(instance);
   if (!metric) {
     char *equivInstance = new char[1500];
@@ -373,6 +377,10 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
       COPY implemented as a tree of 2-way copies
     */
     sprintf(equivInstance, "lib::copy<%u,2>", bitwidth);
+#if 0
+    printf ("    > now-look-for: %s\n", equivInstance);
+#endif    
+
     metric = getOpMetric (equivInstance);
     if (!metric) {
       metric = calcMetric ("lib::copy<1,2>", bitwidth);
@@ -380,14 +388,25 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
 	printf("Missing metrics for copy %s\n", equivInstance);
 	exit(-1);
       }
+#if 0      
+      printf ("    > used-interpolated copy<1 / %d,2> [%g %g %g %g]\n",
+	      bitwidth, metric[0], metric[1], metric[2], metric[3]);
+#endif      
     }
     metric[METRIC_LEAK_POWER] *= (numOut-1);
     metric[METRIC_DYN_ENERGY] *= (numOut-1);
     metric[METRIC_DELAY] *= ceil(log(numOut)/log(2));
     metric[METRIC_AREA] *= (numOut-1);
-    updateMetrics(instance, metric);
-    writeLocalMetricFile(instance, metric);
-    writeCachedMetricFile(instance, metric);
+#if 0
+    printf ("    *> computed [%g %g %g %g]\n", metric[0], metric[1], metric[2],
+	    metric[3]);
+#endif    
+  }
+  else {
+#if 0    
+    printf ("  --> found [%g %g %g %g]\n", metric[0], metric[1], metric[2],
+	    metric[3]);
+#endif    
   }
   if (metric) {
     updateStatistics(instance, metric);
@@ -798,10 +817,6 @@ double *Metrics::getOrGenMergeMetric(unsigned guardBW,
 	       equivInstance, instance);
 	exit(-1);
       }
-
-      updateMetrics(instance, metric);
-      writeLocalMetricFile(instance, metric);
-      writeCachedMetricFile(instance, metric);
     }
   }
   updateStatistics(instance, metric);
@@ -835,10 +850,6 @@ double *Metrics::getOrGenSplitMetric(unsigned guardBW,
                equivInstance, instance);
         exit(-1);
       }
-
-      updateMetrics(instance, metric);
-      writeLocalMetricFile(instance, metric);
-      writeCachedMetricFile(instance, metric);
     }
   }
   updateStatistics(instance, metric);
