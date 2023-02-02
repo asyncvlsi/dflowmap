@@ -312,6 +312,9 @@ int main(int argc, char **argv) {
     }
   }
 
+  ActCHPFuncInline *ip = new ActCHPFuncInline (a);
+  ip->run (spec_proc);
+
   if (debug_verbose) {
     fprintf(stdout, "Processing ACT file %s!\n", act_file);
     printf("------------------ACT FILE--------------------\n");

@@ -41,6 +41,8 @@ add_compile_options(
 add_compile_options(-O2)
 
 include_directories(./)
+add_library(ActPassLib SHARED IMPORTED)
+set_target_properties(ActPassLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libactpass.a)
 add_library(ActLib SHARED IMPORTED)
 set_target_properties(ActLib PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libact.a)
 add_library(ActCommon SHARED IMPORTED)
