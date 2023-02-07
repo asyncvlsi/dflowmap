@@ -112,7 +112,6 @@ class ChpBackend {
                   unsigned guardBW,
 #endif
                   const char *outName,
-                  const char *coutName,
                   unsigned dataBW,
                   CharPtrVec &inNameVec);
 

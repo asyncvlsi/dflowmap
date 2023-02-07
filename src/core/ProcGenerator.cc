@@ -1192,17 +1192,22 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       unsigned dataBW = 0;
       int numInputs = 0;
       handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
-      ActId *ctrlOut = d->u.splitmerge.nondetctrl;
-      unsigned ctrlBW = getActIdBW(ctrlOut);
-      char *ctrlOutName = new char[MAX_INSTANCE_LEN];
-      getActIdName(sc, ctrlOut, ctrlOutName, MAX_INSTANCE_LEN);
+      ActId *ctrlOut = NULL;
+      unsigned int ctrlBW;
+      char *ctrlOutName;
+
+      ctrlBW = ceil(log(numInputs)/log(2));
+      if (d->u.splitmerge.nondetctrl) {
+	ctrlOut = d->u.splitmerge.nondetctrl;
+	ctrlOutName = new char[MAX_INSTANCE_LEN];
+	getActIdName(sc, ctrlOut, ctrlOutName, MAX_INSTANCE_LEN);
+      }
       double *metric = nullptr;
       if (d->t == ACT_DFLOW_MIXER) {
-        metrics->getMixerMetric(numInputs, dataBW, ctrlBW);
+        metric = metrics->getMixerMetric(numInputs, dataBW, ctrlBW);
         char *procName = new char[MAX_PROC_NAME_LEN];
         const char *instance =
-            NameGenerator::genMixerInstName(ctrlBW,
-                                            dataBW,
+            NameGenerator::genMixerInstName(dataBW,
                                             numInputs,
                                             procName);
         chpBackend->printMixer(
@@ -1212,11 +1217,10 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
             ctrlBW,
 #endif
             outputName,
-            ctrlOutName,
             dataBW,
             inNameVec);
       } else {
-        metrics->getArbiterMetric(numInputs, dataBW, ctrlBW);
+        metric = metrics->getArbiterMetric(numInputs, dataBW, ctrlBW);
         char *procName = new char[MAX_PROC_NAME_LEN];
         const char *instance =
             NameGenerator::genArbiterInstName(ctrlBW,

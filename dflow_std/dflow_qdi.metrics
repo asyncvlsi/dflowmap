@@ -60,3 +60,11 @@ lib::unpipe_split<8,3,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0
 #
 lib::unpipe_merge<4,2,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
 lib::unpipe_merge<8,3,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+
+#
+# -- mixer
+#
+lib::unpipe_mixer<2,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::unpipe_mixer<4,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::unpipe_mixer<8,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1
+lib::unpipe_mixer<16,1>   c=1,lg=0.0,li=0.0   c=100,lg=0.0,li=0.0   c=10,lg=0.0,li=0.0  1

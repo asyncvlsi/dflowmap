@@ -867,7 +867,36 @@ double *Metrics::getArbiterMetric(unsigned numInputs,
 double *Metrics::getMixerMetric(unsigned numInputs,
                                 unsigned inBW,
                                 unsigned coutBW) {
-  double *metric = getOrGenMergeMetric(coutBW, inBW, numInputs);
+
+  if (!_have_metrics) {
+    return NULL;
+  }
+
+  char *procName = new char[MAX_INSTANCE_LEN];
+  
+  const char *instance =
+      NameGenerator::genMixerInstName(inBW, numInputs, procName);
+  double *metric = getOpMetric(instance);
+
+  if (!metric) {
+    const char *basicInstance =
+      NameGenerator::genMixerInstName(1, numInputs, procName);
+
+    metric = calcMetric (basicInstance, inBW);
+
+    if (!metric) {
+      numInputs = 1 << (int) (ceil(log(numInputs)/log(2)));
+      basicInstance = NameGenerator::genMixerInstName(1, numInputs, procName);
+      metric = calcMetric (basicInstance, inBW);
+      
+      if (!metric) {
+	printf("No enough info to calculate metric for %s or %s!\n",
+	       basicInstance, instance);
+	exit(-1);
+      }
+    }
+  }
+  updateStatistics(instance, metric);
   return metric;
 }
 

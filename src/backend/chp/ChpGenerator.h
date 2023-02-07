@@ -86,7 +86,6 @@ class ChpGenerator {
 
   void printMixerChp(const char *instance,
                      const char *outName,
-                     const char *coutName,
                      unsigned dataBW,
                      CharPtrVec &inNameVec);
 

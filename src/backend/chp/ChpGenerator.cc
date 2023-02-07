@@ -253,7 +253,6 @@ void ChpGenerator::printArbiterChp(const char *instance,
 
 void ChpGenerator::printMixerChp(const char *instance,
                                  const char *outName,
-                                 const char *coutName,
                                  unsigned dataBW,
                                  CharPtrVec &inNameVec) {
   const char *normOutput = getNormActIdName(outName);
@@ -263,12 +262,11 @@ void ChpGenerator::printMixerChp(const char *instance,
     fprintf(chpFp, "%s_in[%zd] = %s;\n", normOutput, i, inNameVec[i]);
   }
   fprintf(chpFp,
-          "%s %s_inst(%s_in, %s, %s);\n",
+          "%s %s_inst(%s_in, %s);\n",
           instance,
           normOutput,
           normOutput,
-          outName,
-          coutName);
+          outName);
 }
 
 void ChpGenerator::printProcChpHeader(Process *p) {

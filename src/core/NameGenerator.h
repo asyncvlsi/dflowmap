@@ -36,8 +36,7 @@ class NameGenerator {
                                       int numInputs,
                                       char *&procName);
 
-  static const char *genMixerInstName(unsigned ctrlBW,
-                                      unsigned inBW,
+  static const char *genMixerInstName(unsigned inBW,
                                       int numInputs,
                                       char *&procName);
 

@@ -261,12 +261,10 @@ void ChpBackend::printMixer(double *metric,
     unsigned guardBW,
 #endif
                             const char *outName,
-                            const char *coutName,
                             unsigned dataBW,
                             CharPtrVec &inNameVec) {
   chpGenerator->printMixerChp(instance,
                               outName,
-                              coutName,
                               dataBW,
                               inNameVec);
   chpLibGenerator->printMixerChpLib(instance, metric);
