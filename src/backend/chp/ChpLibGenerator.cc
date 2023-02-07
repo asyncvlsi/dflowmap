@@ -215,10 +215,20 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
     }
     /* define intermediate variables */
     unsigned numRes = resBW.size();
-    for (unsigned i = 0; i < numRes; i++) {
-      unsigned int resbw = resBW[i];
-      //TODO: this needs to be parameterized!!!
-      fprintf(chpLibFp, "  int<%u> res%d;\n", resbw, i);
+
+    if (numRes == numOuts) {
+      for (int i=0; i < numOuts; i++) {
+	fprintf (chpLibFp, "  int<W%d> res%d;\n", i + numArgs, i);
+      }
+    }
+    else {
+      warning ("In `%s': there may be a bit-width issue", procName);
+      
+      for (unsigned i = 0; i < numRes; i++) {
+	unsigned int resbw = resBW[i];
+	//TODO: this needs to be parameterized!!!
+	fprintf(chpLibFp, "  int<%u> res%d;\n", resbw, i);
+      }
     }
     /* generate CHP block */
     fprintf(chpLibFp, "  chp {\n");
