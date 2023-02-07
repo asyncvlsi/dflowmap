@@ -142,6 +142,9 @@ void ChpLibGenerator::printFUChpLib(const char *instance,
     unsigned resSuffix = outRecordIt.second;
     resSuffixVec.push_back(resSuffix);
     char *subSend = new char[1024];
+
+    resBWList[resSuffix] = -(outID + 1);
+    
     if (i < numOuts - 1) {
       sprintf(subSend, "out%u!res%u, ", outID, resSuffix);
     } else {
@@ -216,17 +219,13 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
     /* define intermediate variables */
     unsigned numRes = resBW.size();
 
-    if (numRes == numOuts) {
-      for (int i=0; i < numOuts; i++) {
-	fprintf (chpLibFp, "  int<W%d> res%d;\n", i + numArgs, i);
+    for (unsigned i = 0; i < numRes; i++) {
+      int resbw = resBW[i];
+      //TODO: this needs to be parameterized!!!
+      if (resbw < 0) {
+	fprintf(chpLibFp, "  int<W%u> res%d;\n", numArgs + (-resbw) - 1, i);
       }
-    }
-    else {
-      warning ("In `%s': there may be a bit-width issue", procName);
-      
-      for (unsigned i = 0; i < numRes; i++) {
-	unsigned int resbw = resBW[i];
-	//TODO: this needs to be parameterized!!!
+      else {
 	fprintf(chpLibFp, "  int<%u> res%d;\n", resbw, i);
       }
     }
