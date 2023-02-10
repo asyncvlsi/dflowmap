@@ -86,6 +86,7 @@ class ChpGenerator {
 
   void printMixerChp(const char *instance,
                      const char *outName,
+                     const char *ctrlName,
                      unsigned dataBW,
                      CharPtrVec &inNameVec);
 
@@ -98,6 +99,8 @@ class ChpGenerator {
   void printCustomNamespace(ActNamespace *ns);
 
   void printChpFileEnding();
+
+  void printChpFreshChannel (char *name, int bw);
 };
 
 #endif //DFLOWMAP__CHPCIRCUITGENERATOR_H_

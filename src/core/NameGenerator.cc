@@ -35,7 +35,8 @@ const char *NameGenerator::genMergeInstName(unsigned guardBW,
   return instance;
 }
 
-const char *NameGenerator::genMixerInstName(unsigned inBW,
+const char *NameGenerator::genMixerInstName(unsigned ctrlBW,
+					    unsigned inBW,
                                             int numInputs,
                                             char *&procName) {
   if (PIPELINE) {
@@ -44,7 +45,7 @@ const char *NameGenerator::genMixerInstName(unsigned inBW,
     sprintf(procName, "lib::unpipe_%s", Constant::MIXER_PREFIX);
   }
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<%d,%u>", procName, numInputs, inBW);
+  sprintf(instance, "%s<%d,%u,%u>", procName, numInputs, inBW, ctrlBW);
   return instance;
 }
 

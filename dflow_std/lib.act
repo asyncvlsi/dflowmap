@@ -90,21 +90,21 @@ defproc copy(chan?(int<W>) in; chan!(int<W>) out[N]) {
 }
 
 export
-template<pint N; pint W>
-defproc unpipe_mixer(chan?(int<W>) in[N]; chan!(int<W>) out)
+template<pint N; pint W1,W2>
+defproc unpipe_mixer(chan?(int<W1>) in[N]; chan!(int<W1>) out; chan!(int<W2>) cout)
 {
   chp {
-    *[ [ ([]i:N: #in[i] -> out!in[i]; in[i]?) ] ]
+    *[ [ ([]i:N: #in[i] -> out!in[i],cout!i; in[i]?) ] ]
   }
 }
 
 export
-template<pint N; pint W>
-defproc pipe_mixer(chan?(int<W>) in[N]; chan!(int<W>) out)
+template<pint N; pint W1, W2>
+defproc pipe_mixer(chan?(int<W1>) in[N]; chan!(int<W1>) out; chan!(int<W2>) cout)
 {
-  int<W> x;
+  int<W1> x;
   chp {
-    *[ [ ([] i:N: #in[i] -> in[i]?x; out!x ) ];
+    *[ [ ([] i:N: #in[i] -> in[i]?x; out!x,cout!i ) ];
        log("send ", x)
     ]
   }

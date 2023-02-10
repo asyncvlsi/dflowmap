@@ -1194,7 +1194,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       handleSelectionUnit(d, inNameVec, outputName, dataBW, numInputs);
       ActId *ctrlOut = NULL;
       unsigned int ctrlBW;
-      char *ctrlOutName;
+      char *ctrlOutName = NULL;
 
       ctrlBW = ceil(log(numInputs)/log(2));
       if (d->u.splitmerge.nondetctrl) {
@@ -1202,12 +1202,22 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
 	ctrlOutName = new char[MAX_INSTANCE_LEN];
 	getActIdName(sc, ctrlOut, ctrlOutName, MAX_INSTANCE_LEN);
       }
+      else {
+	char *inname = nextAnon ();
+	unsigned bw = ctrlBW;
+	chpBackend->printFreshChannel (inname, bw);
+	createSink(inname, bw);
+	ctrlOut = new ActId (inname);
+	ctrlOutName = new char[MAX_INSTANCE_LEN];
+	snprintf (ctrlOutName, MAX_INSTANCE_LEN, inname);
+      }
       double *metric = nullptr;
       if (d->t == ACT_DFLOW_MIXER) {
         metric = metrics->getMixerMetric(numInputs, dataBW, ctrlBW);
         char *procName = new char[MAX_PROC_NAME_LEN];
         const char *instance =
-            NameGenerator::genMixerInstName(dataBW,
+            NameGenerator::genMixerInstName(ctrlBW,
+					    dataBW,
                                             numInputs,
                                             procName);
         chpBackend->printMixer(
@@ -1217,6 +1227,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
             ctrlBW,
 #endif
             outputName,
+            ctrlOutName,
             dataBW,
             inNameVec);
       } else {
@@ -1337,10 +1348,22 @@ ProcGenerator::ProcGenerator(Metrics *metrics,
   this->chpBackend = chpBackend;
 }
 
+
+char *ProcGenerator::nextAnon ()
+{
+  char buf[100];
+  do {
+    snprintf (buf, 100, "_anon_%d", _anon_names++);
+  } while (sc->Lookup (buf) != NULL);
+  return buf;
+}
+
 int ProcGenerator::run(Process *p) {
   auto stdNS = ActNamespace::Global()->findNS(Constant::STD_NAMESPACE);
   if (p->getns() == stdNS) return 0;
+  _anon_names = 0;
   this->sc = p->CurScope();
+  
   this->p = p;
   const char *pName = p->getName();
   if (debug_verbose) {

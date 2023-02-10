@@ -162,6 +162,8 @@ class ProcGenerator {
 
   int run(Process *p);
 
+  char *nextAnon ();
+
  private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
@@ -173,6 +175,8 @@ class ProcGenerator {
   ChpBackend *chpBackend;
   Process *p;
   Scope *sc;
+
+  int _anon_names;
 
   void createSink(const char *name, unsigned bitwidth);
 

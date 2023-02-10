@@ -261,10 +261,12 @@ void ChpBackend::printMixer(double *metric,
     unsigned guardBW,
 #endif
                             const char *outName,
+                            const char *ctrlOutName,
                             unsigned dataBW,
                             CharPtrVec &inNameVec) {
   chpGenerator->printMixerChp(instance,
                               outName,
+			      ctrlOutName,
                               dataBW,
                               inNameVec);
   chpLibGenerator->printMixerChpLib(instance, metric);
@@ -326,6 +328,13 @@ void ChpBackend::printProcHeader(Process *p) {
   chpGenerator->printProcChpHeader(p);
 #if GEN_NETLIST
   dflowNetBackend->printProcNetListHeader(p);
+#endif
+}
+
+void ChpBackend::printFreshChannel(char *name, int bw) {
+  chpGenerator->printChpFreshChannel(name, bw);
+#if GEN_NETLIST
+  dflowNetBackend->printDflowFreshChannel(name, bw);
 #endif
 }
 

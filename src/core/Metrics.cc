@@ -875,18 +875,18 @@ double *Metrics::getMixerMetric(unsigned numInputs,
   char *procName = new char[MAX_INSTANCE_LEN];
   
   const char *instance =
-      NameGenerator::genMixerInstName(inBW, numInputs, procName);
+    NameGenerator::genMixerInstName(coutBW, inBW, numInputs, procName);
   double *metric = getOpMetric(instance);
 
   if (!metric) {
     const char *basicInstance =
-      NameGenerator::genMixerInstName(1, numInputs, procName);
+      NameGenerator::genMixerInstName(coutBW, 1, numInputs, procName);
 
     metric = calcMetric (basicInstance, inBW);
 
     if (!metric) {
       numInputs = 1 << (int) (ceil(log(numInputs)/log(2)));
-      basicInstance = NameGenerator::genMixerInstName(1, numInputs, procName);
+      basicInstance = NameGenerator::genMixerInstName(coutBW, 1, numInputs, procName);
       metric = calcMetric (basicInstance, inBW);
       
       if (!metric) {

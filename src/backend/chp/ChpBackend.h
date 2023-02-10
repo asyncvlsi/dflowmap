@@ -112,6 +112,7 @@ class ChpBackend {
                   unsigned guardBW,
 #endif
                   const char *outName,
+		  const char *ctrlname,
                   unsigned dataBW,
                   CharPtrVec &inNameVec);
 
@@ -136,6 +137,8 @@ class ChpBackend {
   void printCustomNamespace(ActNamespace *ns);
 
   void printFileEnding();
+
+  void printFreshChannel (char *name, int bw);
 
  private:
   ChpGenerator *chpGenerator;
