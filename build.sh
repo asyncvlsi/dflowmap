@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
+
 ./configure
 if [ ! -d build ]; then
 	mkdir build
