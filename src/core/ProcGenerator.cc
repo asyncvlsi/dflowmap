@@ -1351,7 +1351,7 @@ ProcGenerator::ProcGenerator(Metrics *metrics,
 
 char *ProcGenerator::nextAnon ()
 {
-  char buf[100];
+  static char buf[100];
   do {
     snprintf (buf, 100, "_anon_%d", _anon_names++);
   } while (sc->Lookup (buf) != NULL);
