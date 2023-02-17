@@ -102,6 +102,10 @@ double *Metrics::getOpMetric(const char *instance) {
       return metric;
     }
   }
+  double *met = calcMetric (instance, 1);
+  if (met) {
+    return met;
+  }
   if (debug_verbose) {
     printf("We don't have metric info for (`%s`,`%s')\n",
            instance,
@@ -146,16 +150,6 @@ double *Metrics::calcMetric (const char *instance, int bitwidth)
   metric[METRIC_AREA] = mg->getArea (bitwidth);
   return metric;
 }
-
-
-double *Metrics::getxOpMetric(const char *instance) {
-  MetricGen *mg = getTemplMetric (instance);
-  if (mg) {
-    return mg->getConst();
-  }
-  return nullptr;
-}
-
 
 double *Metrics::getCachedMetric(const char *instance) {
   if (!_have_metrics) {

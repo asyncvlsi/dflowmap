@@ -204,9 +204,6 @@ private:
 
   double *getOpMetric(const char *instance);
 
-  // to be fixed!
-  double *getxOpMetric(const char *instance);
-
   MetricGen *getTemplMetric (const char *instance);
 
   double *getCachedMetric(const char *instance);
