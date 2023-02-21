@@ -498,14 +498,17 @@ double *Metrics::getBuffMetric(unsigned nBuff, unsigned bw) {
     }
   }
 
+#if 0
+  /* this is wrong */
   double *actual = new double[4];
   for (int i=0; i < 4; i++) {
     actual[i] = nBuff * metric[i];
   }
+#endif  
   
-  updateStatistics (instance, actual);
+  updateStatistics (instance, metric);
   
-  return actual;
+  return metric;
 }
 
 void Metrics::callLogicOptimizer(
