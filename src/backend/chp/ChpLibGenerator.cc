@@ -35,6 +35,10 @@ ChpLibGenerator::ChpLibGenerator(FILE *chpLibFp, FILE *chpFp,
     exit(-1);
   }
   fprintf(confFp, "begin sim.chp\n");
+
+  fprintf (confFp, "\nstring metrics_tech_name \"%s\"\n\n",
+	   getenv ("ACT_TECH"));
+  
   this->chpLibFp = chpLibFp;
   this->confFp = confFp;
   this->chpFp = chpFp;
