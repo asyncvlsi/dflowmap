@@ -269,7 +269,7 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile
       const char *tech = getenv ("ACT_TECH");
       assert (tech);
       if (strncmp (line.c_str(), tech, strlen (tech)) != 0) {
-	fatal_error ("Using incompatible cached metrics file; invalidate with -i\n\t Cache: `%s'; Requested: `%s'", tech, line.c_str());
+	fatal_error ("Using incompatible cached metrics file; invalidate with -i\n\t Requested: `%s'; Cache: `%s'", tech, line.c_str());
       }
       continue;
     }
