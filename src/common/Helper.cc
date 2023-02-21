@@ -176,6 +176,16 @@ void createFileIfNotExist(const char *file, std::ios_base::openmode mode) {
   }
 }
 
+void createMetricsFileIfNotExist(const char *file, std::ios_base::openmode mode) {
+  if (!std::filesystem::is_regular_file(file)
+      || !std::filesystem::exists(std::filesystem::path(file))) {
+    std::ofstream file_stream;
+    file_stream.open(file, mode);
+    file_stream << getenv ("ACT_TECH") << "\n";
+  }
+}
+
+
 void copyFileToTargetDir(const char *srcFile,
                          const char *targetDir,
                          const char *errMsg) {

@@ -64,6 +64,7 @@ void removeDirectoryIfExist(const char *dir);
 void createDirectoryIfNotExist(const char *dir);
 
 void createFileIfNotExist(const char *file, std::ios_base::openmode mode);
+void createMetricsFileIfNotExist(const char *file, std::ios_base::openmode mode);
 
 void copyFileToTargetDir(const char *srcFile,
                          const char *targetDir,

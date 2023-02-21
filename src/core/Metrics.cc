@@ -20,6 +20,7 @@
  */
 
 #include "Metrics.h"
+#include <string.h>
 
 void Metrics::updateMetrics(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
@@ -231,6 +232,7 @@ void Metrics::printOpMetrics() {
 void Metrics::writeLocalMetricFile(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
   std::ofstream metricFp;
+
   metricFp.open(custom_metrics, std::ios_base::app);
   metricFp << normInstance << "  " << metric[0] << "  " << metric[1] << "  "
            << metric[2] << "  " << metric[3] << "\n";
@@ -262,6 +264,16 @@ void Metrics::readMetricsFile(const char *metricsFP, bool forCache, bool stdfile
   int lineno = 0;
   while (std::getline(metricFp, line)) {
     lineno++;
+
+    if (lineno == 1 && !stdfile) {
+      const char *tech = getenv ("ACT_TECH");
+      assert (tech);
+      if (strncmp (line.c_str(), tech, strlen (tech)) != 0) {
+	fatal_error ("Using incompatible cached metrics file; invalidate with -i\n\t Cache: `%s'; Requested: `%s'", tech, line.c_str());
+      }
+      continue;
+    }
+
     std::istringstream iss(line);
     char *instance = new char[MAX_INSTANCE_LEN];
     int metricCount = -1;

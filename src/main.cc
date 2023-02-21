@@ -98,7 +98,7 @@ static void create_outfiles(char *&statsFilePath,
     removeDirectoryIfExist(cache_dir);
   }
   createDirectoryIfNotExist(cache_dir);
-  createFileIfNotExist(cached_metrics, std::fstream::app);
+  createMetricsFileIfNotExist(cached_metrics, std::fstream::app);
   /* create output folder "${workload_name}_output" if it does not exist */
   outputDir = new char[baseDirLen + workloadNameLen + 8];
   sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
@@ -112,7 +112,7 @@ static void create_outfiles(char *&statsFilePath,
   sprintf(custom_metrics, "%s/fu.metrics", custom_fu_dir);
   createDirectoryIfNotExist(outputDir);
   createDirectoryIfNotExist(custom_fu_dir);
-  createFileIfNotExist(custom_metrics, std::fstream::app);
+  createMetricsFileIfNotExist(custom_metrics, std::fstream::app);
   char *errMsg = new char[128];
   sprintf(errMsg, "Fail to copy raw input ACT file into the output dir!\n");
   copyFileToTargetDir(src, outputDir, errMsg);
