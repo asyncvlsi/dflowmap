@@ -372,7 +372,9 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
 
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
+  char *leafinst = new char[1500];
   sprintf(instance, "lib::copy<%u,%u>", bitwidth, numOut);
+  sprintf(leafinst, "lib::copy_leaf<%u,%u>", bitwidth, numOut);
 #if 0
   printf (" looking-for: %s\n", instance);
 #endif  
@@ -399,10 +401,12 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
 	      bitwidth, metric[0], metric[1], metric[2], metric[3]);
 #endif      
     }
+#if 0    
     metric[METRIC_LEAK_POWER] *= (numOut-1);
     metric[METRIC_DYN_ENERGY] *= (numOut-1);
     metric[METRIC_DELAY] *= ceil(log(numOut)/log(2));
     metric[METRIC_AREA] *= (numOut-1);
+#endif    
 #if 0
     printf ("    *> computed [%g %g %g %g]\n", metric[0], metric[1], metric[2],
 	    metric[3]);
@@ -416,6 +420,7 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   }
   if (metric) {
     updateStatistics(instance, metric);
+    updateStatistics(leafinst, metric);
   }
   return metric;
 }

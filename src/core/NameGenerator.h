@@ -52,6 +52,7 @@ class NameGenerator {
                                       char *&procName);
 
   static const char *genCopyInstName(unsigned bw, unsigned numOut);
+  static const char *genCopyLeafInstName(unsigned bw, unsigned numOut);
 
   static const char *genSinkInstName(unsigned bw);
 

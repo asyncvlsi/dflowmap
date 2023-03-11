@@ -104,6 +104,31 @@ void ChpLibGenerator::printConf(double *metric,
   }
 }
 
+void ChpLibGenerator::printConf_array(double *metric,
+				      const char *instance,
+				      unsigned numOutputs,
+				      bool exitOnMissing) {
+  if (!metric) {
+    if (exitOnMissing) {
+      printf("We could not find metrics for %s\n", instance);
+      exit(-1);
+    }
+    return;
+  }
+  if (!checkAndUpdateInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    for (unsigned i = 0; i < numOutputs; i++) {
+      fprintf(confFp, "  begin out[%d]\n", i);
+      fprintf(confFp, "    int D %ld\n", (long) metric[2]);
+      fprintf(confFp, "    int E %ld\n", (long) metric[1]);
+      fprintf(confFp, "  end\n");
+    }
+    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
+    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
+    fprintf(confFp, "end\n");
+  }
+}
+
 void ChpLibGenerator::printConf(double *metric, const char *instance) {
   if (!metric) {
     if (LOGIC_OPTIMIZER) {
@@ -340,10 +365,15 @@ void ChpLibGenerator::printSinkChpLib(const char *instance, double *metric) {
 }
 
 void ChpLibGenerator::printCopyChpLib(const char *instance,
+				      const char *leafinst,
                                       double *metric,
                                       unsigned numOuts) {
   char *tmp = _add_ns (instance);
   printConf(metric, tmp, numOuts, LOGIC_OPTIMIZER);
+  free (tmp);
+
+  tmp = _add_ns (leafinst);
+  printConf_array(metric, tmp, numOuts, LOGIC_OPTIMIZER);
   free (tmp);
 }
 

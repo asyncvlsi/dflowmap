@@ -47,13 +47,14 @@ ChpBackend::ChpBackend(ChpGenerator *chpGenerator,
 
 void ChpBackend::printCopyProcs(double *metric,
                                 const char *instance,
+				const char *leafinst,
                                 const char *inName,
 #if GEN_NETLIST
     unsigned bw,
 #endif
                                 unsigned numOut) {
   chpGenerator->printCopyChp(instance, inName);
-  chpLibGenerator->printCopyChpLib(instance, metric, numOut);
+  chpLibGenerator->printCopyChpLib(instance, leafinst, metric, numOut);
 #if GEN_NETLIST
   dflowNetBackend->printCopyNetlist(inName, bw, numOut, CD, PW);
 #endif

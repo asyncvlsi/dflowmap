@@ -41,6 +41,10 @@ class ChpLibGenerator {
                  const char *instance,
                  unsigned numOutputs,
                  bool exitOnMissing = true);
+  void printConf_array(double *metric,
+                 const char *instance,
+                 unsigned numOutputs,
+                 bool exitOnMissing = true);
 
   void printConf(double *metric, const char *instance);
 
@@ -82,6 +86,7 @@ class ChpLibGenerator {
   void printSinkChpLib(const char *instance, double *metric);
 
   void printCopyChpLib(const char *instance,
+		       const char *leafinst,
                        double *metric,
                        unsigned numOuts);
 

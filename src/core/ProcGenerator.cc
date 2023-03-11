@@ -791,9 +791,12 @@ void ProcGenerator::createCopyProcs() {
       double *metric = metrics->getOrGenCopyMetric(bitwidth, numOut);
       const char
           *instance = NameGenerator::genCopyInstName(bitwidth, numOut);
+      const char
+	*leaf = NameGenerator::genCopyLeafInstName (bitwidth, numOut);
       chpBackend->printCopyProcs(
           metric,
           instance,
+	  leaf,
           inName,
 #if GEN_NETLIST
           bitwidth,

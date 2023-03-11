@@ -85,6 +85,14 @@ const char *NameGenerator::genCopyInstName(unsigned bw, unsigned numOut) {
   return instance;
 }
 
+const char *NameGenerator::genCopyLeafInstName(unsigned bw, unsigned numOut) {
+  char *procName = new char[1024];
+  sprintf(procName, "lib::copy_leaf");
+  char *instance = new char[1024];
+  sprintf(instance, "%s<%u,%u>", procName, bw, numOut);
+  return instance;
+}
+
 const char *NameGenerator::genSinkInstName(unsigned bw) {
   char *instance = new char[1500];
   sprintf(instance, "lib::sink<%u>", bw);

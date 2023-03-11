@@ -41,6 +41,7 @@ class ChpBackend {
 
   void printCopyProcs(double *metric,
                       const char *instance,
+		      const char *leafname,
                       const char *inName,
 #if GEN_NETLIST
                       unsigned bw,
