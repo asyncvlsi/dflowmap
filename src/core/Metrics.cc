@@ -370,6 +370,11 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
     return NULL;
   }
 
+  if (numOut > 8) {
+    warning (" > 8-way copy; using 8-way instead for metrics.");
+    numOut = 8;
+  }
+
   updateCopyStatistics(bitwidth, numOut);
   char *instance = new char[1500];
   char *leafinst = new char[1500];
@@ -384,21 +389,23 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
     /*
       COPY implemented as a tree of 2-way copies
     */
-    sprintf(equivInstance, "lib::copy<%u,2>", bitwidth);
+    sprintf(equivInstance, "lib::copy<%u,%u>", bitwidth, numOut);
 #if 0
     printf ("    > now-look-for: %s\n", equivInstance);
 #endif    
 
     metric = getOpMetric (equivInstance);
     if (!metric) {
-      metric = calcMetric ("lib::copy<1,2>", bitwidth);
+      char tmp[100];
+      snprintf (tmp, 100, "lib::copy<1,%u>", numOut);
+      metric = calcMetric (tmp, bitwidth);
       if (!metric) {
 	printf("Missing metrics for copy %s\n", equivInstance);
 	exit(-1);
       }
 #if 0      
-      printf ("    > used-interpolated copy<1 / %d,2> [%g %g %g %g]\n",
-	      bitwidth, metric[0], metric[1], metric[2], metric[3]);
+      printf ("    > used-interpolated copy<1 / %d,%d> [%g %g %g %g]\n",
+	      bitwidth, numout, metric[0], metric[1], metric[2], metric[3]);
 #endif      
     }
 #if 0    
