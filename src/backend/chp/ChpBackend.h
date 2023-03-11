@@ -41,13 +41,15 @@ class ChpBackend {
 
   void printCopyProcs(double *metric,
                       const char *instance,
-		      const char *leafname,
                       const char *inName,
 #if GEN_NETLIST
                       unsigned bw,
 #endif
                       unsigned numOut);
 
+  void printCopyLeafProc (double *metric,
+			  unsigned int bw,
+			  unsigned int numOut);
   void printSink(
 #if GEN_NETLIST
       unsigned bw,

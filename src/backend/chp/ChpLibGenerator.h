@@ -86,10 +86,13 @@ class ChpLibGenerator {
   void printSinkChpLib(const char *instance, double *metric);
 
   void printCopyChpLib(const char *instance,
-		       const char *leafinst,
                        double *metric,
                        unsigned numOuts);
 
+  void printCopyLeafChpLib(double *metric,
+			   int bw,
+			   unsigned numOuts);
+  
   void printChpBlock(Process *p, int where);
 
   void printCustomNamespace(ActNamespace *ns);

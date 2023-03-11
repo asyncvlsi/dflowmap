@@ -371,7 +371,6 @@ double *Metrics::getOrGenCopyMetric(unsigned bitwidth, unsigned numOut) {
   }
 
   if (numOut > 8) {
-    warning (" > 8-way copy; using 8-way instead for metrics.");
     numOut = 8;
   }
 

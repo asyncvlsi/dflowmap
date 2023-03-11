@@ -368,14 +368,20 @@ void ChpLibGenerator::printSinkChpLib(const char *instance, double *metric) {
 }
 
 void ChpLibGenerator::printCopyChpLib(const char *instance,
-				      const char *leafinst,
                                       double *metric,
                                       unsigned numOuts) {
   char *tmp = _add_ns (instance);
   printConf(metric, tmp, numOuts, LOGIC_OPTIMIZER);
   free (tmp);
+}
 
-  tmp = _add_ns (leafinst);
+void ChpLibGenerator::printCopyLeafChpLib (double *metric,
+					   int bw,
+					   unsigned numOuts)
+{
+  char buf[100];
+  snprintf (buf, 100, "lib::copy_leaf<%u,%u>", bw, numOuts);
+  char *tmp = _add_ns (buf);
   printConf_array(metric, tmp, numOuts, LOGIC_OPTIMIZER);
   free (tmp);
 }
