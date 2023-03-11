@@ -126,6 +126,9 @@ void ChpLibGenerator::printConf_array(double *metric,
     fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
     fprintf(confFp, "  int area %ld\n", (long) metric[3]);
     fprintf(confFp, "end\n");
+    if (numOutputs > 8) {
+       warning ("Uses a copy with fanout > 8; metrics may be invalid");
+    }
   }
 }
 
