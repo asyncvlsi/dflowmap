@@ -39,6 +39,9 @@ add_compile_options(
         -Wformat-security
         -Wundef)
 add_compile_options(-O2)
+if(DEFINED NEED_LIBCXXFS)
+    add_link_options(-lstdc++fs)
+endif()
 
 include_directories(./)
 add_library(ActPassLib SHARED IMPORTED)
