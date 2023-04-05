@@ -17,6 +17,7 @@ acts/
 output
 dflowmap.*
 config_pkg.h
+config_pkg.h.old
 config.mk
 metrics/
 *_statistics
