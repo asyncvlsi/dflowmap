@@ -757,19 +757,28 @@ void Metrics::callLogicOptimizer(
     }
   }
 
-  area = area + ctrlmetric[METRIC_AREA];
-  leakpower = leakpower + ctrlmetric[METRIC_LEAK_POWER];
-  energy = energy + ctrlmetric[METRIC_DYN_ENERGY];
-  delay = delay + ctrlmetric[METRIC_DELAY];
-  /* get the final metric */
   metric = new double[4];
   metric[0] = leakpower;
   metric[1] = energy;
   metric[2] = delay;
   metric[3] = area;
-  updateMetrics(instance, metric);
+
+  /* cache has raw numbers, without the func template */
   writeLocalMetricFile(instance, metric);
   writeCachedMetricFile(instance, metric);
+  
+  area = area + ctrlmetric[METRIC_AREA];
+  leakpower = leakpower + ctrlmetric[METRIC_LEAK_POWER];
+  energy = energy + ctrlmetric[METRIC_DYN_ENERGY];
+  delay = delay + ctrlmetric[METRIC_DELAY];
+
+  metric[0] = leakpower;
+  metric[1] = energy;
+  metric[2] = delay;
+  metric[3] = area;
+  
+  /* get the final metric */
+  updateMetrics(instance, metric);
 #endif
 }
 
@@ -790,6 +799,43 @@ double *Metrics::getOrGenFUMetric(
   if (!metric) {
     metric = getCachedMetric(instance);
   }
+  if (metric) {
+#if LOGIC_OPTIMIZER
+    int n_inputs = inBW.size();
+    double avg_bw = 0;
+
+    for (auto &inBWIt: inBW) {
+      avg_bw += inBWIt.second;
+    }
+    avg_bw /= n_inputs;
+
+    char *procname = new char[MAX_INSTANCE_LEN];
+    snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,%d>",
+	      n_inputs, (int)avg_bw );
+
+    double *ctrlmetric = getOpMetric (procname);
+
+    if (!ctrlmetric) {
+      snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,1>", n_inputs);
+      ctrlmetric = calcMetric (procname, (int)avg_bw);
+
+      if (!ctrlmetric) {
+	warning ("Update calibration to include %d-input functions", n_inputs);
+	snprintf (procname, MAX_INSTANCE_LEN, "lib::func<8,1,1>");
+	ctrlmetric = calcMetric (procname, (int)avg_bw);
+
+	if (!ctrlmetric) {
+	  fatal_error ("Missing 8-input function!");
+	}
+      }
+    }
+    metric[0] += ctrlmetric[0];
+    metric[1] += ctrlmetric[1];
+    metric[2] += ctrlmetric[2];
+    metric[3] += ctrlmetric[3];
+#endif
+  }
+
   if (!metric) {
 #if LOGIC_OPTIMIZER
     callLogicOptimizer(instance,
