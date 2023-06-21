@@ -42,6 +42,8 @@ char *custom_fu_dir;
 char *family;
 char *chan_type;
 
+static char *out_directory;
+
 static void usage(char *name) {
   fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
@@ -55,6 +57,7 @@ static void usage(char *name) {
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   fprintf(stderr, " -q : quiet mode CHP output (no auto-generated log statements)\n");
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
+  fprintf(stderr, " -o <dir> : use as output directory (default actfile_out)\n");
   exit(1);
 }
 
@@ -100,8 +103,15 @@ static void create_outfiles(char *&statsFilePath,
   createDirectoryIfNotExist(cache_dir);
   createMetricsFileIfNotExist(cached_metrics, std::fstream::app);
   /* create output folder "${workload_name}_output" if it does not exist */
-  outputDir = new char[baseDirLen + workloadNameLen + 8];
-  sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
+
+  if (out_directory) {
+    outputDir = new char[baseDirLen + 3 + strlen (out_directory)];
+    sprintf (outputDir, "%s/%s", baseDir, out_directory);
+  }
+  else {
+    outputDir = new char[baseDirLen + workloadNameLen + 8];
+    sprintf(outputDir, "%s/%s_out", baseDir, workload_name);
+  }
   size_t outputPathLen = strlen(outputDir);
   custom_fu_dir = new char[16 + outputPathLen];
   sprintf(custom_fu_dir, "%s/customF", outputDir);
@@ -244,6 +254,7 @@ int main(int argc, char **argv) {
   int ch;
   char *mfile = nullptr;
   char *procname = nullptr;
+  out_directory = nullptr;
   family = Strdup ("qdi");
   chan_type = Strdup ("bd");
   /* initialize ACT library */
@@ -251,8 +262,14 @@ int main(int argc, char **argv) {
   debug_verbose = 0;
   invalidate_cache = false;
   quiet_mode = false;
-  while ((ch = getopt(argc, argv, "vqm:p:if:c:")) != -1) {
+  while ((ch = getopt(argc, argv, "vqm:p:if:c:o:")) != -1) {
     switch (ch) {
+      case 'o':
+	if (out_directory) {
+	  FREE (out_directory);
+	}
+	out_directory = Strdup (optarg);
+	break;
       case 'f':
 	if (family) {
 	  FREE (family);
