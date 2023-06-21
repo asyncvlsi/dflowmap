@@ -176,7 +176,7 @@ double *Metrics::getCachedMetric(const char *instance) {
       copyFileToTargetDir(cached_netlist_file, custom_fu_dir, errMsg);
       /* update the local metric file */
       double *metric = cachedMetricsIt.second;
-      //writeLocalMetricFile(instance, metric);
+      writeLocalMetricFile(instance, metric);
       /* return the perf metric */
       return metric;
     }
@@ -766,19 +766,19 @@ void Metrics::callLogicOptimizer(
   /* cache has raw numbers, without the func template */
   writeLocalMetricFile(instance, metric);
   writeCachedMetricFile(instance, metric);
-  
+  updateMetrics(instance, metric);
+
   area = area + ctrlmetric[METRIC_AREA];
   leakpower = leakpower + ctrlmetric[METRIC_LEAK_POWER];
   energy = energy + ctrlmetric[METRIC_DYN_ENERGY];
   delay = delay + ctrlmetric[METRIC_DELAY];
 
+  /* get the final metric */
+  metric = new double[4];
   metric[0] = leakpower;
   metric[1] = energy;
   metric[2] = delay;
   metric[3] = area;
-  
-  /* get the final metric */
-  updateMetrics(instance, metric);
 #endif
 }
 
@@ -829,10 +829,11 @@ double *Metrics::getOrGenFUMetric(
 	}
       }
     }
-    metric[0] += ctrlmetric[0];
-    metric[1] += ctrlmetric[1];
-    metric[2] += ctrlmetric[2];
-    metric[3] += ctrlmetric[3];
+    double *tmp_met = metric;
+    metric = new double [4];
+    for (int i=0; i < 4; i++) {
+      metric[i] = tmp_met[i] + ctrlmetric[i];
+    }
 #endif
   }
 
