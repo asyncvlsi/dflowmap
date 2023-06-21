@@ -176,7 +176,7 @@ double *Metrics::getCachedMetric(const char *instance) {
       copyFileToTargetDir(cached_netlist_file, custom_fu_dir, errMsg);
       /* update the local metric file */
       double *metric = cachedMetricsIt.second;
-      writeLocalMetricFile(instance, metric);
+      //writeLocalMetricFile(instance, metric);
       /* return the perf metric */
       return metric;
     }
