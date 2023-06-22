@@ -305,7 +305,11 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
     fprintf(chpLibFp, "%s", outSend);
     fprintf(chpLibFp, "\n    ]\n  }\n}\n\n");
   }
-  printConf(metric, instance, numOuts, LOGIC_OPTIMIZER);
+  char *tmp;
+  tmp = new char[strlen (instance) + 3];
+  snprintf (tmp, strlen(instance)+3, "%s<>", instance);
+  printConf(metric, tmp, numOuts, LOGIC_OPTIMIZER);
+  delete tmp;
 }
 
 static char *_add_ns (const char *s)
