@@ -58,9 +58,9 @@ class NameGenerator {
 
   static const char *genSourceInstName(unsigned long val, unsigned bitwidth);
 
-  static const char *genExprName(Expr *expr);
+  static const char *genExprName(Scope *sc, Expr *expr, ActId *rhs);
 
-  static const char *genExprClusterName(list_t *dflow_cluster);
+  static const char *genExprClusterName(Scope *sc, list_t *dflow_cluster);
 
   static const char *genFUName(const char *procName,
                                StringVec &argList,

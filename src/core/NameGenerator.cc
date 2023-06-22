@@ -106,13 +106,30 @@ const char *NameGenerator::genSourceInstName(unsigned long val,
   return instance;
 }
 
-const char *NameGenerator::genExprName(Expr *expr) {
+const char *NameGenerator::genExprName(Scope *sc, Expr *expr, ActId *rhs) {
   list_t *arg_list = list_new();
+  char *instance = new char[MAX_INSTANCE_LEN];
+  char buf[16];
+  char *tmp;
   act_expr_collect_ids(arg_list, expr);
-  return act_expr_to_string(arg_list, expr);
+  tmp = act_expr_to_string(arg_list, expr);
+  snprintf (instance, MAX_INSTANCE_LEN, tmp);
+  FREE (tmp);
+  listitem_t *li;
+  list_append (arg_list, rhs);
+  for (li = list_first (arg_list); li; li = list_next (li)) {
+    InstType *it = sc->FullLookup ((ActId *) list_value (li), NULL);
+    Assert (it, "Hmm");
+    Assert (TypeFactory::bitWidth (it) > 0, "Non-positive bitwidth?");
+    snprintf (buf, 16, "W%d", TypeFactory::bitWidth (it));
+    strcat (instance, buf);
+  }
+  list_free (arg_list);
+
+  return instance;
 }
 
-const char *NameGenerator::genExprClusterName(list_t *dflow_cluster) {
+const char *NameGenerator::genExprClusterName(Scope *sc, list_t *dflow_cluster) {
   Vector<Expr *> exprList;
   for (listitem_t *li = list_first (dflow_cluster); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
@@ -136,6 +153,23 @@ const char *NameGenerator::genExprClusterName(list_t *dflow_cluster) {
     if (name[0] != '\0') strcat(name, delimiter);
     strcat(name, act_expr_to_string(argList, e));
   }
+
+  for (listitem_t *li = list_first (dflow_cluster); li; li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    Assert (d->t == ACT_DFLOW_FUNC, "What?");
+    list_append (argList, d->u.func.rhs);
+  }
+  
+  for (listitem_t *li = list_first (argList); li; li = list_next (li)) {
+    char buf[16];
+    InstType *it = sc->FullLookup ((ActId *) list_value (li), NULL);
+    Assert (it, "Hmm");
+    Assert (TypeFactory::bitWidth (it) > 0, "Non-positive bitwidth?");
+    snprintf (buf, 16, "W%d", TypeFactory::bitWidth (it));
+    strcat (name, buf);
+  }
+  list_free (argList);
+
   return name;
 }
 
@@ -144,22 +178,20 @@ const char *NameGenerator::genFUName(const char *procName,
                                      UIntVec &outBWList,
                                      UIntVec &argBWList) {
   char *instance = new char[MAX_INSTANCE_LEN];
-  sprintf(instance, "%s<", procName);
+  sprintf(instance, "%s", procName);
   unsigned numArgs = argList.size();
   unsigned numOuts = outBWList.size();
+#if 0  
   for (unsigned i = 0; i < numArgs; i++) {
     char *subInstance = new char[100];
-    sprintf(subInstance, "%u,", argBWList[i]);
+    sprintf(subInstance, "W%u", argBWList[i]);
     strcat(instance, subInstance);
   }
   for (unsigned i = 0; i < numOuts; i++) {
     char *subInstance = new char[100];
-    if (i == (numOuts - 1)) {
-      sprintf(subInstance, "%u>", outBWList[i]);
-    } else {
-      sprintf(subInstance, "%u,", outBWList[i]);
-    }
+    sprintf(subInstance, "W%u", outBWList[i]);
     strcat(instance, subInstance);
   }
+#endif  
   return instance;
 }

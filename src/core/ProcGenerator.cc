@@ -150,11 +150,15 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
+ 
+  int bw;
+  act_type_expr (sc, expr, &bw, 1);
+ 
   dflowGenerator->printChpQueryExpr(cexpr_name,
                                     lexpr_name,
                                     rexpr_name,
                                     resSuffix,
-                                    resBW);
+                                    bw);
   /* create Expr */
   int cType = (cExpr->type == E_INT) ? E_INT : E_VAR;
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
@@ -202,15 +206,22 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
+
+  int bw;
+  act_type_expr (sc, expr, &bw, 1);
+  
   dflowGenerator->printChpBinExpr(op,
                                   lexpr_name,
                                   rexpr_name,
                                   type,
                                   resSuffix,
-                                  resBW);
+                                  bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int rType = (rExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
+
+  
+  
   dflowGenerator->prepareBinExprForOpt(lexpr_name,
                                        lType,
                                        rexpr_name,
@@ -241,7 +252,11 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
-  dflowGenerator->printChpUniExpr(op, lexpr_name, resSuffix, resBW);
+
+  int bw;
+  act_type_expr (sc, expr, &bw, 1);
+  
+  dflowGenerator->printChpUniExpr(op, lexpr_name, resSuffix, bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
   int exprType = expr->type;
   dflowGenerator->prepareUniExprForOpt(lexpr_name,
@@ -270,7 +285,11 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
     operandList.push_back(operand_name);
     expr = expr->u.e.r;
   }
-  dflowGenerator->printChpConcatExpr(operandList, resSuffix, resBW);
+
+  int bw;
+  act_type_expr (sc, expr, &bw, 1);
+  
+  dflowGenerator->printChpConcatExpr(operandList, resSuffix, bw);
   dflowGenerator->prepareConcatExprForOpt(operandList,
                                           opTypeList,
                                           finalExprName,
@@ -1100,7 +1119,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
                       buffInfos);
       const char *calc = dflowGenerator->getCalc();
       if (strlen(calc) > 1) {
-        const char *auto_procName = NameGenerator::genExprName(d->u.func.lhs);
+        const char *auto_procName = NameGenerator::genExprName(sc, d->u.func.lhs, d->u.func.rhs);
         char *procName = new char[6 + strlen(auto_procName)];
         sprintf(procName, "func_%s", auto_procName);
         printDFlowFunc(dflowGenerator,
@@ -1338,7 +1357,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
     }
   }
   const char
-      *auto_clusterName = NameGenerator::genExprClusterName(dflow_cluster);
+    *auto_clusterName = NameGenerator::genExprClusterName(sc, dflow_cluster);
   char *clusterName = new char[6 + strlen(auto_clusterName)];
   sprintf(clusterName, "func_%s", auto_clusterName);
   if (debug_verbose) {

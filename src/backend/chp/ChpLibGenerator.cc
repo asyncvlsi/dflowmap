@@ -220,6 +220,22 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
                                     double *metric,
                                     UIntVec &resBW) {
   if (!checkAndUpdateProcess(procName)) {
+    std::vector<int> bits;
+    int pos = 0;
+    // collect bitwidths
+    while (procName[pos] && procName[pos] != 'W') {
+      pos++;
+    }
+    while (procName[pos] && procName[pos] == 'W') {
+      int w;
+      pos++;
+      sscanf (procName+pos, "%d", &w);
+      bits.push_back(w);
+      while (procName[pos] && procName[pos] != 'W') {
+	pos++;
+      }
+    }
+#if 0    
     fprintf(chpLibFp, "template<pint ");
     unsigned numTemplateVars = numArgs + numOuts;
     /* generate template for input/output channels */
@@ -231,13 +247,17 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
         fprintf(chpLibFp, ", ");
       }
     }
+#endif    
     /* generate defproc */
-    fprintf(chpLibFp, "defproc %s(", procName);
+    fprintf(chpLibFp, "defproc %s(", procName); 
     for (unsigned i = 0; i < numArgs; i++) {
-      fprintf(chpLibFp, "chan?(int<W%d>)in%d; ", i, i);
+      int w = bits[i];
+      fprintf(chpLibFp, "chan?(int<%d>)in%d; ", w, i);
     }
     for (unsigned i = 0; i < numOuts; i++) {
-      fprintf(chpLibFp, "chan!(int<W%d>) out%d", (i + numArgs), i);
+      int w;
+      w = bits[i + numArgs];
+      fprintf(chpLibFp, "chan!(int<%d>) out%d", w, i);
       if (i == (numOuts - 1)) {
         fprintf(chpLibFp, ") {\n");
       } else {
@@ -246,7 +266,7 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
     }
     /* define internal variables for the input channel */
     for (unsigned i = 0; i < numArgs; i++) {
-      fprintf(chpLibFp, "  int<W%d> x%d;\n", i, i);
+      fprintf(chpLibFp, "  int<%d> x%d;\n", bits[i], i);
     }
     /* define intermediate variables */
     unsigned numRes = resBW.size();
@@ -255,7 +275,7 @@ void ChpLibGenerator::printFUChpLib(const char *procName,
       int resbw = resBW[i];
       //TODO: this needs to be parameterized!!!
       if (resbw < 0) {
-	fprintf(chpLibFp, "  int<W%u> res%d;\n", numArgs + (-resbw) - 1, i);
+	fprintf(chpLibFp, "  int<%u> res%d; /* out */\n", bits[numArgs + (-resbw) - 1], i);
       }
       else {
 	fprintf(chpLibFp, "  int<%u> res%d;\n", resbw, i);
