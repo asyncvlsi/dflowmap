@@ -717,7 +717,9 @@ void Metrics::callLogicOptimizer(
   }
   else {
     leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
-    energy = info->power_typ_dynamic * info->delay_typ * 1e15;  // 1e-15J (fJ)
+    //energy = info->power_typ_dynamic * info->delay_typ * 1e15;  //
+    //1e-15J (fJ)
+    energy = info->power_typ_dynamic * config_get_real ("expropt.dynamic_power_period") * 1e15; // fJ
     delay = info->delay_typ * 1e12; // Delay (ps)
     area = info->area * 1e12;  // AREA (um^2)
   }
