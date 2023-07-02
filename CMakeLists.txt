@@ -50,6 +50,8 @@ set_target_properties(ActCommon PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/
 if (EXISTS $ENV{ACT_HOME}/lib/libexpropt.a)
     add_library(ExprOpt SHARED IMPORTED)
     set_target_properties(ExprOpt PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexpropt.a)
+    add_library(ABC SHARED IMPORTED)
+    set_target_properties(ABC PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libabc.a)
 else ()
     message(
             "libexpropt.a missing from $ENV{ACT_HOME}/lib. The tool cannot do logic optimizations or performance modeling for the customized function unit processes!")
