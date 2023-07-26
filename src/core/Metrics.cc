@@ -665,11 +665,11 @@ void Metrics::callLogicOptimizer(
   if (debug_verbose) {
     printf("Run logic optimizer for %s\n", normInstance);
   }
-  char *rtlModuleName = new char[strlen(normInstance) + 1];
-  sprintf(rtlModuleName, "%s", normInstance);
+  char *rtlModuleName = new char[strlen(normInstance) + 7];
+  sprintf(rtlModuleName, "%s_logic", normInstance);
   char *optimized_netlist_file =
       new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
-  sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, rtlModuleName);
+  sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, normInstance);
   expr_mapping_software software = yosys;
   if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
   bool tie_cells = false;
