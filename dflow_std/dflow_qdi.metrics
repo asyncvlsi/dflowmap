@@ -6,6 +6,9 @@
 #
 #------
 #
+# -- type converters
+lib::int_to_bool<> c=0,lg=0.0,li=0.0 c=0,lg=0.0,li=0.0 c=0,lg=0.0,li=0.0 0
+lib::bool_to_int<> c=0,lg=0.0,li=0.0 c=0,lg=0.0,li=0.0 c=0,lg=0.0,li=0.0 0
 #
 # -- metrics for dataflow source
 #

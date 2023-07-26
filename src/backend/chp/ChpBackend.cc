@@ -338,6 +338,13 @@ void ChpBackend::printProcHeader(Process *p) {
 #endif
 }
 
+void ChpBackend::printBoolToInt (act_connection *c) {
+  static double metric[] = { 0, 0, 0, 0 };
+  chpGenerator->printBoolToInt (c);
+  chpLibGenerator->printConf (metric, "std::dflow::lib::bool_to_int<>");
+  chpLibGenerator->printConf (metric, "std::dflow::lib::int_to_bool<>");
+}
+
 void ChpBackend::printFreshChannel(char *name, int bw) {
   chpGenerator->printChpFreshChannel(name, bw);
 #if GEN_NETLIST

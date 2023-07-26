@@ -21,6 +21,12 @@
 
 #include "ProcGenerator.h"
 
+
+const char *ProcGenerator::getOutputNormId (ActId *id)
+{
+
+}
+
 const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
   char *str = new char[10240];
   if (actId) {
@@ -36,14 +42,28 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
         printf("for %s, outUses: %d, copyUse: %d\n", actName, outUses, copyUse);
       }
       if (copyUse <= outUses) {
+	act_connection *c = actId->Canonical (sc);
         const char *normalizedName = getNormActIdName(actName);
-        sprintf(str, "%scopy.out[%u]", normalizedName, copyUse);
+	auto res = isBoolMap.find (c);
+	if (res != isBoolMap.end()) {
+	  sprintf(str, "_toint_%scopy.out[%u]", normalizedName, copyUse);
+	}
+	else {
+	  sprintf(str, "%scopy.out[%u]", normalizedName, copyUse);
+	}
       } else {
         printf("We use %s more than total uses!\n", actName);
         exit(-1);
       }
     } else {
-      sprintf(str, "%s", actName);
+      act_connection *c = actId->Canonical (sc);
+      auto res = isBoolMap.find (c);
+      if (res != isBoolMap.end()) {
+	sprintf (str, "_toint_%s", actName);
+      }
+      else {
+	sprintf(str, "%s", actName);
+      }
     }
   } else {
     sprintf(str, "*");
@@ -73,6 +93,12 @@ void ProcGenerator::collectBitwidthInfo() {
         printf("Update bitwidthMap for (%s, %d).\n", varName, bitwidth);
       }
       bitwidthMap.insert({c, bitwidth});
+      if (TypeFactory::isChanType (vx->t)) {
+	InstType *it = TypeFactory::getChanDataType (vx->t);
+	if (TypeFactory::isBoolType (it)) {
+	  isBoolMap.insert({c,true});
+	}
+      }
     }
   }
 }
@@ -806,7 +832,13 @@ void ProcGenerator::createCopyProcs() {
       act_connection *actConnection = opUsesIt.first;
       unsigned bitwidth = getBitwidth(actConnection);
       char *inName = new char[10240];
-      getActConnectionName(actConnection, inName, 10240);
+      if (isBoolMap.find (actConnection) != isBoolMap.end()) {
+	snprintf (inName, 10240, "_toint_");
+	getActConnectionName (actConnection, inName + 7, 10240-7);
+      }
+      else {
+	getActConnectionName(actConnection, inName, 10240);
+      }
       double *metric = metrics->getOrGenCopyMetric(bitwidth, numOut);
       const char
           *instance = NameGenerator::genCopyInstName(bitwidth, numOut);
@@ -932,6 +964,23 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
   chpBackend->printBuff(buffInfos);
 }
 
+static void fixboolchan_outname (Scope *sc,
+				 ActId *id,				 
+				 Map<act_connection *, bool> &isBoolMap,
+				 char *buf,
+				 int sz)
+{
+  act_connection *conn_rhs = id->Canonical (sc);
+  if (isBoolMap.find (conn_rhs) != isBoolMap.end()) {
+    snprintf (buf, sz, "_fromint_");
+    getActIdName (sc, id, buf + 9, sz - 9);
+  }
+  else {
+    getActIdName(sc, id, buf, sz);
+  }
+}
+
+
 void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
                                     act_dataflow_element *d,
                                     int &resSuffix,
@@ -943,10 +992,12 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
   int type = expr->type;
   ActId *rhs = d->u.func.rhs;
   char outName[10240];
-  getActIdName(sc, rhs, outName, 10240);
   unsigned outBW = getActIdBW(rhs);
   Expr *initExpr = d->u.func.init;
   Expr *bufExpr = d->u.func.nbufs;
+  
+  fixboolchan_outname (sc, rhs, isBoolMap, outName, 10240);
+  
   if (debug_verbose) {
     printf("Handle expr ");
     print_expr(stdout, expr);
@@ -1065,7 +1116,7 @@ void ProcGenerator::handleSelectionUnit(act_dataflow_element *d,
                                         unsigned &dataBW,
                                         int &numInputs) {
   ActId *output = d->u.splitmerge.single;
-  getActIdName(sc, output, outputName, 10240);
+  fixboolchan_outname (sc, output, isBoolMap, outputName, 10240);
   const char *normalizedOutput = getNormActIdName(outputName);
   if (debug_verbose) {
     printf("[merge]: %s_inst\n", normalizedOutput);
@@ -1160,7 +1211,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           outNameVec.push_back(sinkName);
         } else {
           char *outName = new char[10240];
-          getActIdName(sc, out, outName, 10240);
+	  fixboolchan_outname (sc, out, isBoolMap, outName, 10240);
           const char *normalizedOut = getNormActIdName(outName);
           strcat(splitName, normalizedOut);
           outNameVec.push_back(outName);
@@ -1414,6 +1465,11 @@ int ProcGenerator::run(Process *p) {
   }
   chpBackend->printProcHeader(p);
   collectBitwidthInfo();
+
+  for (auto it : isBoolMap) {
+    chpBackend->printBoolToInt (it.first);
+  }
+  
   collectOpUses();
   createCopyProcs();
   listitem_t *li = nullptr;

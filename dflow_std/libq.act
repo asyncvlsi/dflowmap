@@ -26,6 +26,22 @@ export namespace dflow {
 export namespace lib {
 
 export
+defproc bool_to_int(chan?(bool) in; chan!(int<1>) out)
+{
+  chp {
+    *[ [#in];out!int(in);in? ]
+  }
+}
+
+export
+defproc int_to_bool(chan?(int<1>) in; chan!(bool) out)
+{
+  chp {
+   *[ [#in];out!bool(in);in? ]
+  }
+}
+
+export
 template<pint V, W>
 defproc source(chan!(int<W>)out) {
   chp {

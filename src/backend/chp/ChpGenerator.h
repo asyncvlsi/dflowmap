@@ -92,6 +92,8 @@ class ChpGenerator {
 
   void printProcChpHeader(Process *p);
 
+  void printBoolToInt (act_connection *c);
+
   void printProcDeclaration(Process *p);
 
   void printProcEnding();
