@@ -167,7 +167,7 @@ class ProcGenerator {
  private:
   /* op, its bitwidth */
   Map<act_connection *, unsigned> bitwidthMap;
-  Map<act_connection *, bool> isBoolMap;
+  Map<act_connection *, int> isBoolMap;
   /* operator, # of times it is used (if it is used for more than once, then we create COPY for it) */
   Map<act_connection *, unsigned> opUses;
   /* copy operator, # of times it has already been used */

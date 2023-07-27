@@ -185,13 +185,13 @@ open std::dflow;
   fprintf(*netlistIncludeFp, R"(import globals;
 import std;
 import std::cells;
-import std::dflow::%s;
+import "std/dflow/%s%s";
 
 open std;
 open std::cells;
 open std::dflow;
 
-)", family);
+)", family, quiet_mode ? "q.act" : ".act");
   fprintf(*netlistIncludeFp, "import \"%s_chplib.act\";\n", workload_name);
 
   /* generate netlist file */

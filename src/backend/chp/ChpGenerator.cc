@@ -277,11 +277,21 @@ void ChpGenerator::printProcChpHeader(Process *p) {
   p->CurScope()->Print(chpFp);
 }
 
-void ChpGenerator::printBoolToInt (act_connection *c) {
-  if (c->getDir() != Type::OUT) {
+void ChpGenerator::printBoolToIntDecl (act_connection *c, int val) {
+  if (val & 0x1) {
     fprintf (chpFp, "chan(int<1>) _toint_");
     c->Print (chpFp);
     fprintf (chpFp, ";\n");
+  }
+  if (val & 0x2) {
+    fprintf (chpFp, "chan(int<1>) _fromint_");
+    c->Print (chpFp);
+    fprintf (chpFp, ";\n");
+  }
+}
+
+void ChpGenerator::printBoolToIntConv (act_connection *c, int val) {
+  if (val & 0x1) {
     fprintf (chpFp, "lib::bool_to_int _xint");
     c->Print (chpFp);
     fprintf (chpFp, "(");
@@ -290,10 +300,7 @@ void ChpGenerator::printBoolToInt (act_connection *c) {
     c->Print (chpFp);
     fprintf (chpFp, ");\n");
   }
-  if (c->getDir() != Type::IN) {
-    fprintf (chpFp, "chan(int<1>) _fromint_");
-    c->Print (chpFp);
-    fprintf (chpFp, ";\n");
+  if (val & 0x2) {
     fprintf (chpFp, "lib::int_to_bool _xint2");
     c->Print (chpFp);
     fprintf (chpFp, "(_fromint_");
@@ -303,6 +310,7 @@ void ChpGenerator::printBoolToInt (act_connection *c) {
     fprintf (chpFp, ");\n");
   }
 }
+
 
 void ChpGenerator::printProcDeclaration(Process *p) {
   p->PrintHeader(chpFp, "defproc");

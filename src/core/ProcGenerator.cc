@@ -46,6 +46,10 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
         const char *normalizedName = getNormActIdName(actName);
 	auto res = isBoolMap.find (c);
 	if (res != isBoolMap.end()) {
+	  if (!(res->second & 0x1)) {
+	    chpBackend->printBoolToIntDecl (res->first, 0x1);
+	  }
+	  res->second = res->second | 0x1;
 	  sprintf(str, "_toint_%scopy.out[%u]", normalizedName, copyUse);
 	}
 	else {
@@ -59,6 +63,10 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
       act_connection *c = actId->Canonical (sc);
       auto res = isBoolMap.find (c);
       if (res != isBoolMap.end()) {
+	if (!(res->second & 0x1)) {
+	  chpBackend->printBoolToIntDecl (res->first, 0x1);
+	}
+	res->second = res->second | 0x1;
 	sprintf (str, "_toint_%s", actName);
       }
       else {
@@ -96,7 +104,7 @@ void ProcGenerator::collectBitwidthInfo() {
       if (TypeFactory::isChanType (vx->t)) {
 	InstType *it = TypeFactory::getChanDataType (vx->t);
 	if (TypeFactory::isBoolType (it)) {
-	  isBoolMap.insert({c,true});
+	  isBoolMap.insert({c,0});
 	}
       }
     }
@@ -832,7 +840,12 @@ void ProcGenerator::createCopyProcs() {
       act_connection *actConnection = opUsesIt.first;
       unsigned bitwidth = getBitwidth(actConnection);
       char *inName = new char[10240];
-      if (isBoolMap.find (actConnection) != isBoolMap.end()) {
+      auto lookup = isBoolMap.find (actConnection);
+      if (lookup != isBoolMap.end()) {
+	if (!(lookup->second & 0x1)) {
+	  chpBackend->printBoolToIntDecl (lookup->first, 0x1);
+	}
+	lookup->second = lookup->second | 0x1;
 	snprintf (inName, 10240, "_toint_");
 	getActConnectionName (actConnection, inName + 7, 10240-7);
       }
@@ -966,12 +979,18 @@ void ProcGenerator::printDFlowFunc(DflowGenerator *dflowGenerator,
 
 static void fixboolchan_outname (Scope *sc,
 				 ActId *id,				 
-				 Map<act_connection *, bool> &isBoolMap,
+				 Map<act_connection *, int> &isBoolMap,
+				 ChpBackend *chpBackend,
 				 char *buf,
 				 int sz)
 {
   act_connection *conn_rhs = id->Canonical (sc);
-  if (isBoolMap.find (conn_rhs) != isBoolMap.end()) {
+  auto res = isBoolMap.find (conn_rhs);
+  if (res != isBoolMap.end()) {
+    if (!(res->second & 0x2)) {
+      chpBackend->printBoolToIntDecl (res->first, 0x2);
+    }
+    res->second = res->second | 0x2;
     snprintf (buf, sz, "_fromint_");
     getActIdName (sc, id, buf + 9, sz - 9);
   }
@@ -996,7 +1015,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
   Expr *initExpr = d->u.func.init;
   Expr *bufExpr = d->u.func.nbufs;
   
-  fixboolchan_outname (sc, rhs, isBoolMap, outName, 10240);
+  fixboolchan_outname (sc, rhs, isBoolMap, chpBackend, outName, 10240);
   
   if (debug_verbose) {
     printf("Handle expr ");
@@ -1116,7 +1135,7 @@ void ProcGenerator::handleSelectionUnit(act_dataflow_element *d,
                                         unsigned &dataBW,
                                         int &numInputs) {
   ActId *output = d->u.splitmerge.single;
-  fixboolchan_outname (sc, output, isBoolMap, outputName, 10240);
+  fixboolchan_outname (sc, output, isBoolMap, chpBackend, outputName, 10240);
   const char *normalizedOutput = getNormActIdName(outputName);
   if (debug_verbose) {
     printf("[merge]: %s_inst\n", normalizedOutput);
@@ -1211,7 +1230,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
           outNameVec.push_back(sinkName);
         } else {
           char *outName = new char[10240];
-	  fixboolchan_outname (sc, out, isBoolMap, outName, 10240);
+	  fixboolchan_outname (sc, out, isBoolMap, chpBackend, outName, 10240);
           const char *normalizedOut = getNormActIdName(outName);
           strcat(splitName, normalizedOut);
           outNameVec.push_back(outName);
@@ -1465,11 +1484,6 @@ int ProcGenerator::run(Process *p) {
   }
   chpBackend->printProcHeader(p);
   collectBitwidthInfo();
-
-  for (auto it : isBoolMap) {
-    chpBackend->printBoolToInt (it.first);
-  }
-  
   collectOpUses();
   createCopyProcs();
   listitem_t *li = nullptr;
@@ -1484,6 +1498,11 @@ int ProcGenerator::run(Process *p) {
       handleNormDflowElement(d, sinkCnt);
     }
   }
+
+  for (auto it : isBoolMap) {
+    chpBackend->printBoolToIntConv (it.first, it.second);
+  }
+  
   chpBackend->printProcEnding();
   return 0;
 }

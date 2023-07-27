@@ -130,7 +130,8 @@ class ChpBackend {
                     CharPtrVec &inNameVec);
 
   void printProcHeader(Process *p);
-  void printBoolToInt (act_connection *c);
+  void printBoolToIntDecl (act_connection *c, int val);
+  void printBoolToIntConv (act_connection *c, int val);
 
   void printProcDeclaration(Process *p);
 
