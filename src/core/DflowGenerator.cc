@@ -319,13 +319,20 @@ void DflowGenerator::prepareConcatExprForOpt(StringVec &operandList,
   Expr *expr = new Expr;
   expr->type = E_CONCAT;
   Expr *rootExpr = expr;
+  expr->u.e.l = NULL;
+  expr->u.e.r = NULL;
   size_t numOps = operandList.size();
   for (size_t i = 0; i < numOps; i++) {
     Expr *opExpr =
-        getExprFromName(operandList[i].c_str(), exprMap, false, opTypeList[i]);
+      getExprFromName(Strdup (operandList[i].c_str()), exprMap, false, opTypeList[i]);
     expr->u.e.l = opExpr;
-    expr->u.e.r = new Expr;
-    expr = expr->u.e.r;
+    if (i < numOps-1) {
+      expr->u.e.r = new Expr;
+      expr->u.e.r->type = E_CONCAT;
+      expr->u.e.r->u.e.l = NULL;
+      expr->u.e.r->u.e.r = NULL;
+      expr = expr->u.e.r;
+    }
   }
   hiddenBWMap.insert({expr_name, bw});
   hiddenExprs.insert({rhs, rootExpr});

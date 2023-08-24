@@ -308,6 +308,7 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
   StringVec operandList;
   IntVec opTypeList;
   char *finalExprName = new char[100];
+  Expr *orig_expr = expr;
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
   while (expr) {
@@ -321,7 +322,7 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
   }
 
   int bw;
-  act_type_expr (sc, expr, &bw, 1);
+  act_type_expr (sc, orig_expr, &bw, 1);
   
   dflowGenerator->printChpConcatExpr(operandList, resSuffix, bw);
   dflowGenerator->prepareConcatExprForOpt(operandList,
@@ -360,18 +361,30 @@ const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
 
+  printf ("Expr: ");
+  print_expr (stdout, expr);
+  printf ("\n");
+
+  int lo, hi;
   int bw;
-  bw = expr->u.e.r->u.e.r->u.ival.v - expr->u.e.r->u.e.l->u.ival.v + 1;
+
+  hi = expr->u.e.r->u.e.r->u.ival.v;
+  if (expr->u.e.r->u.e.l) {
+    lo = expr->u.e.r->u.e.l->u.ival.v;
+  }
+  else {
+    lo = hi;
+  }
+
+  bw = hi - lo + 1;
 
   dflowGenerator->printChpBitfieldExpr (lexpr_name,
-					expr->u.e.r->u.e.r->u.ival.v,
-					expr->u.e.r->u.e.l->u.ival.v,
+					hi, lo, 
 					resSuffix, bw);
 
   dflowGenerator->prepareBitfieldExprForOpt(lexpr_name,
 					    finalExprName,
-					    expr->u.e.r->u.e.r->u.ival.v,
-					    expr->u.e.r->u.e.l->u.ival.v,
+					    hi, lo,
 					    bw);
   
   return finalExprName;
