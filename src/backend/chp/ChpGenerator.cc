@@ -98,12 +98,17 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
     sprintf(prevInName, "%s_bufIn", finalOutput);
     char *onebufInstance = new char[1024];
     sprintf(onebufInstance, "lib::onebuf<%u>", bw);
-    for (unsigned i = 0; i < nBuff - 1; i++) {
-      char *chanName = new char[strlen(finalOutput) + 1024];
-      sprintf(chanName, "%s_buf%u", finalOutput, i);
-      printChannelChp(chanName, bw);
-      printOneBuffChp(onebufInstance, prevInName, chanName);
-      prevInName = chanName;
+    if (nBuff > 1) {
+      if (!hasInitVal) {
+	nBuff--;
+      }
+      for (unsigned i = 0; i < nBuff - 1; i++) {
+	char *chanName = new char[strlen(finalOutput) + 1024];
+	sprintf(chanName, "%s_buf%u", finalOutput, i);
+	printChannelChp(chanName, bw);
+	printOneBuffChp(onebufInstance, prevInName, chanName);
+	prevInName = chanName;
+      }
     }
     if (hasInitVal) {
       char *initProcName = new char[1024];

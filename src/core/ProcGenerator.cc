@@ -1139,6 +1139,12 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
   unsigned long numBuff = bufExpr->u.ival.v;
   unsigned long initVal = -1;
   bool hasInitVal = false;
+
+  if (!initExpr && ((signed)numBuff < 2)) {
+    // nothing to do here!
+    return;
+  }
+
   if (initExpr) {
     if (initExpr->type != E_INT) {
       print_expr(stdout, initExpr);
@@ -1150,6 +1156,11 @@ void ProcGenerator::handleBuff(Expr *bufExpr,
   }
   double *buffMetric = metrics->getBuffMetric(numBuff, outBW);
   BuffInfo buff_info;
+
+  if ((signed)numBuff < 0) {
+    numBuff = 0;
+  }
+
   buff_info.outputID = outID;
   buff_info.bw = outBW;
   buff_info.nBuff = numBuff;

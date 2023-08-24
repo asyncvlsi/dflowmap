@@ -371,7 +371,7 @@ void ChpLibGenerator::printBuffChpLib(Vector<BuffInfo> &buffInfos) {
     unsigned bw = buffInfo.bw;
     bool hasInitVal = buffInfo.hasInitVal;
     double *metric = buffInfo.metric;
-    if ((numBuff > 1) || (!hasInitVal)) {
+    if (numBuff > 1) {
       char *buffInstance = new char[1024];
       sprintf(buffInstance, "lib::onebuf<%u>", bw);
       printOneBuffChpLib(buffInstance, metric);
