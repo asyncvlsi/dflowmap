@@ -418,7 +418,7 @@ void ChpLibGenerator::printChpBlock(Process *p, int where) {
   }
 #endif
   if (p->getlang()->getchp()) {
-    p->Print(chpLibFp);
+    p->Print(chpFp);
   }
   else {
     p->Print(chpFp);

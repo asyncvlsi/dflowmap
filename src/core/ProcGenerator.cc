@@ -360,10 +360,11 @@ const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
   char *finalExprName = new char[100];
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
-
+#if 0
   printf ("Expr: ");
   print_expr (stdout, expr);
   printf ("\n");
+#endif  
 
   int lo, hi;
   int bw;
