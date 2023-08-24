@@ -52,6 +52,11 @@ class DflowGenerator {
                           int resSuffix,
                           unsigned resBW);
 
+  void printChpBitfieldExpr(const char *exprName,
+			    unsigned hi, unsigned lo,
+			    const int resSuffix,
+			    unsigned resBW);
+  
   void printChpUniExpr(const char *op,
                        const char *exprName,
                        int resSuffix,
@@ -103,6 +108,11 @@ class DflowGenerator {
                                IntVec &opTypeList,
                                const char *expr_name,
                                unsigned bw);
+
+  void prepareBitfieldExprForOpt(const char *lexpr_name,
+                                 const char *expr_name,
+                                 unsigned hi, unsigned lo,
+                                 unsigned bw);
 
   const char *getCalc();
 

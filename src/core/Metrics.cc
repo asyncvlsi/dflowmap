@@ -584,11 +584,33 @@ void Metrics::callLogicOptimizer(
     }
     Expr *hiddenRHS = getExprFromName(hiddenChar, exprMap, true, -1);
     ihash_bucket_t *b_expr2, *b_width2;
+
+    if (debug_verbose) {
+      printf ("hiddenRHS: ");
+      print_expr(stdout, hiddenRHS);
+      printf (" ; val = %p\n", hiddenRHS);
+    }
+    
     b_expr2 = ihash_add(in_expr_map, (long) hiddenRHS);
     b_expr2->v = hiddenChar;
     b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
     b_width2->i = (int) bw;
     Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
+
+    if (debug_verbose) {
+      printf ("hiddenExpr: ");
+      print_expr (stdout, hiddenExpr);
+      printf (" ; val = %p\n", hiddenExpr);
+    }
+
+    // hack
+    if (hiddenExpr->type == E_BITFIELD) {
+      char buf[10240];
+      ((ActId *)hiddenExpr->u.e.l)->sPrint (buf, 10240);
+      b_expr2 = ihash_add (in_expr_map, (long) hiddenExpr);
+      b_expr2->v = Strdup (buf);
+    }
+    
     list_append(hidden_expr_list, hiddenExpr);
     list_append(hidden_expr_name_list, hiddenChar);
     ihash_bucket_t *b_width = ihash_lookup(out_width_map, (long) hiddenExpr);

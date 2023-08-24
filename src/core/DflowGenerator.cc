@@ -120,6 +120,25 @@ void DflowGenerator::printChpUniExpr(const char *op,
   resBWList.push_back(resBW);
 }
 
+void DflowGenerator::printChpBitfieldExpr(const char *exprName,
+                                     unsigned hi, unsigned lo,
+                                     const int resSuffix,
+                                     unsigned resBW) {
+  char *curCal = new char[128 + strlen(exprName)];
+  sprintf(curCal, "      res%d := %s{%d..%d};\n", resSuffix, exprName, hi, lo);
+  strcat(calc, curCal);
+  if (debug_verbose) {
+    printf("uni res%d has bw %u\n", resSuffix, resBW);
+    printf("%s\n", curCal);
+  }
+  if (resBW == 0) {
+    printf("resBW is 0!\n");
+    exit(-1);
+  }
+  resBWList.push_back(resBW);
+}
+
+
 void DflowGenerator::printChpBinExpr(const char *op,
                                      const char *lexpr_name,
                                      const char *rexpr_name,
@@ -256,6 +275,41 @@ void DflowGenerator::prepareUniExprForOpt(const char *lexpr_name,
     printf(".\n");
   }
 }
+
+void DflowGenerator::prepareBitfieldExprForOpt(const char *lexpr_name,
+                                          const char *expr_name,
+                                          unsigned hi, unsigned lo,
+                                          unsigned bw) {
+
+  Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, E_VAR);
+  Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
+  
+  Expr *expr = new Expr;
+  expr->type = E_BITFIELD;
+  expr->u.e.l = lExpr->u.e.l;
+  expr->u.e.r = new Expr;
+  expr->u.e.r->type = E_BITFIELD;
+  expr->u.e.r->u.e.l = new Expr;
+  expr->u.e.r->u.e.r = new Expr;
+  expr->u.e.r->u.e.r->type = E_INT;
+  expr->u.e.r->u.e.r->u.ival.v = hi;
+  expr->u.e.r->u.e.r->u.ival.v_extra = NULL;
+  expr->u.e.r->u.e.l->type = E_INT;
+  expr->u.e.r->u.e.l->u.ival.v = lo;
+  expr->u.e.r->u.e.r->u.ival.v_extra = NULL;
+  
+  hiddenBWMap.insert({expr_name, bw});
+  hiddenExprs.insert({rhs, expr});
+  
+  if (debug_verbose) {
+    printf("rhs: ");
+    print_expr(stdout, rhs);
+    printf(", resExpr: ");
+    print_expr(stdout, expr);
+    printf(".\n");
+  }
+}
+
 
 void DflowGenerator::prepareConcatExprForOpt(StringVec &operandList,
                                              IntVec &opTypeList,
