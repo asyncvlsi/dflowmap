@@ -137,6 +137,13 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
   if (bitwidthMapIt != bitwidthMap.end()) {
     return bitwidthMapIt->second;
   }
+  if (actConnection->getctype() == 1) {
+    Assert (actConnection->parent, "What?");
+    bitwidthMapIt = bitwidthMap.find (actConnection->parent);
+    if (bitwidthMapIt != bitwidthMap.end()) {
+      return bitwidthMapIt->second;
+    }
+  }
   char *varName = new char[10240];
   getActConnectionName(actConnection, varName, 10240);
   printf("We could not find bitwidth info for %s\n", varName);

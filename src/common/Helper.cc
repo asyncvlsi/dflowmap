@@ -41,6 +41,8 @@ const char *getNormActIdName(const char *src) {
   char *result = new char[1 + strlen(src)];
   sprintf(result, "%s", src);
   normalizeName(result, '.', '_');
+  normalizeName(result, '[', '_');
+  normalizeName(result, ']', '_');
   return result;
 }
 
