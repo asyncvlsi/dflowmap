@@ -316,8 +316,6 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
   IntVec opTypeList;
   char *finalExprName = new char[100];
   Expr *orig_expr = expr;
-  resSuffix++;
-  sprintf(finalExprName, "res%d", resSuffix);
   while (expr) {
     Expr *operand = expr->u.e.l;
     int opType = (operand->type == E_INT) ? E_INT : E_VAR;
@@ -330,6 +328,9 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
 
   int bw;
   act_type_expr (sc, orig_expr, &bw, 1);
+
+  resSuffix++;
+  sprintf(finalExprName, "res%d", resSuffix);
   
   dflowGenerator->printChpConcatExpr(operandList, resSuffix, bw);
   dflowGenerator->prepareConcatExprForOpt(operandList,
