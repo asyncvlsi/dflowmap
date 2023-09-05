@@ -54,8 +54,8 @@ void ChpGenerator::printInitChp(const char *instance,
   fprintf(chpFp,
           "%s %s_inst(%s, %s);\n",
           instance,
-          normOutput,
-          inName,
+          getNormInstanceName (normOutput),
+          getNormActIdName (inName),
           outName);
   if (debug_verbose) {
     printf("[buff] %s_init\n", outName);
@@ -68,8 +68,8 @@ void ChpGenerator::printOneBuffChp(const char *instance,
   fprintf(chpFp,
           "%s %s_inst(%s, %s);\n",
           instance,
-          outName,
-          inName,
+          getNormActIdName (outName),
+          getNormActIdName(inName),
           outName);
   if (debug_verbose) {
     printf("[buff] %s_init\n", outName);
@@ -105,8 +105,10 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
       for (unsigned i = 0; i < nBuff - 1; i++) {
 	char *chanName = new char[strlen(finalOutput) + 1024];
 	sprintf(chanName, "%s_buf%u", finalOutput, i);
-	printChannelChp(chanName, bw);
-	printOneBuffChp(onebufInstance, prevInName, chanName);
+	char *tmp = (char *)getNormActIdName (chanName);
+	printChannelChp(tmp, bw);
+	printOneBuffChp(onebufInstance, prevInName, tmp);
+	delete tmp;
 	prevInName = chanName;
       }
     }
@@ -115,7 +117,7 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
       sprintf(initProcName, "lib::init<%lu,%u>", initVal, bw);
       printInitChp(initProcName, prevInName, finalOutput);
     } else {
-      printOneBuffChp(onebufInstance, prevInName, finalOutput);
+      printOneBuffChp(onebufInstance, getNormActIdName (prevInName), finalOutput);
     }
   }
 }
@@ -136,7 +138,7 @@ const char *ChpGenerator::printFUChp(const char *instance,
     char *actualOut = new char[7 + len];
     sprintf(actualOut, "%s_bufIn", output);
     unsigned bw = buffInfo.bw;
-    printChannelChp(actualOut, bw);
+    printChannelChp(getNormActIdName (actualOut), bw);
   }
   Vector<unsigned> buffOutIDs;
   for (auto &buffInfo: buffInfos) {
@@ -157,6 +159,7 @@ const char *ChpGenerator::printFUChp(const char *instance,
     char *actualNormOut = new char[7 + strlen(normOut)];
     if (hasInVector<unsigned>(buffOutIDs, i)) {
       sprintf(actualOut, "%s_bufIn", oriOut);
+      actualOut = (char *)getNormActIdName (actualOut);
       sprintf(actualNormOut, "%s_bufIn", normOut);
     } else {
       sprintf(actualOut, "%s", oriOut);
