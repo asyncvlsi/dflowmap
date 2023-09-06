@@ -108,7 +108,7 @@ void ChpGenerator::printBuffChp(Vector<BuffInfo> &buffInfos) {
 	char *tmp = (char *)getNormActIdName (chanName);
 	printChannelChp(tmp, bw);
 	printOneBuffChp(onebufInstance, prevInName, tmp);
-	delete tmp;
+	//delete tmp;
 	prevInName = chanName;
       }
     }

@@ -248,8 +248,9 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
 
-  int bw;
+  int bw = 0;
   act_type_expr (sc, expr, &bw, 1);
+
   
   dflowGenerator->printChpBinExpr(op,
                                   lexpr_name,
@@ -361,7 +362,7 @@ const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
                                      lExpr,
                                      resSuffix,
                                      resBW);
-  delete lExpr;
+  //delete lExpr;
   
   char *val = new char[100];
   getCurProc(lexpr_name, val);
