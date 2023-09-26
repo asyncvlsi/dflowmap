@@ -317,6 +317,7 @@ void ChpBackend::printArbiter(double *metric,
   chpLibGenerator->printArbiterChpLib(instance, metric);
 #if GEN_NETLIST
   size_t numInputs = inNameVec.size();
+  unsigned int ADDR = 1;
 #if PIPELINE
   dflowNetBackend->printPipeArbiterNetlist(outName,
                                            dataBW,
@@ -324,6 +325,7 @@ void ChpBackend::printArbiter(double *metric,
                                            numInputs);
 #else
   dflowNetBackend->printUnpipeArbiterNetlist(outName,
+					     ADDR,
                                              dataBW,
                                              guardBW,
                                              numInputs);
