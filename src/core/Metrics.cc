@@ -772,12 +772,20 @@ void Metrics::callLogicOptimizer(
 
     if (!ctrlmetric) {
       warning ("Update calibration to include %d-input functions", n_inputs);
-      snprintf (procname, MAX_INSTANCE_LEN, "lib::func<8,1,1>");
-      ctrlmetric = calcMetric (procname, (int)avg_bw);
 
-      if (!ctrlmetric) {
-	fatal_error ("Missing 8-input function!");
+      int num = n_inputs - 1;
+
+      while (!ctrlmetric && num) {
+	snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,1>", num);
+	ctrlmetric = calcMetric (procname, (int)avg_bw);
+	num--;
       }
+      if (!num) {
+	fatal_error ("No function metrics?");
+      }
+      num++;
+      warning ("Substituting %d-input function metrics instead of %d-input",
+	       num, n_inputs);
     }
   }
 
@@ -845,12 +853,20 @@ double *Metrics::getOrGenFUMetric(
 
       if (!ctrlmetric) {
 	warning ("Update calibration to include %d-input functions", n_inputs);
-	snprintf (procname, MAX_INSTANCE_LEN, "lib::func<8,1,1>");
-	ctrlmetric = calcMetric (procname, (int)avg_bw);
 
-	if (!ctrlmetric) {
-	  fatal_error ("Missing 8-input function!");
+	int num = n_inputs - 1;
+
+	while (!ctrlmetric && num) {
+	  snprintf (procname, MAX_INSTANCE_LEN, "lib::func<%d,1,1>", num);
+	  ctrlmetric = calcMetric (procname, (int)avg_bw);
+	  num--;
 	}
+	if (!num) {
+	  fatal_error ("No function metrics?");
+	}
+	num++;
+	warning ("Substituting %d-input function metrics instead of %d-input",
+		 num, n_inputs);
       }
     }
     double *tmp_met = metric;
