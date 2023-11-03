@@ -288,12 +288,12 @@ void ChpGenerator::printProcChpHeader(Process *p) {
 void ChpGenerator::printBoolToIntDecl (act_connection *c, int val) {
   if (val & 0x1) {
     fprintf (chpFp, "chan(int<1>) _toint_");
-    c->Print (chpFp);
+    printActConnectionName (chpFp, c);
     fprintf (chpFp, ";\n");
   }
   if (val & 0x2) {
     fprintf (chpFp, "chan(int<1>) _fromint_");
-    c->Print (chpFp);
+    printActConnectionName (chpFp, c);
     fprintf (chpFp, ";\n");
   }
 }
@@ -301,18 +301,18 @@ void ChpGenerator::printBoolToIntDecl (act_connection *c, int val) {
 void ChpGenerator::printBoolToIntConv (act_connection *c, int val) {
   if (val & 0x1) {
     fprintf (chpFp, "lib::bool_to_int _xint");
-    c->Print (chpFp);
+    printActConnectionName (chpFp, c);
     fprintf (chpFp, "(");
     c->Print (chpFp);
     fprintf (chpFp, ",_toint_");
-    c->Print (chpFp);
+    printActConnectionName (chpFp, c);
     fprintf (chpFp, ");\n");
   }
   if (val & 0x2) {
     fprintf (chpFp, "lib::int_to_bool _xint2");
-    c->Print (chpFp);
+    printActConnectionName (chpFp,c);
     fprintf (chpFp, "(_fromint_");
-    c->Print (chpFp);
+    printActConnectionName (chpFp, c);
     fprintf (chpFp, ",");
     c->Print (chpFp);
     fprintf (chpFp, ");\n");

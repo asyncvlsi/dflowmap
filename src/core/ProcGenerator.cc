@@ -67,7 +67,9 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
 	  chpBackend->printBoolToIntDecl (res->first, 0x1);
 	}
 	res->second = res->second | 0x1;
-	sprintf (str, "_toint_%s", actName);
+	char *tmp = _getNormActIdName (actName);
+	sprintf (str, "_toint_%s", tmp);
+	FREE (tmp);
       }
       else {
 	sprintf(str, "%s", actName);
@@ -931,6 +933,9 @@ void ProcGenerator::createCopyProcs() {
 	lookup->second = lookup->second | 0x1;
 	snprintf (inName, 10240, "_toint_");
 	getActConnectionName (actConnection, inName + 7, 10240-7);
+	char *tmp = _getNormActIdName (inName + 7);
+	sprintf (inName+7, "%s", tmp);
+	FREE (tmp);
       }
       else {
 	getActConnectionName(actConnection, inName, 10240);
@@ -1076,6 +1081,9 @@ static void fixboolchan_outname (Scope *sc,
     res->second = res->second | 0x2;
     snprintf (buf, sz, "_fromint_");
     getActIdName (sc, id, buf + 9, sz - 9);
+    char *tmp = _getNormActIdName (buf + 9);
+    sprintf (buf + 9, "%s", tmp);
+    FREE (tmp);
   }
   else {
     getActIdName(sc, id, buf, sz);

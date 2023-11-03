@@ -37,13 +37,30 @@ const char *getNormInstanceName(const char *src) {
   normalizeName(result, ',', '_');
   return result;
 }
-const char *getNormActIdName(const char *src) {
+
+char *_getNormActIdName(const char *src) {
   char *result = new char[1 + strlen(src)];
   sprintf(result, "%s", src);
   normalizeName(result, '.', '_');
   normalizeName(result, '[', '_');
   normalizeName(result, ']', '_');
   return result;
+}
+
+const char *getNormActIdName(const char *src) {
+  return _getNormActIdName (src);
+}
+
+void printActConnectionName (FILE *fp, act_connection *c)
+{
+  char buf[10240];
+  ActId *id = c->toid();
+  id->sPrint (buf, 10240);
+  delete id;
+  normalizeName (buf, '.', '_');
+  normalizeName (buf, '[', '_');
+  normalizeName (buf, ']', '_');
+  fprintf (fp, "%s", buf);
 }
 
 void printIntVec(IntVec &intVec) {
