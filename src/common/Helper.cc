@@ -166,7 +166,7 @@ void print_dflow(FILE *fp, list_t *dflow) {
 
   for (li = list_first (dflow); li; li = list_next (li)) {
     e = (act_dataflow_element *) list_value (li);
-    dflow_print(fp, e);
+    dflow_print(fp, e, 1);
     if (list_next (li)) {
       fprintf(fp, ";");
     }

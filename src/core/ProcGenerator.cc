@@ -803,7 +803,7 @@ void ProcGenerator::collectDflowClusterUses(list_t *dflow,
         recordOpUses(guard, actConnectVec);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
-          dflow_print(stdout, d);
+          dflow_print(stdout, d, 1);
           printf("\nMerge has less than TWO inputs!\n");
           exit(-1);
         }
@@ -818,7 +818,7 @@ void ProcGenerator::collectDflowClusterUses(list_t *dflow,
       case ACT_DFLOW_ARBITER: {
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
-          dflow_print(stdout, d);
+          dflow_print(stdout, d, 1);
           printf(" has less than TWO inputs!\n");
           exit(-1);
         }
@@ -875,7 +875,7 @@ void ProcGenerator::collectOpUses() {
         updateOpUses(guard);
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
-          dflow_print(stdout, d);
+          dflow_print(stdout, d, 1);
           printf("\nMerge has less than TWO inputs!\n");
           exit(-1);
         }
@@ -890,7 +890,7 @@ void ProcGenerator::collectOpUses() {
       case ACT_DFLOW_ARBITER: {
         int numInputs = d->u.splitmerge.nmulti;
         if (numInputs < 2) {
-          dflow_print(stdout, d);
+          dflow_print(stdout, d, 1);
           printf(" has less than TWO inputs!\n");
           exit(-1);
         }
@@ -1148,7 +1148,7 @@ void ProcGenerator::handleDFlowFunc(DflowGenerator *dflowGenerator,
       handleBuff(bufExpr, initExpr, outName, outID, outBW, buffInfos);
     if (debug_verbose) {
       printf("For dataflow element: ");
-      dflow_print(stdout, d);
+      dflow_print(stdout, d, 1);
       printf("\n___________________________________________\n");
       printf("out bw: %d\n", outBW);
       printf("resSuffix: %d\n", resSuffix);
@@ -1258,7 +1258,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
     case ACT_DFLOW_FUNC: {
       if (debug_verbose) {
         printf("Process normal dflow:\n");
-        dflow_print(stdout, d);
+        dflow_print(stdout, d, 1);
         printf("\n");
       }
       StringVec argList;
@@ -1459,7 +1459,7 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       break;
     }
     case ACT_DFLOW_CLUSTER: {
-      dflow_print(stdout, d);
+      dflow_print(stdout, d, 1);
       printf("We should not process dflow_clsuter here!");
       exit(-1);
     }
@@ -1510,7 +1510,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (debug_verbose) {
       printf("Start to process dflow_cluster element ");
-      dflow_print(stdout, d);
+      dflow_print(stdout, d, 1);
       printf("\n");
     }
     if (d->t == ACT_DFLOW_FUNC) {
@@ -1522,7 +1522,7 @@ void ProcGenerator::handleDFlowCluster(list_t *dflow_cluster) {
                       outRecord,
                       buffInfos);
     } else {
-      dflow_print(stdout, d);
+      dflow_print(stdout, d, 1);
       printf(
           "This dflow_cluster statement should not appear in dflow_cluster-cluster!\n");
       exit(-1);

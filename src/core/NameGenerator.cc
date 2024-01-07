@@ -134,7 +134,7 @@ const char *NameGenerator::genExprClusterName(Scope *sc, list_t *dflow_cluster) 
   for (listitem_t *li = list_first (dflow_cluster); li; li = list_next (li)) {
     auto *d = (act_dataflow_element *) list_value (li);
     if (d->t != ACT_DFLOW_FUNC) {
-      dflow_print(stdout, d);
+      dflow_print(stdout, d, 1);
       printf("\nThis dflow statement should not appear in dflow-cluster!\n");
       exit(-1);
     }
