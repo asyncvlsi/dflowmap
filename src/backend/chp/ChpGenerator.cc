@@ -279,10 +279,13 @@ void ChpGenerator::printMixerChp(const char *instance,
 	  ctrlOutName);
 }
 
-void ChpGenerator::printProcChpHeader(Process *p) {
+void ChpGenerator::printProcChpHeader(Process *p, int refsteps) {
   p->PrintHeader(chpFp, "defproc");
   fprintf(chpFp, "\n{");
   p->CurScope()->Print(chpFp);
+  if (refsteps > 0) {
+     fprintf (chpFp, "\nrefine {\n");
+  }
 }
 
 void ChpGenerator::printBoolToIntDecl (act_connection *c, int val) {
@@ -330,7 +333,8 @@ void ChpGenerator::printChpFreshChannel (char *name, int bw)
   fprintf (chpFp, "chan(int<%d>) %s;\n", bw, name);
 }
 
-void ChpGenerator::printProcEnding() {
+void ChpGenerator::printProcEnding(int refsteps) {
+  if (refsteps > 0) fprintf(chpFp, "}\n");
   fprintf(chpFp, "}\n\n");
 }
 

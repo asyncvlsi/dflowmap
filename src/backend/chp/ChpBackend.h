@@ -129,13 +129,13 @@ class ChpBackend {
                     unsigned dataBW,
                     CharPtrVec &inNameVec);
 
-  void printProcHeader(Process *p);
+  void printProcHeader(Process *p, int refsteps);
   void printBoolToIntDecl (act_connection *c, int val);
   void printBoolToIntConv (act_connection *c, int val);
 
   void printProcDeclaration(Process *p);
 
-  void printProcEnding();
+  void printProcEnding(int refsteps);
 
   void createChpBlock(Process *p, int where);
 

@@ -90,14 +90,14 @@ class ChpGenerator {
                      unsigned dataBW,
                      CharPtrVec &inNameVec);
 
-  void printProcChpHeader(Process *p);
+  void printProcChpHeader(Process *p, int refsteps);
 
   void printBoolToIntDecl (act_connection *c, int val);
   void printBoolToIntConv (act_connection *c, int val);
 
   void printProcDeclaration(Process *p);
 
-  void printProcEnding();
+  void printProcEnding(int refsteps);
 
   void printCustomNamespace(ActNamespace *ns);
 

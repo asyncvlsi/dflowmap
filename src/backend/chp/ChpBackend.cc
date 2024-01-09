@@ -333,8 +333,8 @@ void ChpBackend::printArbiter(double *metric,
 #endif
 }
 
-void ChpBackend::printProcHeader(Process *p) {
-  chpGenerator->printProcChpHeader(p);
+void ChpBackend::printProcHeader(Process *p, int refsteps) {
+  chpGenerator->printProcChpHeader(p, refsteps);
 #if GEN_NETLIST
   dflowNetBackend->printProcNetListHeader(p);
 #endif
@@ -372,8 +372,8 @@ void ChpBackend::printProcDeclaration(Process *p) {
   chpGenerator->printProcDeclaration(p);
 }
 
-void ChpBackend::printProcEnding() {
-  chpGenerator->printProcEnding();
+void ChpBackend::printProcEnding(int ref_steps) {
+  chpGenerator->printProcEnding(ref_steps);
 #if GEN_NETLIST
   dflowNetBackend->printProcNetListEnding();
 #endif

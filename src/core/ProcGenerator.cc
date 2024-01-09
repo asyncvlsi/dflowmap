@@ -1584,7 +1584,7 @@ int ProcGenerator::run(Process *p) {
     chpBackend->createChpBlock(p,1);
     return 0;
   }
-  chpBackend->printProcHeader(p);
+  chpBackend->printProcHeader(p, config_get_int ("act.refine_steps"));
   collectBitwidthInfo();
   collectOpUses();
   createCopyProcs();
@@ -1605,7 +1605,7 @@ int ProcGenerator::run(Process *p) {
     chpBackend->printBoolToIntConv (it.first, it.second);
   }
   
-  chpBackend->printProcEnding();
+  chpBackend->printProcEnding(config_get_int ("act.refine_steps"));
   return 0;
 }
 
