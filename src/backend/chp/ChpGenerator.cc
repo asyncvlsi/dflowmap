@@ -280,7 +280,7 @@ void ChpGenerator::printMixerChp(const char *instance,
 }
 
 void ChpGenerator::printProcChpHeader(Process *p, int refsteps) {
-  p->PrintHeader(chpFp, "defproc");
+  p->PrintHeader(chpFp, "defproc", true);
   fprintf(chpFp, "\n{");
   p->CurScope()->Print(chpFp);
   if (refsteps > 0) {
@@ -324,7 +324,7 @@ void ChpGenerator::printBoolToIntConv (act_connection *c, int val) {
 
 
 void ChpGenerator::printProcDeclaration(Process *p) {
-  p->PrintHeader(chpFp, "defproc");
+  p->PrintHeader(chpFp, "defproc", true);
   fprintf(chpFp, ";\n");
 }
 
