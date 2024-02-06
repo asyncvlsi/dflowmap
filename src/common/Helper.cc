@@ -117,7 +117,12 @@ Expr *getExprFromName(const char *name,
   }
   Expr *newExpr = nullptr;
   if (exprType == E_INT) {
-    newExpr = genExprFromInt(std::stoul(std::string(name)));
+    if (strncmp ("int(", name, 4) == 0) {
+      newExpr = genExprFromInt(std::stoul(std::string(name+4)));
+    }
+    else {
+      newExpr = genExprFromInt(std::stoul(std::string(name)));
+    }
   } else {
     newExpr = genExprFromStr(name, exprType);
   }

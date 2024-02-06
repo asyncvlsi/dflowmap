@@ -20,7 +20,7 @@
  */
 
 #include "ProcGenerator.h"
-
+#include <common/int.h>
 
 const char *ProcGenerator::getOutputNormId (ActId *id)
 {
@@ -347,7 +347,8 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
 const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
 					 Expr *expr,
 					 int &resSuffix,
-					 unsigned &resBW) {
+					 unsigned &resBW,
+					 bool isvar) {
   if (debug_verbose) {
     printf("Handle uni expr ");
     print_expr(stdout, expr);
@@ -355,16 +356,21 @@ const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
   }
 
   /* dummy: just want "var" as the expression */
-  Expr *lExpr = new Expr;
+  Expr *lExpr;
+  if (isvar) {
+    lExpr = new Expr;
   
-  lExpr->u.e.l = expr->u.e.l;
-  lExpr->type = E_VAR;
-  lExpr->u.e.r = NULL;
+    lExpr->u.e.l = expr->u.e.l;
+    lExpr->type = E_VAR;
+    lExpr->u.e.r = NULL;
+  }
+  else {
+    lExpr = expr->u.e.l;
+  }
   const char *lexpr_name = printExpr(dflowGenerator,
                                      lExpr,
                                      resSuffix,
                                      resBW);
-  //delete lExpr;
   
   char *val = new char[100];
   getCurProc(lexpr_name, val);
@@ -411,7 +417,17 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
   switch (type) {
     case E_INT: {
       unsigned long val = expr->u.ival.v;
-      const char *valStr = strdup(std::to_string(val).c_str());
+      const char *valStr;
+      if (expr->u.ival.v_extra) {
+	std::string s = ((BigInt *)expr->u.ival.v_extra)->sPrint ();
+	char buf[1024];
+	snprintf (buf, 1024, "int(0x%s,%d)", s.c_str(),
+		  ((BigInt *)expr->u.ival.v_extra)->getWidth());
+	valStr = strdup (buf);
+      }
+      else {
+	valStr = strdup(std::to_string(val).c_str());
+      }
       return valStr;
     }
     case E_VAR: {
@@ -495,6 +511,23 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
     }
     case E_BUILTIN_INT: {
       Expr *lExpr = expr->u.e.l;
+
+      if (expr->u.e.r) {
+	// create expr that is a bitfield!
+	Expr *tmpE = new Expr;
+	tmpE->type = E_BITFIELD;
+	tmpE->u.e.l = lExpr;
+	tmpE->u.e.r = new Expr;
+	tmpE->u.e.r->u.e.l = new Expr;
+	tmpE->u.e.r->u.e.r = new Expr;
+	tmpE->u.e.r->u.e.l->type = E_INT;
+	tmpE->u.e.r->u.e.r->type = E_INT;
+	tmpE->u.e.r->u.e.l->u.ival.v = 0;
+	tmpE->u.e.r->u.e.l->u.ival.v_extra = NULL;
+	tmpE->u.e.r->u.e.r->u.ival.v = expr->u.e.r->u.ival.v - 1;
+	tmpE->u.e.r->u.e.r->u.ival.v_extra = NULL;
+	return EMIT_BITFIELD (dflowGenerator, tmpE, resSuffix, resBW, false);
+      }
       if (resBW == 0) {
         Expr *rExpr = expr->u.e.r;
         if (rExpr) {
@@ -522,7 +555,7 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
       return EMIT_CONCAT(dflowGenerator, expr, resSuffix, resBW);
     }
     case E_BITFIELD: {
-      return EMIT_BITFIELD(dflowGenerator, expr, resSuffix, resBW);
+      return EMIT_BITFIELD(dflowGenerator, expr, resSuffix, resBW, true);
     }
     default: {
       print_expr(stdout, expr);

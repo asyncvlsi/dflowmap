@@ -88,7 +88,7 @@ class ProcGenerator {
   const char *EMIT_BITFIELD(DflowGenerator *dflowGenerator,
 			    Expr *expr,
 			    int &resSuffix,
-			    unsigned &resBW);
+			    unsigned &resBW, bool isvar);
 
   const char *printExpr(DflowGenerator *dflowGenerator,
                         Expr *expr,
