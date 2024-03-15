@@ -692,8 +692,8 @@ void Metrics::callLogicOptimizer(
   char *optimized_netlist_file =
       new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
   sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, normInstance);
-  expr_mapping_software software = yosys;
-  if (COMMERCIAL_LOGIC_OPTIMIZER) software = genus;
+  const  char *software = "yosys";
+  if (COMMERCIAL_LOGIC_OPTIMIZER) software = "genus";
   bool tie_cells = false;
 
   // This should be set in the expropt config file
@@ -722,15 +722,15 @@ void Metrics::callLogicOptimizer(
     printf("Generated block %s: Area: %e m2, Dyn Power: %e W, "
            "Leak Power: %e W, delay: %e s\n",
            normInstance,
-           info->area,
-           info->power_typ_dynamic,
-           info->power_typ_static,
-           info->delay_typ);
+           info->getArea(),
+           info->getDynamicPower().typ_val,
+           info->getStaticPower().typ_val,
+           info->getDelay().typ_val);
   }
 
   double leakpower, energy, delay, area;
 
-  if (info->delay_typ == -1) {
+  if (!info->exists()) {
     /* wires */
     leakpower = 0;
     energy = 0;
@@ -738,16 +738,17 @@ void Metrics::callLogicOptimizer(
     area = 0;
   }
   else {
-    leakpower = info->power_typ_static * 1e9;  // Leakage power (nW)
-    //energy = info->power_typ_dynamic * info->delay_typ * 1e15;  //
-    //1e-15J (fJ)
-    energy = info->power_typ_dynamic * config_get_real ("expropt.dynamic_power_period") * 1e15; // fJ
-    delay = info->delay_typ * 1e12; // Delay (ps)
-    area = info->area * 1e12;  // AREA (um^2)
+    leakpower = info->getStaticPower().typ_val * 1e9;  // Leakage power (nW)
+
+    //energy = info->power_typ_dynamic * info->delay_typ * 1e15; (fJ)
+    energy = info->getDynamicPower().typ_val *
+      config_get_real ("expropt.dynamic_power_period") * 1e15; // fJ
+    
+    delay = info->getDelay().typ_val * 1e12; // Delay (ps)
+    area = info->getArea() * 1e12;  // AREA (um^2)
   }
 
   
-
   /* XXX:
 
      check model here
