@@ -56,12 +56,6 @@ else ()
     message(
             "libexpropt_sh.so missing from $ENV{ACT_HOME}/lib. The tool cannot do logic optimizations or performance modeling for the customized function unit processes!")
 endif ()
-if (EXISTS $ENV{ACT_HOME}/lib/libexproptcommercial_sh.so)
-    message(
-            "Found commercial tool to do logic optimizations and performance modeling for the customized function unit processes!")
-    add_library(ExprOptCommercial SHARED IMPORTED)
-    set_target_properties(ExprOptCommercial PROPERTIES IMPORTED_LOCATION $ENV{ACT_HOME}/lib/libexproptcommercial_sh.so)
-endif ()
 
 if (EXISTS $ENV{ACT_HOME}/lib/libdflownetgen.a)
     message("Found dataflow netlist generator!")

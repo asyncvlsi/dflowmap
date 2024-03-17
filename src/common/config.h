@@ -27,11 +27,6 @@
 #else
 #define LOGIC_OPTIMIZER false
 #endif
-#ifdef FOUND_exproptcommercial
-#define COMMERCIAL_LOGIC_OPTIMIZER true
-#else
-#define COMMERCIAL_LOGIC_OPTIMIZER false
-#endif
 #ifdef FOUND_dflow_backend_netlist
 #define GEN_NETLIST true
 #else

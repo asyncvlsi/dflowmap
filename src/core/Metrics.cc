@@ -693,7 +693,9 @@ void Metrics::callLogicOptimizer(
       new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
   sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, normInstance);
   const  char *software = "yosys";
-  if (COMMERCIAL_LOGIC_OPTIMIZER) software = "genus";
+  if (ExternalExprOpt::engineExists ("genus")) {
+     software = "genus";
+  }
   bool tie_cells = false;
 
   // This should be set in the expropt config file
