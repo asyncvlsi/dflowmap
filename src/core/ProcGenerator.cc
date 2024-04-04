@@ -1609,7 +1609,7 @@ int ProcGenerator::run(Process *p) {
   if (debug_verbose) {
     printf("processing %s\n", pName);
   }
-  if (p->getlang()->getchp()) {
+  if (p->getlang()->getchp() && !p->getlang()->getdflow()) {
     chpBackend->createChpBlock(p,0);
     return 0;
   }
