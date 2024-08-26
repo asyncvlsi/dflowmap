@@ -45,7 +45,7 @@ char *chan_type;
 static char *out_directory;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qiv] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qiv] [-M <max>] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
