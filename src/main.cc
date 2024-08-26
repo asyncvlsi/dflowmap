@@ -57,6 +57,7 @@ static void usage(char *name) {
   fprintf(stderr, " -v : increase verbosity (default 1)\n");
   fprintf(stderr, " -q : quiet mode CHP output (no auto-generated log statements)\n");
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
+  fprintf(stderr, " -M <max>  : maximum split/merge data channel count\n");
   fprintf(stderr, " -o <dir> : use as output directory (default actfile_out)\n");
   exit(1);
 }
@@ -262,8 +263,16 @@ int main(int argc, char **argv) {
   debug_verbose = 0;
   invalidate_cache = false;
   quiet_mode = false;
-  while ((ch = getopt(argc, argv, "vqm:p:if:c:o:")) != -1) {
+  int split_merge_max = -1;
+  while ((ch = getopt(argc, argv, "M:vqm:p:if:c:o:")) != -1) {
     switch (ch) {
+      case 'M':
+	split_merge_max = atoi (optarg);
+	if (split_merge_max < 2) {
+	  warning ("-M: argument must be at least 2; ignoring.");
+	  split_merge_max = -1;
+	}
+	break;
       case 'o':
 	if (out_directory) {
 	  FREE (out_directory);
@@ -331,6 +340,12 @@ int main(int argc, char **argv) {
 
   ActCHPFuncInline *ip = new ActCHPFuncInline (a);
   ip->run (spec_proc);
+
+  if (split_merge_max > 0) {
+    config_set_int ("act.dflow.split_merge_limit", split_merge_max);
+    ActDflowSplitMerge *sm = new ActDflowSplitMerge (a);
+    sm->run (spec_proc);
+  }
 
   if (debug_verbose) {
     fprintf(stdout, "Processing ACT file %s!\n", act_file);
