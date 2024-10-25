@@ -22,6 +22,29 @@
 #include "Metrics.h"
 #include <string.h>
 
+static void _gen_netlistname (char *normInstance,
+			      char *custom_fu_dir,
+			      char *optimized_netlist_file)
+{
+  if (strlen (normInstance) > 128) {
+    // we need to make this smaller
+    //  current general hack, but dflowmap is going away so...
+    //
+    int len = strlen (normInstance);
+    unsigned int h1 = hash_function_continue (~0UL, (const unsigned char *) normInstance, len, 0, 0);
+    unsigned int h2 = hash_function_continue (~0UL, (const unsigned char *) (normInstance+8), len-8, 0, 0);
+    unsigned int h3 = hash_function_continue (~0UL, (const unsigned char *) (normInstance+24), len-24, 0, 0);
+    unsigned int h4 = hash_function_continue (~0UL, (const unsigned char *) normInstance+32, len-32, 0, 0);
+    char c = normInstance[128];
+    normInstance[128] = '\0';
+    sprintf(optimized_netlist_file, "%s/%su%xu%xu%xu%x.act", custom_fu_dir, normInstance, h1, h2, h3, h4);
+    normInstance[128] = c;
+  }
+  else {
+    sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, normInstance);
+  }
+}
+
 void Metrics::updateMetrics(const char *instance, double *metric) {
   const char *normInstance = getNormInstanceName(instance);
   for (auto &opMetricsIt: opMetrics) {
@@ -169,7 +192,11 @@ double *Metrics::getCachedMetric(const char *instance) {
       /* copy the netlist file from cache to the output directory */
       char *cached_netlist_file =
           new char[strlen(cache_dir) + strlen(normInstance) + 8];
-      sprintf(cached_netlist_file, "%s/%s.act", cache_dir, normInstance);
+
+      char *tmp_norm = Strdup (normInstance);
+      _gen_netlistname (tmp_norm, custom_fu_dir, cached_netlist_file);
+      FREE (tmp_norm);
+      
       char *errMsg = new char[128];
       sprintf(errMsg,
               "Fail to copy the optimized netlist file from cache to the output directory!\n");
@@ -691,7 +718,11 @@ void Metrics::callLogicOptimizer(
   sprintf(rtlModuleName, "%s_logic", normInstance);
   char *optimized_netlist_file =
       new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
-  sprintf(optimized_netlist_file, "%s/%s.act", custom_fu_dir, normInstance);
+
+  char *tmp_norm = Strdup (normInstance);
+  _gen_netlistname (tmp_norm, custom_fu_dir, optimized_netlist_file);
+  FREE (tmp_norm);
+
   const  char *software = "yosys";
   if (ExternalExprOpt::engineExists ("genus")) {
      software = "genus";
