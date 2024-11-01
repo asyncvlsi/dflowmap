@@ -194,7 +194,7 @@ double *Metrics::getCachedMetric(const char *instance) {
           new char[strlen(cache_dir) + strlen(normInstance) + 8];
 
       char *tmp_norm = Strdup (normInstance);
-      _gen_netlistname (tmp_norm, custom_fu_dir, cached_netlist_file);
+      _gen_netlistname (tmp_norm, cache_dir, cached_netlist_file);
       FREE (tmp_norm);
       
       char *errMsg = new char[128];
