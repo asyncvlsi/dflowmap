@@ -41,11 +41,12 @@ char *custom_metrics;
 char *custom_fu_dir;
 char *family;
 char *chan_type;
+char *logic_synth;
 
 static char *out_directory;
 
 static void usage(char *name) {
-  fprintf(stderr, "Usage: %s [-qiv] [-M <max>] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
+  fprintf(stderr, "Usage: %s [-qiv] [-s abc|yosys|genus|...] [-M <max>] [-p <procname>] [-f <family>] [-c <chan_type>] [-m <metrics>] <actfile>\n", name);
   fprintf(stderr,
           " -m <metrics> : provide file name for energy/delay/area metrics\n");
   fprintf(stderr,
@@ -59,6 +60,8 @@ static void usage(char *name) {
   fprintf(stderr, " -i : invalidate dflowmap cache (default false)\n");
   fprintf(stderr, " -M <max>  : maximum split/merge data channel count\n");
   fprintf(stderr, " -o <dir> : use as output directory (default actfile_out)\n");
+  fprintf (stderr, " -s <engine> : use <engine> for logic synthesis (default: genus then abc)\n");
+
   exit(1);
 }
 
@@ -263,8 +266,9 @@ int main(int argc, char **argv) {
   debug_verbose = 0;
   invalidate_cache = false;
   quiet_mode = false;
+  logic_synth = NULL;
   int split_merge_max = -1;
-  while ((ch = getopt(argc, argv, "M:vqm:p:if:c:o:")) != -1) {
+  while ((ch = getopt(argc, argv, "M:vqm:p:if:c:o:s:")) != -1) {
     switch (ch) {
       case 'M':
 	split_merge_max = atoi (optarg);
@@ -272,6 +276,12 @@ int main(int argc, char **argv) {
 	  warning ("-M: argument must be at least 2; ignoring.");
 	  split_merge_max = -1;
 	}
+	break;
+      case 's':
+	if (logic_synth) {
+	  FREE (logic_synth);
+	}
+	logic_synth = Strdup (optarg);
 	break;
       case 'o':
 	if (out_directory) {

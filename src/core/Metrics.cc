@@ -723,9 +723,21 @@ void Metrics::callLogicOptimizer(
   _gen_netlistname (tmp_norm, custom_fu_dir, optimized_netlist_file);
   FREE (tmp_norm);
 
-  const  char *software = "yosys";
-  if (ExternalExprOpt::engineExists ("genus")) {
-     software = "genus";
+  extern char *logic_synth;
+  const char *software;
+  if (!logic_synth || !ExternalExprOpt::engineExists (logic_synth)) {
+    if (ExternalExprOpt::engineExists ("genus")) {
+      software = "genus";
+    }
+    else if (ExternalExprOpt::engineExists ("yosys")) {
+      software = "yosys";
+    }
+    else {
+      software = "abc";
+    }
+  }
+  else {
+    software = logic_synth;
   }
   bool tie_cells = false;
 
