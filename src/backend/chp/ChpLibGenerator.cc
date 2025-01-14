@@ -152,6 +152,30 @@ void ChpLibGenerator::printConf(double *metric, const char *instance) {
   }
 }
 
+void ChpLibGenerator::printMixerConf(double *metric, const char *instance) {
+  if (!metric) {
+    if (LOGIC_OPTIMIZER) {
+      printf("We could not find metrics for %s\n", instance);
+      exit(-1);
+    }
+    return;
+  }
+  if (!checkAndUpdateInstance(instance)) {
+    fprintf(confFp, "begin %s\n", instance);
+    fprintf(confFp, "  begin out\n");
+    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
+    fprintf(confFp, "    int E %ld\n", (long) metric[1]);
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  begin cout\n");
+    fprintf(confFp, "    int D %ld\n", (long) metric[2]);
+    fprintf(confFp, "    int E 0\n");
+    fprintf(confFp, "  end\n");
+    fprintf(confFp, "  real leakage %lde-9\n", (long) metric[0]);
+    fprintf(confFp, "  int area %ld\n", (long) metric[3]);
+    fprintf(confFp, "end\n");
+  }
+}
+
 void ChpLibGenerator::printFUChpLib(const char *instance,
                                     const char *procName,
                                     const char *calc,
@@ -331,19 +355,19 @@ void ChpLibGenerator::printSplitChpLib(const char *instance,
                                        double *metric,
                                        unsigned numOutputs) {
   char *tmp = _add_ns (instance);
-  printConf(metric, tmp, numOutputs, LOGIC_OPTIMIZER);
+  printConf_array(metric, tmp, numOutputs, LOGIC_OPTIMIZER);
   free (tmp);
 }
 
 void ChpLibGenerator::printArbiterChpLib(const char *instance, double *metric) {
   char *tmp = _add_ns (instance);
-  printConf(metric, tmp);
+  printMixerConf(metric, tmp);
   free (tmp);
 }
 
 void ChpLibGenerator::printMixerChpLib(const char *instance, double *metric) {
   char *tmp = _add_ns (instance);
-  printConf(metric, tmp);
+  printMixerConf(metric, tmp);
   free (tmp);
 }
 

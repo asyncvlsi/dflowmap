@@ -47,6 +47,8 @@ class ChpLibGenerator {
                  bool exitOnMissing = true);
 
   void printConf(double *metric, const char *instance);
+  
+  void printMixerConf(double *metric, const char *instance);
 
   void printFUChpLib(const char *instance,
                      const char *procName,
