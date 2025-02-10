@@ -124,7 +124,12 @@ Expr *getExprFromName(const char *name,
       newExpr = genExprFromInt(std::stoul(std::string(name), NULL, 0));
     }
   } else {
-    newExpr = genExprFromStr(name, exprType);
+    if (strncmp ("int(", name, 4) == 0) {
+      newExpr = genExprFromInt(std::stoul(std::string(name+4), NULL, 0));
+    }
+    else {
+      newExpr = genExprFromStr(name, exprType);
+    }
   }
   exprMap.insert({name, newExpr});
   return newExpr;

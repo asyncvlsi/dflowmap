@@ -415,6 +415,16 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
                                      unsigned &resBW) {
   int type = expr->type;
   switch (type) {
+    case E_TRUE: {
+      const char *valStr;
+      valStr = strdup ("int(0x1,1)");
+      return valStr;
+    }
+    case E_FALSE: {
+      const char *valStr;
+      valStr = strdup ("int(0x0,1)");
+      return valStr;
+    }
     case E_INT: {
       unsigned long val = expr->u.ival.v;
       const char *valStr;
@@ -690,6 +700,8 @@ void ProcGenerator::collectExprUses(Expr *expr, StringVec &recordedOps) {
       collectUniOpUses(expr, recordedOps);
       break;
     }
+    case E_TRUE:
+    case E_FALSE:
     case E_INT: {
       break;
     }
@@ -778,6 +790,8 @@ void ProcGenerator::recordExprUses(Expr *expr,
       recordUniOpUses(expr, actConnectVec);
       break;
     }
+    case E_TRUE:
+    case E_FALSE:
     case E_INT: {
       break;
     }
