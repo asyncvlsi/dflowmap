@@ -717,7 +717,7 @@ void Metrics::callLogicOptimizer(
   char *rtlModuleName = new char[strlen(normInstance) + 7];
   sprintf(rtlModuleName, "%s_logic", normInstance);
   char *optimized_netlist_file =
-      new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 16];
+      new char[strlen(rtlModuleName) + strlen(custom_fu_dir) + 50];
 
   char *tmp_norm = Strdup (normInstance);
   _gen_netlistname (tmp_norm, custom_fu_dir, optimized_netlist_file);
