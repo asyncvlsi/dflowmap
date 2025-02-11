@@ -191,7 +191,7 @@ double *Metrics::getCachedMetric(const char *instance) {
     if (!strcmp(cachedMetricsIt.first, normInstance)) {
       /* copy the netlist file from cache to the output directory */
       char *cached_netlist_file =
-          new char[strlen(cache_dir) + strlen(normInstance) + 8];
+	new char[strlen(cache_dir) + strlen(normInstance) + 50];
 
       char *tmp_norm = Strdup (normInstance);
       _gen_netlistname (tmp_norm, cache_dir, cached_netlist_file);
