@@ -787,7 +787,7 @@ void Metrics::callLogicOptimizer(
 
     //energy = info->power_typ_dynamic * info->delay_typ * 1e15; (fJ)
     energy = info->getDynamicPower().typ_val *
-      config_get_real ("expropt.dynamic_power_period") * 1e15; // fJ
+      config_get_real ("synth.expropt.dynamic_power_period") * 1e15; // fJ
     
     delay = info->getDelay().typ_val * 1e12; // Delay (ps)
     area = info->getArea() * 1e12;  // AREA (um^2)

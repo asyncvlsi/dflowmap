@@ -134,8 +134,8 @@ void ChpBackend::printFU(
   unsigned numOuts = outList.size();
 
   double unit_delay;
-  if (config_exists ("expropt.unit_delay")) {
-    unit_delay = config_get_real ("expropt.unit_delay");
+  if (config_exists ("synth.expropt.unit_delay")) {
+    unit_delay = config_get_real ("synth.expropt.unit_delay");
   }
   else {
     unit_delay = 100.0; // ps default units
