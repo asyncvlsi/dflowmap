@@ -120,8 +120,8 @@ const char *NameGenerator::genExprName(Scope *sc, Expr *expr, ActId *rhs) {
   for (li = list_first (arg_list); li; li = list_next (li)) {
     InstType *it = sc->FullLookup ((ActId *) list_value (li), NULL);
     Assert (it, "Hmm");
-    Assert (TypeFactory::bitWidth (it) > 0, "Non-positive bitwidth?");
-    snprintf (buf, 16, "W%d", TypeFactory::bitWidth (it));
+    Assert (TypeFactory::totBitWidth (it) > 0, "Non-positive bitwidth?");
+    snprintf (buf, 16, "W%d", TypeFactory::totBitWidth (it));
     strcat (instance, buf);
   }
   list_free (arg_list);
@@ -164,8 +164,8 @@ const char *NameGenerator::genExprClusterName(Scope *sc, list_t *dflow_cluster) 
     char buf[16];
     InstType *it = sc->FullLookup ((ActId *) list_value (li), NULL);
     Assert (it, "Hmm");
-    Assert (TypeFactory::bitWidth (it) > 0, "Non-positive bitwidth?");
-    snprintf (buf, 16, "W%d", TypeFactory::bitWidth (it));
+    Assert (TypeFactory::totBitWidth (it) > 0, "Non-positive bitwidth?");
+    snprintf (buf, 16, "W%d", TypeFactory::totBitWidth (it));
     strcat (name, buf);
   }
   list_free (argList);

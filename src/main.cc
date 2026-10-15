@@ -348,8 +348,28 @@ int main(int argc, char **argv) {
     }
   }
 
-  ActCHPFuncInline *ip = new ActCHPFuncInline (a);
-  ip->run (spec_proc);
+  /* struct support: struct values become packed ints before the inliner,
+     which would expand struct conversions (T(x), int(x)) into per-field
+     logic -- and crashes on some (Data::synthStructMacro), and asserts on a
+     struct channel fed a packed int.  With no other function calls left
+     (synth2's dataflow has none), the inliner has nothing to do. */
+  int calls = 0;
+  if (spec_proc) {
+    calls = ProcGenerator::flattenStructs(spec_proc);
+  } else {
+    ActInstiter it(ActNamespace::Global()->CurScope());
+    for (it = it.begin(); it != it.end(); it++) {
+      ValueIdx *vx = *it;
+      if (TypeFactory::isProcessType(vx->t)) {
+        calls += ProcGenerator::flattenStructs(dynamic_cast<Process *>(vx->t->BaseType()));
+      }
+    }
+  }
+
+  if (calls > 0) {
+    ActCHPFuncInline *ip = new ActCHPFuncInline (a);
+    ip->run (spec_proc);
+  }
 
   if (split_merge_max > 0) {
     config_set_int ("act.dflow.split_merge_limit", split_merge_max);

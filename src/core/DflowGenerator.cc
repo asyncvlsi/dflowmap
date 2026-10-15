@@ -211,10 +211,10 @@ void DflowGenerator::prepareQueryExprForOpt(const char *cexpr_name,
   Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
   Expr *rExpr = getExprFromName(rexpr_name, exprMap, false, rexpr_type);
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
-  Expr *expr = new Expr;
+  Expr *expr = new Expr();
   expr->type = expr_type;
   expr->u.e.l = cExpr;
-  Expr *body_expr = new Expr;
+  Expr *body_expr = new Expr();
   body_expr->type = body_expr_type;
   body_expr->u.e.l = lExpr;
   body_expr->u.e.r = rExpr;
@@ -240,7 +240,7 @@ void DflowGenerator::prepareBinExprForOpt(const char *lexpr_name,
   Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
   Expr *rExpr = getExprFromName(rexpr_name, exprMap, false, rexpr_type);
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
-  Expr *expr = new Expr;
+  Expr *expr = new Expr();
   expr->type = expr_type;
   expr->u.e.l = lExpr;
   expr->u.e.r = rExpr;
@@ -262,7 +262,7 @@ void DflowGenerator::prepareUniExprForOpt(const char *lexpr_name,
                                           unsigned bw) {
   Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, lexpr_type);
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
-  Expr *expr = new Expr;
+  Expr *expr = new Expr();
   expr->type = expr_type;
   expr->u.e.l = lExpr;
   hiddenBWMap.insert({expr_name, bw});
@@ -284,13 +284,13 @@ void DflowGenerator::prepareBitfieldExprForOpt(const char *lexpr_name,
   Expr *lExpr = getExprFromName(lexpr_name, exprMap, false, E_VAR);
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
   
-  Expr *expr = new Expr;
+  Expr *expr = new Expr();
   expr->type = E_BITFIELD;
   expr->u.e.l = lExpr;
-  expr->u.e.r = new Expr;
+  expr->u.e.r = new Expr();
   expr->u.e.r->type = E_BITFIELD;
-  expr->u.e.r->u.e.l = new Expr;
-  expr->u.e.r->u.e.r = new Expr;
+  expr->u.e.r->u.e.l = new Expr();
+  expr->u.e.r->u.e.r = new Expr();
   expr->u.e.r->u.e.r->type = E_INT;
   expr->u.e.r->u.e.r->u.ival.v = hi;
   expr->u.e.r->u.e.r->u.ival.v_extra = NULL;
@@ -316,7 +316,7 @@ void DflowGenerator::prepareConcatExprForOpt(StringVec &operandList,
                                              const char *expr_name,
                                              unsigned bw) {
   Expr *rhs = getExprFromName(expr_name, exprMap, false, E_VAR);
-  Expr *expr = new Expr;
+  Expr *expr = new Expr();
   expr->type = E_CONCAT;
   Expr *rootExpr = expr;
   expr->u.e.l = NULL;
@@ -327,7 +327,7 @@ void DflowGenerator::prepareConcatExprForOpt(StringVec &operandList,
       getExprFromName(Strdup (operandList[i].c_str()), exprMap, false, opTypeList[i]);
     expr->u.e.l = opExpr;
     if (i < numOps-1) {
-      expr->u.e.r = new Expr;
+      expr->u.e.r = new Expr();
       expr->u.e.r->type = E_CONCAT;
       expr->u.e.r->u.e.l = NULL;
       expr->u.e.r->u.e.r = NULL;

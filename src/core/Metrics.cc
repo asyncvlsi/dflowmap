@@ -622,7 +622,13 @@ void Metrics::callLogicOptimizer(
     b_expr2->v = hiddenChar;
     b_width2 = ihash_add(in_width_map, (long) hiddenRHS);
     b_width2->i = (int) bw;
-    Expr *hiddenExpr = hiddenExprs.find(hiddenRHS)->second;
+    auto hiddenIt = hiddenExprs.find(hiddenRHS);
+    if (hiddenIt == hiddenExprs.end()) {
+      /* was dereferenced regardless, and the logic optimizer crashed */
+      fprintf(stderr, "dflowmap: %s: no expression for %s\n", instance, hiddenChar);
+      exit(1);
+    }
+    Expr *hiddenExpr = hiddenIt->second;
 
     if (debug_verbose) {
       printf ("hiddenExpr: ");

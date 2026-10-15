@@ -280,9 +280,14 @@ void ChpGenerator::printMixerChp(const char *instance,
 }
 
 void ChpGenerator::printProcChpHeader(Process *p, int refsteps) {
-  p->PrintHeader(chpFp, "defproc", true);
+  /* structs and namespaces: see modelText */
+  fputs(modelText(p, printToString([&](FILE *f) {
+    p->PrintHeader(f, "defproc", true);
+  })).c_str(), chpFp);
   fprintf(chpFp, "\n{");
-  p->CurScope()->Print(chpFp);
+  fputs(modelInstances(p, modelText(p, printToString([&](FILE *f) {
+    p->CurScope()->Print(f);
+  }))).c_str(), chpFp);
   if (refsteps > 0) {
      fprintf (chpFp, "\nrefine {\n");
   }
@@ -324,7 +329,9 @@ void ChpGenerator::printBoolToIntConv (act_connection *c, int val) {
 
 
 void ChpGenerator::printProcDeclaration(Process *p) {
-  p->PrintHeader(chpFp, "defproc", true);
+  fputs(modelText(p, printToString([&](FILE *f) {
+    p->PrintHeader(f, "defproc", true);
+  })).c_str(), chpFp);
   fprintf(chpFp, ";\n");
 }
 
@@ -338,20 +345,9 @@ void ChpGenerator::printProcEnding(int refsteps) {
   fprintf(chpFp, "}\n\n");
 }
 
-void ChpGenerator::printCustomNamespace(ActNamespace *ns) {
-  const char *nsName = ns->getName();
-  fprintf(chpFp, "namespace %s {\n", nsName);
-  ActTypeiter it(ns);
-  for (it = it.begin(); it != it.end(); it++) {
-    Type *t = *it;
-    auto p = dynamic_cast<Process *>(t);
-    if (!p) continue;
-    if (p->isExpanded()) {
-      p->PrintHeader(chpFp, "defproc");
-      fprintf(chpFp, ";\n");
-    }
-  }
-  fprintf(chpFp, "}\n\n");
+void ChpGenerator::printCustomNamespace(ActNamespace */*ns*/) {
+  /* every process of the model is defined at the top level under its
+     mangled name (see modelText): nothing to declare here */
 }
 
 void ChpGenerator::printChpFileEnding() {

@@ -27,6 +27,8 @@
 #include <act/act.h>
 #include <act/iter.h>
 #include <fstream>
+#include <string>
+#include <unordered_set>
 #include "src/common/common.h"
 #include "src/common/Helper.h"
 #include "src/common/config.h"
@@ -102,8 +104,8 @@ class ChpLibGenerator {
   void printFileEnding();
 
  private:
-  const char *processes[MAX_PROCESSES];
-  const char *instances[MAX_PROCESSES];
+  std::unordered_set<std::string> processes;
+  std::unordered_set<std::string> instances;
   FILE *chpLibFp;
   FILE *chpFp;
   FILE *confFp;

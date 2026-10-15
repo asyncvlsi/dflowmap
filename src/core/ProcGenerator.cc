@@ -21,6 +21,30 @@
 
 #include "ProcGenerator.h"
 #include <common/int.h>
+#include <set>
+
+/*
+ * isBoolMap's entry for c: a bool channel, registered at its first use if
+ * collectBitwidthInfo did not see it -- an element of an array of bool
+ * channels (it saw only the array) or a sub-process's port (irq[0],
+ * ann.out); without the entry, no bool/int converter, and the model
+ * connected an int<1> port to a bool channel
+ */
+template<class M>
+static typename M::iterator _bool_entry(Scope *sc, M &m, act_connection *c)
+{
+  auto res = m.find(c);
+  if (res != m.end() || !c || c->getctype() == 0) return res;
+  ActId *id = c->toid();
+  InstType *it = sc->FullLookup(id, NULL);
+  delete id;
+  if (it && TypeFactory::isChanType(it)
+      && TypeFactory::isBoolType(TypeFactory::getChanDataType(it))) {
+    m.insert({c, 0});
+    return m.find(c);
+  }
+  return res;
+}
 
 const char *ProcGenerator::getOutputNormId (ActId *id)
 {
@@ -44,7 +68,7 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
       if (copyUse <= outUses) {
 	act_connection *c = actId->Canonical (sc);
         const char *normalizedName = getNormActIdName(actName);
-	auto res = isBoolMap.find (c);
+	auto res = _bool_entry (sc, isBoolMap, c);
 	if (res != isBoolMap.end()) {
 	  if (!(res->second & 0x1)) {
 	    chpBackend->printBoolToIntDecl (res->first, 0x1);
@@ -61,7 +85,7 @@ const char *ProcGenerator::getActIdOrCopyName(ActId *actId) {
       }
     } else {
       act_connection *c = actId->Canonical (sc);
-      auto res = isBoolMap.find (c);
+      auto res = _bool_entry (sc, isBoolMap, c);
       if (res != isBoolMap.end()) {
 	if (!(res->second & 0x1)) {
 	  chpBackend->printBoolToIntDecl (res->first, 0x1);
@@ -86,13 +110,16 @@ void ProcGenerator::collectBitwidthInfo() {
   for (inst = inst.begin(); inst != inst.end(); inst++) {
     ValueIdx *vx = *inst;
     if (TypeFactory::isParamType (vx->t)) continue;
+    /* a sub-process (ann in arb_mux): no width, its ports are looked up as
+       used (getBitwidth); -v used to stop here */
+    if (TypeFactory::isProcessType (vx->t)) continue;
 
     act_connection *c;
     const char *varName = vx->getName();
     auto tmp = ActId::parseId(vx->getName());
     c = tmp->Canonical(p->CurScope());
     delete tmp;
-    int bitwidth = TypeFactory::bitWidth(vx->t);
+    int bitwidth = TypeFactory::totBitWidth(vx->t);
     if (bitwidth < 0) {
       if (debug_verbose) {
         printf("%s has negative bw %d!\n", varName, bitwidth);
@@ -146,11 +173,112 @@ unsigned ProcGenerator::getBitwidth(act_connection *actConnection) {
       return bitwidthMapIt->second;
     }
   }
+  /* a port of a sub-instance (x.y, x[i].y), which the dataflow may use
+     directly: collectBitwidthInfo saw only x */
+  {
+    ActId *id = actConnection->toid();
+    InstType *it = p->CurScope()->FullLookup(id, NULL);
+    delete id;
+    int bw = it ? TypeFactory::totBitWidth(it) : -1;
+    if (bw > 0) {
+      bitwidthMap.insert({actConnection, bw});
+      return bw;
+    }
+  }
   char *varName = new char[10240];
   getActConnectionName(actConnection, varName, 10240);
   printf("We could not find bitwidth info for %s\n", varName);
   printBitwidthInfo();
   exit(-1);
+}
+
+/*
+ * An expression's width by ACT's rules, or -1 if unknown: for what
+ * act_type_expr cannot type -- a bit slice of a struct channel, which the
+ * struct support writes for (int(x)){hi..lo}, leaves it width 0.
+ */
+static int _expr_width(Expr *e, Scope *sc)
+{
+  if (!e) return -1;
+  int l, r;
+  switch (e->type) {
+  case E_VAR: {
+    InstType *it = sc->FullLookup((ActId *) e->u.e.l, NULL);
+    return it ? TypeFactory::totBitWidth(it) : -1;
+  }
+  case E_INT: {
+    unsigned long v = e->u.ival.v;
+    int w = 1;
+    while (v >> w) w++;
+    return w;
+  }
+  case E_TRUE:
+  case E_FALSE:
+  case E_BUILTIN_BOOL:
+  case E_LT: case E_GT: case E_LE: case E_GE: case E_EQ: case E_NE:
+    return 1;
+  case E_BITFIELD:
+    if (!e->u.e.r || !e->u.e.r->u.e.r || e->u.e.r->u.e.r->type != E_INT)
+      return -1;
+    if (!e->u.e.r->u.e.l) return 1;
+    if (e->u.e.r->u.e.l->type != E_INT) return -1;
+    return (int) (e->u.e.r->u.e.r->u.ival.v - e->u.e.r->u.e.l->u.ival.v + 1);
+  case E_BUILTIN_INT:
+    if (e->u.e.r) {
+      return e->u.e.r->type == E_INT ? (int) e->u.e.r->u.ival.v : -1;
+    }
+    return _expr_width(e->u.e.l, sc);
+  case E_CONCAT: {
+    int w = 0;
+    for (Expr *x = e; x; x = x->u.e.r) {
+      int k = _expr_width(x->u.e.l, sc);
+      if (k <= 0) return -1;
+      w += k;
+    }
+    return w;
+  }
+  case E_NOT: case E_COMPLEMENT: case E_UMINUS:
+    return _expr_width(e->u.e.l, sc);
+  case E_QUERY:
+    l = _expr_width(e->u.e.r->u.e.l, sc);
+    r = _expr_width(e->u.e.r->u.e.r, sc);
+    return (l <= 0 || r <= 0) ? -1 : (l > r ? l : r);
+  default:
+    break;
+  }
+  l = _expr_width(e->u.e.l, sc);
+  r = _expr_width(e->u.e.r, sc);
+  if (l <= 0 || r <= 0) return -1;
+  switch (e->type) {
+  case E_AND: case E_OR: case E_XOR:
+    return l > r ? l : r;
+  case E_PLUS: case E_MINUS:
+    return (l > r ? l : r) + 1;
+  case E_MULT:
+    return l + r;
+  case E_DIV:
+    return l;
+  case E_MOD:
+    return r;
+  case E_LSL:
+    return r < 16 ? l + (1 << r) - 1 : -1;
+  case E_LSR: case E_ASR:
+    return l;
+  default:
+    return -1;
+  }
+}
+
+/*
+ * The width the logic optimizer is to give an intermediate result: its own
+ * (bw, from act_type_expr, else by ACT's rules), not the function unit's
+ * output width (resBW), which truncates it -- `(a & 0xfff) ...` inside a
+ * 1-bit test kept 1 bit.
+ */
+static unsigned _own_width(int &bw, unsigned resBW, Expr *e, Scope *sc)
+{
+  if (bw <= 0) bw = _expr_width(e, sc);
+  return bw > 0 ? (unsigned) bw : resBW;
 }
 
 const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
@@ -194,8 +322,9 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
  
-  int bw;
+  int bw = 0;
   act_type_expr (sc, expr, &bw, 1);
+  unsigned own_bw = _own_width(bw, resBW, expr, sc);
  
   dflowGenerator->printChpQueryExpr(cexpr_name,
                                     lexpr_name,
@@ -217,7 +346,7 @@ const char *ProcGenerator::EMIT_QUERY(DflowGenerator *dflowGenerator,
                                          finalExprName,
                                          exprType,
                                          bodyExprType,
-                                         resBW);
+                                         own_bw);
   return finalExprName;
 }
 
@@ -252,8 +381,9 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
 
   int bw = 0;
   act_type_expr (sc, expr, &bw, 1);
+  unsigned own_bw = _own_width(bw, resBW, expr, sc);
 
-  
+
   dflowGenerator->printChpBinExpr(op,
                                   lexpr_name,
                                   rexpr_name,
@@ -272,7 +402,7 @@ const char *ProcGenerator::EMIT_BIN(DflowGenerator *dflowGenerator,
                                        rType,
                                        finalExprName,
                                        exprType,
-                                       resBW);
+                                       own_bw);
   return finalExprName;
 }
 
@@ -297,8 +427,9 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
 
-  int bw;
+  int bw = 0;
   act_type_expr (sc, expr, &bw, 1);
+  unsigned own_bw = _own_width(bw, resBW, expr, sc);
   
   dflowGenerator->printChpUniExpr(op, lexpr_name, resSuffix, bw);
   int lType = (lExpr->type == E_INT) ? E_INT : E_VAR;
@@ -307,9 +438,11 @@ const char *ProcGenerator::EMIT_UNI(DflowGenerator *dflowGenerator,
                                        lType,
                                        finalExprName,
                                        exprType,
-                                       resBW);
+                                       own_bw);
   return finalExprName;
 }
+
+static int _concat_width(Expr *e, Scope *sc) { return _expr_width(e, sc); }
 
 const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
                                        Expr *expr,
@@ -329,17 +462,25 @@ const char *ProcGenerator::EMIT_CONCAT(DflowGenerator *dflowGenerator,
     expr = expr->u.e.r;
   }
 
-  int bw;
-  act_type_expr (sc, orig_expr, &bw, 1);
+  // the concatenation's own width (act_type_expr cannot type the bit slices
+  // the struct support writes, and leaves bw unset)
+  int bw = _concat_width(orig_expr, sc);
+  if (bw <= 0) {
+    bw = -1;
+    act_type_expr (sc, orig_expr, &bw, 1);
+  }
 
   resSuffix++;
   sprintf(finalExprName, "res%d", resSuffix);
-  
+
   dflowGenerator->printChpConcatExpr(operandList, resSuffix, bw);
+  // the concatenation's own width, not the caller's: inside int(..., w) the
+  // caller's is w, and the truncation is the caller's bit slice
+  unsigned catBW = bw > 0 ? (unsigned) bw : resBW;
   dflowGenerator->prepareConcatExprForOpt(operandList,
                                           opTypeList,
                                           finalExprName,
-                                          resBW);
+                                          catBW);
   return finalExprName;
 }
 
@@ -383,8 +524,18 @@ const char *ProcGenerator::EMIT_BITFIELD(DflowGenerator *dflowGenerator,
 
   bw = hi - lo + 1;
 
+  /* the whole operand, or more (int(x, w) widening x): a copy, not a slice
+     -- the logic optimizer's Verilog indexes the operand, and Genus refuses
+     to index a 1-bit one */
+  int ow = _expr_width(expr->u.e.l, sc);
+  if (lo == 0 && ow > 0 && hi >= ow - 1 && expr->u.e.l->type != E_INT) {
+    dflowGenerator->printChpPort(lexpr_name, resSuffix, bw);
+    dflowGenerator->preparePortForOpt(finalExprName, lexpr_name, bw);
+    return finalExprName;
+  }
+
   dflowGenerator->printChpBitfieldExpr (lexpr_name,
-					hi, lo, 
+					hi, lo,
 					resSuffix, bw);
 
   dflowGenerator->prepareBitfieldExprForOpt(lexpr_name,
@@ -511,13 +662,13 @@ const char *ProcGenerator::printExpr(DflowGenerator *dflowGenerator,
 
       if (expr->u.e.r) {
 	// create expr that is a bitfield!
-	Expr *tmpE = new Expr;
+	Expr *tmpE = new Expr();
 	tmpE->type = E_BITFIELD;
 	tmpE->u.e.l = lExpr;
-	tmpE->u.e.r = new Expr;
+	tmpE->u.e.r = new Expr();
 	tmpE->u.e.r->type = E_BITFIELD;
-	tmpE->u.e.r->u.e.l = new Expr;
-	tmpE->u.e.r->u.e.r = new Expr;
+	tmpE->u.e.r->u.e.l = new Expr();
+	tmpE->u.e.r->u.e.r = new Expr();
 	tmpE->u.e.r->u.e.l->type = E_INT;
 	tmpE->u.e.r->u.e.r->type = E_INT;
 	tmpE->u.e.r->u.e.l->u.ival.v = 0;
@@ -954,7 +1105,7 @@ void ProcGenerator::createCopyProcs() {
       act_connection *actConnection = opUsesIt.first;
       unsigned bitwidth = getBitwidth(actConnection);
       char *inName = new char[10240];
-      auto lookup = isBoolMap.find (actConnection);
+      auto lookup = _bool_entry (sc, isBoolMap, actConnection);
       if (lookup != isBoolMap.end()) {
 	if (!(lookup->second & 0x1)) {
 	  chpBackend->printBoolToIntDecl (lookup->first, 0x1);
@@ -1102,7 +1253,7 @@ static void fixboolchan_outname (Scope *sc,
 				 int sz)
 {
   act_connection *conn_rhs = id->Canonical (sc);
-  auto res = isBoolMap.find (conn_rhs);
+  auto res = _bool_entry (sc, isBoolMap, conn_rhs);
   if (res != isBoolMap.end()) {
     if (!(res->second & 0x2)) {
       chpBackend->printBoolToIntDecl (res->first, 0x2);
@@ -1497,6 +1648,19 @@ void ProcGenerator::handleNormDflowElement(act_dataflow_element *d,
       char *inputName = new char[10240];
       getActIdName(sc, input, inputName, 10240);
       unsigned bw = getBitwidth(input->Canonical(sc));
+      /* a bool channel is sunk through its bool -> int converter, as it is
+         read anywhere else (getActIdOrCopyName): lib::sink takes an int
+         (client_axis_sink's wr_done[i] -> *) */
+      auto res = _bool_entry (sc, isBoolMap, input->Canonical (sc));
+      if (res != isBoolMap.end()) {
+	if (!(res->second & 0x1)) {
+	  chpBackend->printBoolToIntDecl (res->first, 0x1);
+	}
+	res->second = res->second | 0x1;
+	char *tmp = _getNormActIdName (inputName);
+	snprintf (inputName, 10240, "_toint_%s", tmp);
+	FREE (tmp);
+      }
       createSink(inputName, bw);
       if (debug_verbose) {
         printf("%s is not used anywhere!\n", inputName);
@@ -1594,6 +1758,193 @@ char *ProcGenerator::nextAnon ()
   return buf;
 }
 
+/*
+ * Struct support.  dflowmap sizes every channel and variable as an int; a
+ * struct (or a channel carrying one) is the int of TypeFactory::totBitWidth
+ * bits that int() packs it into: fields in declaration order, the first in
+ * the most significant bits.  A field reference root.f[.g...] -- which is what
+ * ACT writes int(root) of a struct root as, the concatenation of its fields --
+ * becomes the bit slice root{hi..lo}, before anything else reads the
+ * expressions.
+ */
+static Expr *_mk_int(int v)
+{
+  Expr *e = new Expr();
+  e->type = E_INT;
+  e->u.ival.v = v;
+  e->u.ival.v_extra = NULL;
+  return e;
+}
+
+/* the struct behind an instance type: a struct, or a channel carrying one */
+static Data *_struct_of(InstType *it)
+{
+  if (!it) return nullptr;
+  if (TypeFactory::isChanType(it)) {
+    it = TypeFactory::getChanDataType(it);
+    if (!it) return nullptr;
+  }
+  if (!TypeFactory::isStructure(it)) return nullptr;
+  return dynamic_cast<Data *>(it->BaseType());
+}
+
+/* bits lo..hi of field path `f` within struct d's packing; false if unknown */
+static bool _field_slice(Data *d, ActId *f, int &lo, int &hi)
+{
+  if (!d || !f || f->arrayInfo()) return false;
+  int total = TypeFactory::totBitWidth(d);
+  int before = 0;
+  for (int i = 0; i < d->getNumPorts(); i++) {
+    InstType *ft = d->getPortType(i);
+    if (ft->arrayInfo()) return false;      // array fields: not handled
+    int w = TypeFactory::totBitWidth(ft);
+    if (w < 0) return false;
+    if (strcmp(d->getPortName(i), f->getName()) == 0) {
+      lo = total - before - w;
+      hi = total - before - 1;
+      if (f->Rest()) {
+        int slo, shi;
+        if (!_field_slice(_struct_of(ft), f->Rest(), slo, shi)) return false;
+        hi = lo + shi;
+        lo = lo + slo;
+      }
+      return true;
+    }
+    before += w;
+  }
+  return false;
+}
+
+/* function calls _flatten_fields left (not struct conversions) */
+static int _calls_left = 0;
+
+static Expr *_flatten_fields(Expr *e, Scope *sc)
+{
+  if (!e) return e;
+  switch (e->type) {
+  case E_VAR: {
+    ActId *id = (ActId *) e->u.e.l;
+    if (!id->Rest()) return e;
+    Data *d = _struct_of(sc->FullLookup(id->getName()));
+    int lo, hi;
+    if (!d || !_field_slice(d, id->Rest(), lo, hi)) return e;
+    Expr *v = new Expr();
+    v->type = E_VAR;
+    v->u.e.l = (Expr *) new ActId(id->getName(), id->arrayInfo());
+    v->u.e.r = NULL;
+    Expr *b = new Expr();
+    b->type = E_BITFIELD;
+    b->u.e.l = v;
+    b->u.e.r = new Expr();
+    b->u.e.r->type = E_BITFIELD;
+    b->u.e.r->u.e.l = _mk_int(lo);
+    b->u.e.r->u.e.r = _mk_int(hi);
+    return b;
+  }
+  case E_INT:
+  case E_TRUE:
+  case E_FALSE:
+    return e;
+  case E_BUILTIN_INT:
+    e->u.e.l = _flatten_fields(e->u.e.l, sc);
+    /* int(x) of a struct x, no width: x, which is already its packing */
+    if (!e->u.e.r && e->u.e.l && e->u.e.l->type == E_VAR
+        && _struct_of(sc->FullLookup((ActId *) e->u.e.l->u.e.l, NULL))) {
+      return e->u.e.l;
+    }
+    return e;
+  case E_BITFIELD:
+  case E_BUILTIN_BOOL:
+  case E_NOT:
+  case E_UMINUS:
+  case E_COMPLEMENT:
+    e->u.e.l = _flatten_fields(e->u.e.l, sc);
+    return e;
+  case E_QUERY:
+    e->u.e.l = _flatten_fields(e->u.e.l, sc);
+    e->u.e.r->u.e.l = _flatten_fields(e->u.e.r->u.e.l, sc);
+    e->u.e.r->u.e.r = _flatten_fields(e->u.e.r->u.e.r, sc);
+    return e;
+  case E_CONCAT:
+    for (Expr *x = e; x; x = x->u.e.r) x->u.e.l = _flatten_fields(x->u.e.l, sc);
+    return e;
+  case E_AND: case E_OR: case E_XOR:
+  case E_PLUS: case E_MINUS: case E_MULT: case E_DIV: case E_MOD:
+  case E_LSL: case E_LSR: case E_ASR:
+  case E_LT: case E_GT: case E_LE: case E_GE: case E_EQ: case E_NE:
+    e->u.e.l = _flatten_fields(e->u.e.l, sc);
+    e->u.e.r = _flatten_fields(e->u.e.r, sc);
+    return e;
+  case E_FUNCTION: {
+    /* T(x), the conversion of a packed value to struct T, which ACT
+       expands to a function named after T with one argument (the fields'
+       concatenation): flattened, it is its argument */
+    Function *f = (Function *) e->u.fn.s;
+    InstType *rt = f ? f->getRetType() : nullptr;
+    Expr *args = e->u.fn.r;
+    /* the conversion is the struct's own macro, named "<T's expanded
+       name>/<T's base name><>" (e.g. "ar<24,1>/ar<>") */
+    bool conv = false;
+    if (rt && TypeFactory::isStructure(rt) && args && args->type == E_LT && !args->u.e.r) {
+      const char *fn = f->getName(), *tn = rt->BaseType()->getName();
+      size_t tl = strlen(tn), bl = strcspn(tn, "<");
+      conv = strncmp(fn, tn, tl) == 0 && fn[tl] == '/'
+             && strncmp(fn + tl + 1, tn, bl) == 0 && fn[tl + 1 + bl] == '<';
+    }
+    /* int(x) of a struct x, the struct's int macro ("sb<4>/int<>"): x */
+    if (!conv && rt && TypeFactory::isIntType(rt) && args && args->type == E_LT
+        && !args->u.e.r && f) {
+      const char *fn = f->getName(), *sl = strrchr(fn, '/');
+      conv = sl && strcmp(sl, "/int<>") == 0;
+    }
+    if (conv) {
+      return _flatten_fields(args->u.e.l, sc);
+    }
+    _calls_left++;
+    for (Expr *x = args; x; x = x->u.e.r) x->u.e.l = _flatten_fields(x->u.e.l, sc);
+    return e;
+  }
+  default:
+    return e;
+  }
+}
+
+static void _flatten_dflow(list_t *l, Scope *sc)
+{
+  for (listitem_t *li = list_first (l); li; li = list_next (li)) {
+    auto *d = (act_dataflow_element *) list_value (li);
+    if (d->t == ACT_DFLOW_CLUSTER) {
+      _flatten_dflow(d->u.dflow_cluster, sc);
+    } else if (d->t == ACT_DFLOW_FUNC) {
+      d->u.func.lhs = _flatten_fields(d->u.func.lhs, sc);
+    }
+  }
+}
+
+static void _flatten_structs(Process *p, std::set<Process *> &done)
+{
+  if (!p || !p->isExpanded() || done.count(p)) return;
+  done.insert(p);
+  if (p->getlang() && p->getlang()->getdflow()) {
+    _flatten_dflow(p->getlang()->getdflow()->dflow, p->CurScope());
+  }
+  ActInstiter iter(p->CurScope());
+  for (iter = iter.begin(); iter != iter.end(); iter++) {
+    ValueIdx *vx = *iter;
+    if (TypeFactory::isProcessType(vx->t)) {
+      _flatten_structs(dynamic_cast<Process *>(vx->t->BaseType()), done);
+    }
+  }
+}
+
+int ProcGenerator::flattenStructs(Process *top)
+{
+  std::set<Process *> done;
+  _calls_left = 0;
+  _flatten_structs(top, done);
+  return _calls_left;
+}
+
 int ProcGenerator::run(Process *p) {
   auto stdNS = ActNamespace::Global()->findNS(Constant::STD_NAMESPACE);
   if (p->getns() == stdNS) return 0;
@@ -1613,7 +1964,12 @@ int ProcGenerator::run(Process *p) {
     chpBackend->createChpBlock(p,1);
     return 0;
   }
-  chpBackend->printProcHeader(p, config_get_int ("act.refine_steps"));
+  /* the model's units at its top level, not in a refine block even with
+     -ref: the netlist (<proc>_impl) overrides them at its top level, and an
+     override of an instance declared in a refine block silently does not
+     apply -- the netlist then simulates as an empty process */
+  chpBackend->printProcHeader(p, 0);
+  _flatten_dflow(p->getlang()->getdflow()->dflow, sc);   // struct support
   collectBitwidthInfo();
   collectOpUses();
   createCopyProcs();
@@ -1634,7 +1990,7 @@ int ProcGenerator::run(Process *p) {
     chpBackend->printBoolToIntConv (it.first, it.second);
   }
   
-  chpBackend->printProcEnding(config_get_int ("act.refine_steps"));
+  chpBackend->printProcEnding(0);
   return 0;
 }
 

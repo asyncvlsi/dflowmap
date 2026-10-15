@@ -52,6 +52,12 @@ class ProcGenerator {
   ProcGenerator(Metrics *metrics,
                 ChpBackend *chpBackend);
 
+  /* struct support, for top and every process below it: each struct value
+     in the dataflow becomes the int it packs into (see ProcGenerator.cc).
+     Before ActCHPFuncInline, which would expand the struct macros.  Returns
+     the number of function calls left, which the inliner is needed for. */
+  static int flattenStructs(Process *top);
+
   const char *getActIdOrCopyName(ActId *actId);
 
   void collectBitwidthInfo();
